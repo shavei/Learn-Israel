@@ -9,9 +9,12 @@ Inputs:
                                          Israeli shores, the regions and the districts
   content/localities.csv                 CBS locality file: official city points, by locality symbol
   content/jordan_river.geojson           the Jordan River from OpenStreetMap (ODbL)
-  (the three content files above are refreshed by tools/fetch_sources.py)
-  Natural Earth 10m GeoJSON (public domain), downloaded into tools/raw/: the neighbors,
-                                         Gaza and the Jordanian half of the Dead Sea
+  content/region_overrides.geojson       OSM areas moved between regions (see regions.yaml)
+  content/surroundings.geojson           OSM land (from the coastline), the neighboring
+                                         countries and the Dead Sea (ODbL)
+  content/palestine.geojson              Gaza and the West Bank, UN OCHA (CC BY-IGO); the
+                                         West Bank's western edge is the Green Line
+  (the content files above are refreshed by tools/fetch_sources.py)
   GeoNames cities via the geonamescache package (CC BY 4.0)
 
 Outputs (app/src/main/assets/):
@@ -30,7 +33,6 @@ from __future__ import annotations
 import csv
 import json
 import sys
-import urllib.request
 from pathlib import Path
 
 import geonamescache
@@ -50,16 +52,7 @@ from shapely.geometry import (
 )
 
 ROOT = Path(__file__).resolve().parent.parent
-RAW = ROOT / "tools" / "raw"
 ASSETS = ROOT / "app" / "src" / "main" / "assets"
-
-NE_BASE = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
-NE_LAYERS = [
-    "ne_10m_admin_0_countries",
-    "ne_10m_admin_0_disputed_areas",
-    "ne_10m_lakes",
-    "ne_10m_rivers_lake_centerlines",
-]
 
 # Map window in lon/lat. Everything is clipped to it.
 WINDOW = box(32.6, 28.4, 37.2, 34.2)
@@ -83,18 +76,6 @@ DISTRICT_OF_CBS_NUMBER = {1: "jerusalem", 2: "north", 3: "haifa", 4: "center", 5
 MAX_UNASSIGNED_M2 = 1e6
 
 TO_ITM = Transformer.from_crs("EPSG:4326", "EPSG:2039", always_xy=True)
-
-
-def fetch_natural_earth() -> dict[str, list[dict]]:
-    RAW.mkdir(parents=True, exist_ok=True)
-    out = {}
-    for name in NE_LAYERS:
-        path = RAW / f"{name}.geojson"
-        if not path.exists():
-            print(f"downloading {name}")
-            urllib.request.urlretrieve(NE_BASE + name + ".geojson", path)
-        out[name] = json.loads(path.read_text())["features"]
-    return out
 
 
 def project(geom):
@@ -151,10 +132,6 @@ def encode_lines(geom) -> list[list[int]]:
     return [flat(l.coords) for l in lines(geom) if len(l.coords) >= 2]
 
 
-def by_prop(features, key, value):
-    return [shape(f["geometry"]) for f in features if f["properties"].get(key) == value]
-
-
 def partition(area, shapes: dict, min_part=2e5) -> tuple[dict, object]:
     """Splits [area] among the shapes in order: each takes what earlier ones left.
 
@@ -202,17 +179,13 @@ def close_gaps(geom):
     return ops.unary_union([Polygon(p.exterior) for p in polygons(geom)])
 
 
-def official_green_line(official):
-    """Where the CBS's Israel meets the natural regions of Judea and Samaria.
+def armistice_line(west_bank, jordan, dead_sea):
+    """The Green Line: the West Bank's edge (UN OCHA) where it faces Israel.
 
-    It follows the 1949 armistice line except around Jerusalem, where it follows the
-    city's municipal border.
+    Its eastern edge, along the Jordan River and the Dead Sea, is left out.
     """
-    israel = ops.unary_union([g for c, (g, _) in official.items() if c not in JUDEA_SAMARIA_CODES])
-    judea_samaria = ops.unary_union([g for c, (g, _) in official.items() if c in JUDEA_SAMARIA_CODES])
-    line = clean(israel, SIMPLIFY["green_line"]).boundary.intersection(
-        clean(judea_samaria, SIMPLIFY["green_line"]).buffer(150)
-    )
+    line = west_bank.boundary.difference(jordan.buffer(0.01)).difference(dead_sea.buffer(0.01))
+    line = clean(line, SIMPLIFY["green_line"])
     return ops.linemerge(lines(line)) if not line.is_empty else line
 
 
@@ -262,10 +235,13 @@ def outlines(pieces: dict, land_area) -> list:
 
 
 def main() -> int:
-    ne = fetch_natural_earth()
-    countries = ne["ne_10m_admin_0_countries"]
-    disputed = ne["ne_10m_admin_0_disputed_areas"]
     official = official_regions()
+    around = json.loads((ROOT / "content" / "surroundings.geojson").read_text())["features"]
+    osm_land = ops.unary_union([shape(f["geometry"]) for f in around if f["properties"]["kind"] == "land"])
+    countries = {f["properties"]["country"]: shape(f["geometry"]) for f in around if f["properties"]["kind"] == "country"}
+    osm_dead_sea = ops.unary_union([shape(f["geometry"]) for f in around if f["properties"]["kind"] == "dead_sea"])
+    palestine = json.loads((ROOT / "content" / "palestine.geojson").read_text())["features"]
+    ocha = {f["properties"]["area"]: shape(f["geometry"]) for f in palestine}
 
     # Main map = de facto lines of control: Israel plus Judea and Samaria as one land
     # area, with the official outline (the natural regions follow Israel's official
@@ -274,35 +250,31 @@ def main() -> int:
     land_ll = close_gaps(ops.unary_union([g for g, _ in official.values()])).intersection(WINDOW)
     land = clean(land_ll, SIMPLIFY["land"])
 
-    # Lakes: the official Kinneret and the Israeli half of the Dead Sea, plus the
-    # Jordanian half from Natural Earth.
-    ne_lakes = ne["ne_10m_lakes"]
+    # Lakes: the official Kinneret; the Dead Sea's northern basin from OSM (both
+    # halves) with the official southern ponds.
     official_lakes = [p for p in polygons(official[LAKE_CODE][0]) if p.area > 1e-4]
-    ne_dead_sea = ops.unary_union(by_prop(ne_lakes, "name", "Dead Sea")).intersection(WINDOW)
     lake_geoms = {
         "Sea of Galilee": ops.unary_union([p for p in official_lakes if p.centroid.y > 32.5]),
-        "Dead Sea": ops.unary_union([p for p in official_lakes if p.centroid.y < 32.5] + [ne_dead_sea.difference(land_ll)]),
+        "Dead Sea": ops.unary_union([p for p in official_lakes if p.centroid.y < 32.5] + [osm_dead_sea]),
     }
     lakes_itm = ops.unary_union([clean(g, SIMPLIFY["lakes"]) for g in lake_geoms.values()])
 
-    # Neighbors and Gaza from Natural Earth, which draws Israel's borders up to a few
-    # kilometers off. Land it gives Israel beyond the official outline goes to whatever
-    # lies next to it: the neighbor country, Gaza, or the sea.
-    ne_israel = ops.unary_union(by_prop(countries, "ADM0_A3", "ISR") + by_prop(countries, "ADM0_A3", "PSX"))
-    gaza = ops.unary_union(by_prop(countries, "ADM0_A3", "PSX")).intersection(
-        ops.unary_union(by_prop(disputed, "NAME", "Gaza")).buffer(0.01)
-    )
-    outside = {a3: ops.unary_union(by_prop(countries, "ADM0_A3", a3)) for a3 in NEIGHBORS}
-    outside["gaza"] = gaza
-    outside["sea"] = WINDOW.difference(ops.unary_union([ne_israel] + list(outside.values()))).difference(ne_dead_sea)
+    # Around Israel: OSM's land (built from the coastline), split among the neighbors
+    # by their OSM boundaries, and Gaza by the UN OCHA boundary. Where OSM's land and
+    # Israel's official outline disagree, the strip goes to whatever lies next to it:
+    # a neighbor, Gaza or the sea.
+    outside = {a3: countries[a3].intersection(osm_land) for a3 in NEIGHBORS}
+    outside["gaza"] = ocha["gaza"].intersection(osm_land)
+    outside["sea"] = WINDOW.difference(osm_land)
     outside = {k: project(g.intersection(WINDOW).difference(land_ll)) for k, g in outside.items()}
-    orphans = project(ne_israel.difference(gaza).difference(land_ll).difference(ne_dead_sea).intersection(WINDOW))
+    claimed = ops.unary_union([land_ll, ocha["gaza"]] + list(countries.values()))
+    orphans = project(osm_land.intersection(WINDOW).difference(claimed))
     outside, _ = fill(orphans, outside, start=outside)
     water = outside.pop("sea")
     gaza_itm = smooth(outside.pop("gaza"), SIMPLIFY["land"])
     neighbor_geoms = {a3: smooth(g, SIMPLIFY["neighbors"]) for a3, g in outside.items()}
 
-    green_line = official_green_line(official)
+    green_line = armistice_line(ocha["west_bank"], countries["JOR"], osm_dead_sea)
 
     rivers = json.loads((ROOT / "content" / "jordan_river.geojson").read_text())["features"]
     river_geoms = {"Jordan": ops.unary_union([shape(f["geometry"]) for f in rivers]).intersection(WINDOW)}
@@ -319,7 +291,7 @@ def main() -> int:
     region_of_code = {code: key for key, codes in groups.items() for code in codes}
 
     # Labels for areas sit inside the part of the area near Israel, so they stay on screen.
-    near_israel = project(ops.unary_union([land_ll, gaza])).buffer(40_000).envelope
+    near_israel = project(ops.unary_union([land_ll, ocha["gaza"]])).buffer(40_000).envelope
 
     def area_label(geom_itm):
         part = geom_itm.intersection(near_israel)
@@ -437,7 +409,7 @@ def main() -> int:
         return 1
 
     # ---------- map layers ----------
-    israel_view = project(ops.unary_union([land_ll, gaza]))
+    israel_view = project(ops.unary_union([land_ll, ocha["gaza"]]))
     minx, miny, maxx, maxy = israel_view.bounds
     window_itm = project(WINDOW)
     map_json = {
@@ -456,7 +428,7 @@ def main() -> int:
             {"id": "regions", "lines": encode_lines(outlines(region_geoms, land_area))},
             {"id": "green_line", "lines": encode_lines(green_line)},
         ],
-        "attribution": "Israel Central Bureau of Statistics; Ministry of Agriculture; Natural Earth; "
+        "attribution": "Israel Central Bureau of Statistics; Ministry of Agriculture; UN OCHA; "
                        "GeoNames (CC BY 4.0); © OpenStreetMap contributors (ODbL)",
     }
 

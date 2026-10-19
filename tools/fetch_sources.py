@@ -20,6 +20,15 @@ while the sources keep changing. Rerun this only to refresh them, then rebuild.
                                     (relation 2246907), (c) OpenStreetMap contributors, ODbL.
   content/region_overrides.geojson  The OpenStreetMap areas listed under "overrides" in
                                     content/regions.yaml (ODbL).
+  content/surroundings.geojson      Everything around Israel, from OpenStreetMap (ODbL): the
+                                    land (osmdata.openstreetmap.de land polygons, built from
+                                    the coastline), the neighboring countries' boundaries and
+                                    the Dead Sea. Clipped to the map window.
+  content/palestine.geojson         The Gaza Strip and the West Bank from the UN OCHA common
+                                    operational dataset (HDX "cod-ab-pse", CC BY-IGO). The West
+                                    Bank's western edge is the 1949 armistice line (Green Line).
+
+The land polygons come as a 900 MB download; pyshp reads them (in requirements.txt).
 
 Usage:  python3 tools/fetch_sources.py
 """
@@ -37,7 +46,7 @@ from pathlib import Path
 
 import shapely
 from shapely import ops
-from shapely.geometry import LineString, MultiPolygon, Polygon, mapping, shape
+from shapely.geometry import LineString, MultiPolygon, Polygon, shape
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTENT = ROOT / "content"
@@ -55,6 +64,15 @@ JUDEA_SAMARIA_CODES = range(700, 900)
 LOCALITIES_API = "https://data.gov.il/api/3/action/datastore_search"
 LOCALITIES_RESOURCE = "d47a54ff-87f0-44b3-b33a-f284c0c38e5a"  # קובץ היישובים 2023
 JORDAN_RELATION = 2246907
+DEAD_SEA_RELATION = 9351124
+COUNTRY_RELATIONS = {"LBN": 184843, "SYR": 184840, "JOR": 184818, "EGY": 1473947, "SAU": 307584}
+LAND_POLYGONS = "https://osmdata.openstreetmap.de/download/land-polygons-split-4326.zip"
+OCHA_PALESTINE = (
+    "https://data.humdata.org/dataset/2caf8373-816f-458c-9913-71bddb9cab7c/resource/"
+    "ca372385-4c79-4378-abf1-cb506fb98023/download/pse_admin_boundaries.geojson.zip"
+)
+# The map window in lon/lat (as in build_content.py).
+WINDOW = (32.6, 28.4, 37.2, 34.2)
 
 # About 20 m. Simplified as one coverage, so neighbors keep one shared border.
 SIMPLIFY_DEG = 0.0002
@@ -174,6 +192,68 @@ def jordan_river() -> None:
     print(f"  {out.relative_to(ROOT)}: {out.stat().st_size // 1024} KB")
 
 
+def osm_area(relation_id: int):
+    roles, tags = osm_relation(relation_id)
+    outer = ops.unary_union(list(ops.polygonize(roles.get("outer", []))))
+    inner = roles.get("inner")
+    return (outer.difference(ops.unary_union(list(ops.polygonize(inner)))) if inner else outer), tags
+
+
+def surroundings() -> None:
+    import tempfile
+    import zipfile
+
+    import shapefile
+    from shapely.geometry import box
+
+    window = box(*WINDOW)
+    features = []
+    print("fetching the OSM land polygons (about 900 MB)")
+    with tempfile.TemporaryDirectory() as tmp:
+        zip_path = Path(tmp) / "land.zip"
+        req = urllib.request.Request(LAND_POLYGONS, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=3600) as r, zip_path.open("wb") as f:
+            while chunk := r.read(1 << 20):
+                f.write(chunk)
+        with zipfile.ZipFile(zip_path) as z:
+            z.extractall(tmp)
+        shp = next(Path(tmp).glob("*/land_polygons.shp"))
+        parts = [shape(s.__geo_interface__).intersection(window) for s in shapefile.Reader(str(shp)).iterShapes(bbox=list(WINDOW))]
+    land = ops.unary_union([p for p in parts if not p.is_empty]).simplify(SIMPLIFY_DEG / 2)
+    features.append({"type": "Feature", "properties": {"kind": "land"}, "geometry": rounded(land)})
+    for a3, rid in COUNTRY_RELATIONS.items():
+        print(f"fetching {a3} (OSM relation {rid})")
+        area, _ = osm_area(rid)
+        features.append({"type": "Feature", "properties": {"kind": "country", "country": a3, "osm_relation": rid},
+                         "geometry": rounded(area.intersection(window).simplify(SIMPLIFY_DEG / 2))})
+    print(f"fetching the Dead Sea (OSM relation {DEAD_SEA_RELATION})")
+    dead_sea, _ = osm_area(DEAD_SEA_RELATION)
+    features.append({"type": "Feature", "properties": {"kind": "dead_sea", "osm_relation": DEAD_SEA_RELATION},
+                     "geometry": rounded(dead_sea.simplify(SIMPLIFY_DEG / 2))})
+    out = CONTENT / "surroundings.geojson"
+    out.write_text(collection(features, "OpenStreetMap contributors, ODbL 1.0 (land polygons: osmdata.openstreetmap.de)"))
+    print(f"  {out.relative_to(ROOT)}: {out.stat().st_size // 1024} KB")
+
+
+def palestine() -> None:
+    import io
+    import zipfile
+
+    print("fetching the UN OCHA boundaries of Gaza and the West Bank")
+    with zipfile.ZipFile(io.BytesIO(get(OCHA_PALESTINE))) as z:
+        name = next(n for n in z.namelist() if n.endswith("admin1.geojson"))
+        admin1 = json.loads(z.read(name))["features"]
+    features = []
+    for f in admin1:
+        key = {"Gaza Strip": "gaza", "West Bank": "west_bank"}[f["properties"]["adm1_name"]]
+        geom = shape(f["geometry"]).buffer(0).simplify(SIMPLIFY_DEG / 2)
+        features.append({"type": "Feature", "properties": {"area": key, "pcode": f["properties"]["adm1_pcode"]},
+                         "geometry": rounded(geom)})
+    out = CONTENT / "palestine.geojson"
+    out.write_text(collection(features, "UN OCHA, State of Palestine COD-AB (HDX cod-ab-pse), CC BY-IGO"))
+    print(f"  {out.relative_to(ROOT)}: {out.stat().st_size // 1024} KB")
+
+
 def region_overrides() -> None:
     import yaml
 
@@ -201,6 +281,8 @@ def main() -> int:
     localities()
     jordan_river()
     region_overrides()
+    surroundings()
+    palestine()
     return 0
 
 

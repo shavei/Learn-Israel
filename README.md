@@ -73,8 +73,9 @@ The design is built on the most robust findings in learning science:
 | `content/natural_regions.geojson` | Official natural regions (CBS; Ministry of Agriculture for Judea and Samaria): the land's outline, the regions and the districts |
 | `content/localities.csv` | CBS locality file: official points of the cities and towns |
 | `content/jordan_river.geojson` | The Jordan River from OpenStreetMap |
-| `tools/fetch_sources.py` | Refreshes the three files above |
-| `tools/build_content.py` | Data pipeline: the files above + Natural Earth (neighbors) + `places.yaml` into `app/src/main/assets/` |
+| `tools/fetch_sources.py` | Refreshes the source files in `content/` |
+| `content/surroundings.geojson`, `content/palestine.geojson` | Coastlines, neighbors and the Dead Sea (OpenStreetMap); Gaza and the Green Line (UN OCHA) |
+| `tools/build_content.py` | Data pipeline: the files above + `places.yaml` into `app/src/main/assets/` |
 
 ## Build and test
 
@@ -101,8 +102,9 @@ CI checks that the committed assets match the pipeline output.
 
 Israel's outline, natural regions, districts and city and town locations from the Israel
 Central Bureau of Statistics (natural regions 2018, locality file 2023); natural regions of
-Judea and Samaria from the Ministry of Agriculture. Neighboring countries from
-[Natural Earth](https://www.naturalearthdata.com/) (public domain). Locations of Palestinian
-cities from [GeoNames](https://www.geonames.org/) (CC BY 4.0) and, with the Jordan River,
-© [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL 1.0). The FSRS scheduler is
+Judea and Samaria from the Ministry of Agriculture. Gaza and the Green Line from UN OCHA
+(CC BY-IGO). Coastlines, neighboring countries, the Dead Sea, the Jordan River and the
+location of Jericho © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
+(ODbL 1.0). Locations of the other Palestinian cities from
+[GeoNames](https://www.geonames.org/) (CC BY 4.0). The FSRS scheduler is
 ported from [py-fsrs](https://github.com/open-spaced-repetition/py-fsrs) (MIT).

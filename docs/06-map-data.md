@@ -4,7 +4,6 @@
 
 | Data | Source | License | Use |
 |------|--------|---------|-----|
-| Coastline, neighbors, seas, lakes | Natural Earth (1:10m) | Public domain | Frame layer, background |
 | Detailed boundaries, rivers, roads, places, multilingual names | OpenStreetMap via Geofabrik regional extract | ODbL 1.0 (attribution + share-alike on the derived database) | Most geometry |
 | Official locality list, codes, Hebrew names, population, district | Israel Central Bureau of Statistics (CBS) locality file, published on data.gov.il | Israeli government open data terms (verify) | Canonical list of localities and their attributes |
 | Multilingual names, Wikipedia links, extra facts | Wikidata | CC0 | Hebrew names and aliases, cross-checking, fact research |
@@ -12,14 +11,15 @@
 | City and town points | CBS locality file 2023 (data.gov.il): official point, natural region and district of every locality | Israeli government open data | All Israeli cities and towns |
 | Palestinian cities | GeoNames; OpenStreetMap for Jericho (GeoNames is 1.4 km off there) | CC BY 4.0; ODbL | Hebron, Bethlehem, Jericho, Shechem, Ramallah |
 | Jordan River | OpenStreetMap relation 2246907 (main stream) | ODbL 1.0 | Frame item and map layer |
+| Coastlines, neighboring countries, the whole Dead Sea | OpenStreetMap: land polygons from osmdata.openstreetmap.de (built from the coastline), country relations (Lebanon 184843, Syria 184840, Jordan 184818, Egypt 1473947, Saudi Arabia 307584), Dead Sea relation 9351124 | ODbL 1.0 | Neighbors, seas, the Dead Sea's northern basin |
+| Gaza Strip, Green Line | UN OCHA common operational dataset for the State of Palestine (HDX "cod-ab-pse"); the West Bank's western edge is the 1949 armistice line, with East Jerusalem and the Latrun no-man's-land on its eastern side | CC BY-IGO | Gaza, the optional Green Line layer |
 
 **Status (Phase 1b):** `tools/fetch_sources.py` downloads the official natural regions,
 the CBS locality file and the Jordan River into `content/`, where they are committed so
-the build is reproducible and offline. Natural Earth is used only for the neighboring
-countries, Gaza and the Jordanian half of the Dead Sea. Checked against known border
-points (Taba, Kerem Shalom), the official outline is within about 20 m; Natural Earth's
-was 150 to 600 m off there and up to a few kilometers along the Egyptian and Jordanian
-borders.
+the build is reproducible and offline; Natural Earth is no longer used. Checked against
+known border points (Taba, Kerem Shalom), the official outline is within about 20 m;
+Natural Earth's was 150 to 600 m off there and up to a few kilometers along the
+Egyptian and Jordanian borders.
 
 How the map is built:
 - **Land:** the union of all official natural regions (Israel, the Golan, Judea and
@@ -34,8 +34,12 @@ How the map is built:
   with the district's number, so the districts are unions of natural regions.
 - **Checks:** every Israeli city must lie in the natural region and the district the CBS
   locality file gives it, and within 300 m of the land.
-- **Neighbors:** land that Natural Earth gives Israel beyond the official outline goes to
-  whatever lies next to it: the neighbor country, Gaza or the sea.
+- **Neighbors and Gaza:** OSM's land, split by the OSM country boundaries and the UN
+  OCHA Gaza boundary. Where OSM's land and Israel's official outline disagree, the strip
+  goes to whatever lies next to it: a neighbor, Gaza or the sea.
+- **Lakes:** the official Kinneret; the Dead Sea is OSM's northern basin (both halves)
+  plus the official southern ponds.
+- **Green Line:** the UN OCHA West Bank boundary where it faces Israel.
 - Regions and districts are each simplified together (150 m), so neighbors keep one
   shared border.
 
