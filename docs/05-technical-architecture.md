@@ -24,7 +24,7 @@
 | Navigation | Navigation Compose | Standard |
 | Background | WorkManager | Daily reminder scheduling |
 | Analytics (opt in) | Self-hosted or privacy-friendly (e.g. PostHog / Firebase with minimal events) | Decide later; local logs are the source of truth |
-| Backend (phase 3) | Supabase or Firebase | Accounts, sync, leagues, daily challenge seed |
+| Backend (phase 3) | Decided later (Supabase or Firebase) | Accounts, sync, leagues, daily challenge seed. Phases 0 to 2 are fully offline |
 | Build | Gradle Kotlin DSL, version catalog | Standard |
 | Min SDK | 26 (Android 8.0) | Covers nearly all active devices |
 
@@ -68,7 +68,7 @@ tools/                    Python data pipeline (not shipped), see doc 06
 6. **Rendering cost.** Cache `Path` objects per layer and level of detail, redraw only
    the transform on pan/zoom. Labels drawn with `TextMeasurer`, culled by zoom and
    collision.
-7. **RTL and labels.** Hebrew and Arabic labels render with correct bidi; label
+7. **RTL and labels.** Hebrew labels render with correct bidi; label
    placement uses precomputed anchor points from the pipeline.
 
 ## Data flow
@@ -77,7 +77,7 @@ tools/                    Python data pipeline (not shipped), see doc 06
 assets/
   geometry.bin   (projected, simplified, all layers)
   places.json    (ids, types, tiers, units, anchors, confusables, importance)
-  i18n/he.json, en.json, ar.json (names, alt names, facts, hints)
+  i18n/he.json (names, alt names, facts, hints)
         |
         v
 :core:content (load once, keep in memory, a few MB at most)
@@ -111,8 +111,8 @@ AchievementEntity(id PK, unlockedAt)
   tests that replay synthetic learners and check retention targets.
 - `:core:geo`: unit tests for projection round trips, distances against known values,
   point-in-polygon edge cases.
-- Compose UI: screenshot tests (Paparazzi or Roborazzi) for key screens in he/en and
-  light/dark.
+- Compose UI: screenshot tests (Paparazzi or Roborazzi) for key screens in Hebrew (RTL)
+  and light/dark.
 - Instrumented smoke test of a full session on an emulator in CI.
 - Performance: Macrobenchmark for startup and map frame timing.
 
@@ -129,5 +129,6 @@ AchievementEntity(id PK, unlockedAt)
 - No account needed for core use. No location permission needed (we never use the
   player's position).
 - Local data only by default. Opt-in anonymous review upload, with clear explanation.
-- Google Play Data Safety form kept accurate. If targeting children under 13,
-  follow Google Play Families policy (restricts ads and analytics SDKs).
+- Google Play Data Safety form kept accurate. Not targeting children under 13 at
+  launch (decision), so the Families policy does not apply yet; revisit with a
+  classroom mode.

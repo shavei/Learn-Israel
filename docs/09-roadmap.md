@@ -1,13 +1,13 @@
 # 09. Roadmap
 
 Phases are ordered by learning value first. Each ends with a concrete exit test.
-Sizes are relative (S, M, L) because team size is not yet decided.
+Sizes are relative (S, M, L). The team is one developer working with Claude Code, so
+scope is kept tight and every phase ships something usable.
 
 ## Phase 0: Foundations and prototype (M)
 
 Goal: prove the core loop feels good and teaches.
 
-- [ ] Decide open questions marked "blocking" in [10-risks-and-open-questions.md](10-risks-and-open-questions.md)
 - [ ] Android project skeleton (modules, Compose, Hilt, Room, CI)
 - [ ] Data pipeline v0: Natural Earth + OSM extract for the frame and 30 places
 - [ ] Map renderer v0: outline, sea, points, pan/zoom, hit testing
@@ -22,7 +22,7 @@ drops clearly and testers want to keep going.
 
 Goal: a complete, polished learning product for Tiers 0 to 3.
 
-- [ ] Content: Tiers 0 to 3 (about 130 places) in Hebrew and English, reviewed
+- [ ] Content: Tiers 0 to 3 (about 130 places) in Hebrew, reviewed
 - [ ] Modes: Discover, Pin It, Name It (MC and typed), Which Way
 - [ ] Full session composer (caps, siblings, confusables, 85 percent targeting)
 - [ ] Facet ladder and hint ladder
@@ -30,6 +30,7 @@ Goal: a complete, polished learning product for Tiers 0 to 3.
 - [ ] Onboarding with placement test
 - [ ] Daily reminder, streak with freezes
 - [ ] Accessibility pass, RTL pass, dark mode
+- [ ] Optional Green Line layer in settings
 - [ ] Local analytics and pre/post test
 
 **Exit test:** closed beta; retention at review between 85 and 92 percent; pre/post
@@ -49,15 +50,15 @@ test shows large gains; D7 retention benchmark agreed in advance.
 
 ## Phase 3: Social and launch (M)
 
+- [ ] Choose backend (Supabase or Firebase)
 - [ ] Accounts (optional) and cloud sync
 - [ ] Daily Challenge with shareable result
 - [ ] Friends and weekly leagues
-- [ ] Store listing, screenshots, video in he/en
+- [ ] Store listing, screenshots, video in Hebrew
 - [ ] Public launch on Google Play
 
 ## Phase 4: Growth (open ended)
 
-- [ ] Arabic localization
 - [ ] Tier 7 deep cuts, downloadable content packs
 - [ ] Teacher / classroom mode with dashboards
 - [ ] Personal FSRS parameter optimization on device
