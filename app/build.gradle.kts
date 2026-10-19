@@ -13,8 +13,20 @@ android {
         applicationId = "com.shavei.mapa"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        // CI run number, so every published build installs as an update over the last one.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = "0.1.0"
+    }
+
+    signingConfigs {
+        // A fixed debug key committed to the repo (debug keys are not secret). Without it,
+        // every CI machine signs with its own random key and phones refuse to update.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {

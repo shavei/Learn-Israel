@@ -29,6 +29,29 @@ jobs:
           name: mapa-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
+  # Every push to main republishes the APK at one fixed link (see README "Install").
+  publish-apk:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [android, content]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mapa-debug-apk
+      - name: Replace the latest-build release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mv app-debug.apk mapa.apk
+          gh release delete latest-build --cleanup-tag --yes || true
+          gh release create latest-build mapa.apk \
+            --target "$GITHUB_SHA" \
+            --title "Latest build (#$GITHUB_RUN_NUMBER)" \
+            --notes "Debug build of main at $GITHUB_SHA, published automatically by CI. Install mapa.apk on an Android phone (8.0 or newer)."
+
   content:
     runs-on: ubuntu-latest
     steps:

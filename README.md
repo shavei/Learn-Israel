@@ -7,6 +7,14 @@ people actually remember.
 > with 30 places, spaced repetition (FSRS), and distance feedback. See the
 > [roadmap](docs/09-roadmap.md).
 
+## Install on your phone
+
+**[Download the latest Mapa APK](https://github.com/shavei/Learn-Israel/releases/download/latest-build/mapa.apk)**
+
+This link always points to the newest build of `main`; CI republishes it on every merge.
+Open it on an Android phone (8.0 or newer) and allow installing from your browser when
+asked. Installing a newer build updates the app and keeps your progress.
+
 ![Phase 0: home, a new place, a question, a correct answer, a miss, and the mastery map](docs/images/phase0-flow.png)
 
 ## The idea in one paragraph
