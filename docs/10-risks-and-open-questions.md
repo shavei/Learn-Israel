@@ -1,17 +1,23 @@
-# 10. Risks and Open Questions
+# 10. Decisions and Risks
 
-## Open questions (decisions needed)
+## Decisions (made 2026-10-19)
 
-| # | Question | Options | Recommendation | Blocking for |
-|---|----------|---------|----------------|--------------|
-| 1 | How are borders and contested areas shown? | De facto lines; 1949 lines; both with a toggle | De facto lines as default plus an optional, neutrally labeled Green Line layer | Phase 0 content |
-| 2 | Primary audience at launch? | Students; olim/visitors; general adults | General adults + students, Hebrew first, English at launch | Phase 1 content tone |
-| 3 | Monetization model? | One-time unlock; free; school licenses | Free core, one-time unlock for deep tiers; no ads in sessions | Phase 3 |
-| 4 | App name and branding? | Learn Israel, Mapa, Pin Israel, ... | Test 3 names with target users | Phase 3 |
-| 5 | Is Arabic in v1? | Yes / later | Later (Phase 4), but design for it now (RTL, data model) | No |
-| 6 | Target children under 13? | Yes / no | Not at launch (simplifies Families policy); revisit with classroom mode | Phase 3 |
-| 7 | Backend provider for social features? | Supabase; Firebase | Decide in Phase 2 | Phase 3 |
-| 8 | Team and timeline? | | Needed to turn S/M/L into dates | Planning |
+| # | Question | Decision | Consequences |
+|---|----------|----------|--------------|
+| 1 | How are borders and contested areas shown? | De facto lines of control as the main map, plus an optional, neutrally labeled Green Line layer in settings | Pipeline builds both line sets; fact lines stay geographic, not political |
+| 2 | Primary audience at launch? | General adults and Israeli school students | Curriculum-aligned units, casual-friendly sessions |
+| 3 | Monetization? | Completely free: no ads, no purchases, no subscription | All tiers and modes open to everyone; costs kept near zero (offline first, backend only when needed) |
+| 4 | App name? | **Mapa** (מפה) | Package id, store listing, and branding use Mapa |
+| 5 | Languages? | Hebrew only | Full RTL UI; content written and reviewed in Hebrew only; data model still allows adding languages later |
+| 6 | Target children under 13? | Not at launch | Google Play Families policy not required yet; revisit with a classroom mode |
+| 7 | Backend for social features? | Decide later | Phases 0 to 2 are fully offline; choose Supabase or Firebase at the start of Phase 3 |
+| 8 | Team? | One developer working with Claude Code | Tight scope per phase, heavy automated testing, each phase ships something usable |
+
+## Still open
+
+- Exact tolerance values and grade thresholds for Pin It (tune during Phase 0 playtests).
+- Whether to add a voluntary "support the project" link, given the app is free.
+- Store age rating details and privacy policy text (before Phase 3 launch).
 
 ## Risks
 

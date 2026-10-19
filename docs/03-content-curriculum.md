@@ -16,7 +16,7 @@ Every learnable place is a `Place` with:
 |-------|---------|-------|
 | `id` | `city.netanya` | Stable, never reused |
 | `type` | city, town, region, district, sea, lake, river, mountain, valley, crater, road, site, country | Drives scoring tolerance and rendering |
-| `names` | he: נתניה, en: Netanya, ar: نتانيا | Plus accepted alternative spellings for typing mode |
+| `names` | he: נתניה | Plus accepted alternative spellings for typing mode. The model allows more languages later, but only Hebrew ships |
 | `geometry` | point / polygon / line | From the map pipeline |
 | `tier`, `unit` | 3, `unit.sharon` | Curriculum placement |
 | `anchors` | `[city.tel_aviv, city.haifa]` | Places it is introduced relative to |
@@ -119,20 +119,17 @@ Within the unlocked set, the next new place is chosen by:
 - One line, max about 90 characters, concrete and spatial when possible.
 - Tie to meaning: "why it is here" beats trivia.
 - Neutral and factual tone. No politics in fact lines.
-- Each fact reviewed in Hebrew and English by a native speaker.
+- Each fact written and reviewed in Hebrew by a native speaker.
 
 ## Policy: borders and contested areas
 
 Israel's map involves lines with different legal and political status (the 1949
 Armistice "Green Line", the West Bank / Judea and Samaria, Gaza, the Golan Heights,
-East Jerusalem). This needs an explicit, documented decision before content
-production (see [10-risks-and-open-questions.md](10-risks-and-open-questions.md)).
-
-Proposed default, aiming to be factual and useful to all target players:
+East Jerusalem). **Decision** (see [10-risks-and-open-questions.md](10-risks-and-open-questions.md)):
 
 - Draw the **de facto lines of control** as the main map outline, matching what
   players experience on the ground and in navigation apps.
 - Provide an optional **"Green Line" layer** with a neutral explanatory note.
-- Label areas with their commonly used names in each language, and include alternate
-  names in the item data.
+- Label areas with their commonly used Hebrew names, and include alternate names in
+  the item data.
 - Keep fact lines geographic, not political.

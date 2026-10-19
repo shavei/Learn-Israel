@@ -6,8 +6,8 @@
 |------|--------|---------|-----|
 | Coastline, neighbors, seas, lakes | Natural Earth (1:10m) | Public domain | Frame layer, background |
 | Detailed boundaries, rivers, roads, places, multilingual names | OpenStreetMap via Geofabrik regional extract | ODbL 1.0 (attribution + share-alike on the derived database) | Most geometry |
-| Official locality list, codes, Hebrew/English names, population, district | Israel Central Bureau of Statistics (CBS) locality file, published on data.gov.il | Israeli government open data terms (verify) | Canonical list of localities and their attributes |
-| Multilingual names, Wikipedia links, extra facts | Wikidata | CC0 | Names in he/en/ar, cross-checking, fact research |
+| Official locality list, codes, Hebrew names, population, district | Israel Central Bureau of Statistics (CBS) locality file, published on data.gov.il | Israeli government open data terms (verify) | Canonical list of localities and their attributes |
+| Multilingual names, Wikipedia links, extra facts | Wikidata | CC0 | Hebrew names and aliases, cross-checking, fact research |
 | Administrative districts and natural regions | CBS geographic files and OSM relations | As above | Tier 1 polygons |
 
 Licensing notes:
@@ -49,17 +49,19 @@ and is the source of truth for *what* is taught. Raw downloads are never committ
 
 ## Name matching for typed answers
 
-Hebrew and English names have many spellings (Kfar Saba / Kfar Sava, Rishon LeZion /
-Rishon Lezion, Be'er Sheva / Beersheba). For each place store:
+Hebrew names have spelling variants (full vs defective spelling, with or without
+niqqud, abbreviations): כפר סבא / כפ"ס, באר שבע / ב"ש, קריית / קרית. For each place
+store:
 
-- canonical names per language,
+- the canonical Hebrew name,
 - accepted alternates (from OSM `name:*`, `alt_name`, Wikidata aliases, hand list),
-- a normalized form (lowercase, strip niqqud, apostrophes, hyphens, "the").
+- a normalized form (strip niqqud, geresh/gershayim, hyphens, spaces; unify yod/vav
+  spelling variants).
 
 Match on normalized forms, with a small edit-distance tolerance for long names.
 
 ## Human review
 
-Every item goes through a checklist before release: correct location, correct names
-in each language, fact accurate and neutral, appropriate tier. The pipeline's HTML
+Every item goes through a checklist before release: correct location, correct Hebrew
+names, fact accurate and neutral, appropriate tier. The pipeline's HTML
 report is the review tool.

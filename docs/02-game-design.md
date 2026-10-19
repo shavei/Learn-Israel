@@ -1,6 +1,6 @@
 # 02. Game Design
 
-Working title: **Learn Israel** (alternatives: *Mapa*, *Eretz*, *Pin Israel*).
+App name: **Mapa** (מפה). The app is in Hebrew only.
 
 ## Vision
 
@@ -15,10 +15,9 @@ the long-term goal; the daily session is the habit.
 
 | Segment | Need | Implication |
 |---------|------|-------------|
-| Israeli students (middle and high school) | Geography curriculum, tests | Curriculum-aligned units, Hebrew first |
-| New immigrants (olim) and long-term visitors | Orientation in a new country | Practical places: cities, highways, regions |
-| Diaspora and tourists | Connection, trip prep | English, landmarks and heritage sites |
-| Adults who "never really knew where Afula is" | Casual self-improvement | Quick sessions, satisfying feedback |
+| Adults who "never really knew where Afula is" (primary) | Casual self-improvement | Quick sessions, satisfying feedback |
+| Israeli students, middle and high school (primary) | Geography curriculum, tests | Curriculum-aligned units |
+| Hebrew-speaking olim | Orientation in a new country | Practical places: cities, highways, regions |
 | Soldiers / tour guides (stretch) | Deep detail | Advanced tiers, roads, wadis, small localities |
 
 ## Core loop
@@ -47,7 +46,7 @@ separately by the learning engine (see [04-learning-engine.md](04-learning-engin
 
 ### 1. Discover (encoding step, not a mode on its own)
 Shown the first time a place appears. The map zooms to the place, it pulses, the name
-is shown in Hebrew and English, with its anchor relation and one fact. Two seconds,
+is shown in Hebrew, with its anchor relation and one fact. Two seconds,
 then immediately the first easy retrieval ("Tap the place you just saw").
 
 ### 2. Pin It (core mode, facet: `LOCATE`)
@@ -156,13 +155,9 @@ beginners can compete.
 - Optional confidence buttons (sure / think so / guess) before revealing, unlocked
   after the tutorial. Confidence is used for calibration stats and hypercorrection.
 
-## Monetization (to decide, does not affect learning core)
+## Monetization
 
-Options, in order of preference for a learning product:
-1. **Free core + one-time "full map" unlock** (all deep tiers, road trips, offline
-   packs). No ads during learning.
-2. **Free with optional donation / supporter tier.**
-3. School / organization licenses with teacher dashboards (later).
-
-Avoid: energy/hearts systems that block practice (they punish exactly the behavior we
-want), interstitial ads mid-session.
+**Decision: completely free.** No ads, no purchases, no subscriptions, no energy
+systems. Every place and every mode is available to everyone. This keeps the design
+honest: nothing ever competes with learning for the player's attention. A voluntary
+"support the project" link may be added later.

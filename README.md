@@ -1,6 +1,6 @@
-# Learn-Israel
+# Mapa (Learn-Israel)
 
-An Android game that teaches the geography of Israel, built on the science of how
+An Android game, in Hebrew, that teaches the geography of Israel, built on the science of how
 people actually remember.
 
 > **Status:** planning. This repository currently contains the design plan only. No
@@ -42,14 +42,14 @@ The design is built on the most robust findings in learning science:
 | [04. Learning engine](docs/04-learning-engine.md) | FSRS, grading taps by distance, session composer, confusables |
 | [05. Technical architecture](docs/05-technical-architecture.md) | Kotlin + Compose stack, modules, custom map renderer, testing |
 | [06. Map data](docs/06-map-data.md) | Data sources, licenses, pipeline, validation |
-| [07. UX, accessibility, localization](docs/07-ux-accessibility-localization.md) | Onboarding, screens, a11y, Hebrew/English/Arabic, RTL |
+| [07. UX, accessibility, localization](docs/07-ux-accessibility-localization.md) | Onboarding, screens, a11y, Hebrew-only RTL |
 | [08. Measurement](docs/08-measurement.md) | How we prove people learn; experiments; privacy |
 | [09. Roadmap](docs/09-roadmap.md) | Phases with exit tests and the first sprint |
-| [10. Risks and open questions](docs/10-risks-and-open-questions.md) | Decisions needed and how we handle risks |
+| [10. Decisions and risks](docs/10-risks-and-open-questions.md) | Decisions made, and how we handle risks |
 | [References](docs/references.md) | Papers, algorithms, data sources |
 
 ## Next step
 
-Answer the blocking open questions in
-[doc 10](docs/10-risks-and-open-questions.md), then start Phase 0 from the
+The key product decisions are made (see
+[doc 10](docs/10-risks-and-open-questions.md)). Start Phase 0 from the
 [roadmap](docs/09-roadmap.md).

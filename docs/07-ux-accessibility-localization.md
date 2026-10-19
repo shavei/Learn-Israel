@@ -2,12 +2,11 @@
 
 ## First-run experience (under 60 seconds to the first "aha")
 
-1. Language picker (Hebrew, English, Arabic later), auto-selected from device locale.
-2. One screen: "Build a map of Israel in your head, 5 minutes a day."
-3. Immediately play: the map outline appears, Discover shows Tel Aviv, then
+1. One screen: "Build a map of Israel in your head, 5 minutes a day."
+2. Immediately play: the map outline appears, Discover shows Tel Aviv, then
    "Tap Tel Aviv". Success, the city lights up. Then Jerusalem, then Haifa.
-4. "Want to skip what you know?" Placement test (optional) or continue.
-5. Ask for a daily reminder time *after* the first session, not before.
+3. "Want to skip what you know?" Placement test (optional) or continue.
+4. Ask for a daily reminder time *after* the first session, not before.
 
 No signup, no permissions on first run.
 
@@ -23,7 +22,7 @@ No signup, no permissions on first run.
   labels on, which is allowed but does not count as practice).
 - **Progress:** region percentages, known places count, ranks, achievements, a
   history chart of average error over time.
-- **Settings:** language, session length, daily new cap, reminders, map layers,
+- **Settings:** session length, daily new cap, reminders, map layers,
   sounds/haptics, confidence buttons on/off, data and privacy.
 
 ## Visual design
@@ -50,18 +49,18 @@ No signup, no permissions on first run.
 - **Motion:** respect "remove animations" setting (no pulsing, instant transitions).
 - **Sound:** all audio feedback has a visual equivalent.
 
-## Localization
+## Language
 
-- **Hebrew first** (largest audience, curriculum alignment), English at launch,
-  Arabic in a later phase (significant Arabic-speaking population in Israel).
-- Full **RTL** support: Compose layouts mirror automatically; check custom map
+- **Hebrew only** (decision). One language keeps content production and review
+  manageable for a solo developer, and fits the target audience.
+- The whole UI is **RTL**. Compose mirrors layouts automatically; check custom map
   overlays and the feedback card manually.
-- Map is never mirrored (north up, east right in every language).
-- Place names come from content data, not Android string resources, so all languages
-  share one pipeline.
-- Numbers and distances: km everywhere; localized number formatting.
-- Translation review by native speakers; place names follow official CBS / Survey of
-  Israel spellings where available.
+- Map is never mirrored (north up, east right).
+- Place names and facts come from content data, not Android string resources. The
+  data model still allows other languages, so adding one later is a content task, not
+  a rewrite.
+- Distances in km with Hebrew number formatting.
+- Place names follow official CBS / Survey of Israel spellings.
 
 ## Notifications
 
