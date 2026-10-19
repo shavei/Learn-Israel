@@ -78,7 +78,7 @@ test shows large gains; D7 retention benchmark agreed in advance.
 
 ## Next steps
 
-1. Install the debug APK (CI artifact `mapa-debug-apk`) on real phones and run the
+1. Install the APK from the README's download link on real phones and run the
    Phase 0 playtest.
 2. Tune tolerances and session size from the playtest.
 3. Start Phase 1: Name It mode, regions (Tier 1), and the rest of Tiers 2 to 3.
