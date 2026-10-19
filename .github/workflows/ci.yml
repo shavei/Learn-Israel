@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit, content and screen tests
+        run: ./gradlew test
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: app/build/screenshots/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mapa-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+  content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r tools/requirements.txt
+      - name: Rebuild assets from sources
+        run: python3 tools/build_content.py
+      - name: Committed assets match the pipeline
+        run: git diff --exit-code -- app/src/main/assets

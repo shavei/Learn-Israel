@@ -1,0 +1,264 @@
+# Phase 0 curriculum: the frame plus anchor cities (30 places).
+# Source of truth for WHAT is taught. Geometry is attached by tools/build_content.py.
+#
+# geometry sources:
+#   country:<ADM0_A3>   Natural Earth admin-0 country, clipped to the map window
+#   sea:<lon>,<lat>     the open-water area containing this seed point
+#   lake:<name>         Natural Earth lake polygon(s) with this English name
+#   river:<name>        Natural Earth river centerline(s) with this English name
+#   geonames:<id>       GeoNames city point (CC BY 4.0)
+#
+# importance: 1 (introduce first) to 5. unit groups places introduced together.
+
+places:
+  # ---------- Unit: frame (waters and neighbors) ----------
+  - id: sea.mediterranean
+    type: sea
+    unit: frame
+    importance: 1
+    geometry: sea:34.3,32.5
+    name: הים התיכון
+    hint: לאורך כל החוף המערבי של ישראל
+    fact: כל ערי החוף הגדולות, מאשקלון ועד נהריה, יושבות לחופו.
+  - id: sea.gulf_of_eilat
+    type: sea
+    unit: frame
+    importance: 1
+    geometry: sea:34.93,29.35
+    name: מפרץ אילת
+    hint: בקצה הדרומי של ישראל
+    fact: זרוע של ים סוף. היציאה הימית של ישראל לאסיה ולאפריקה.
+  - id: lake.kinneret
+    type: lake
+    unit: frame
+    importance: 1
+    geometry: lake:Sea of Galilee
+    name: הכנרת
+    hint: בצפון מזרח, בין הגליל לרמת הגולן
+    fact: אגם המים המתוקים הגדול בישראל. נהר הירדן עובר דרכו.
+  - id: lake.dead_sea
+    type: lake
+    unit: frame
+    importance: 1
+    geometry: lake:Dead Sea
+    name: ים המלח
+    hint: במזרח, על הגבול עם ירדן
+    fact: חופיו הם המקום הנמוך ביותר על פני היבשה בכדור הארץ.
+  - id: river.jordan
+    type: river
+    unit: frame
+    importance: 2
+    geometry: river:Jordan
+    name: נהר הירדן
+    hint: מחבר את הכנרת לים המלח
+    fact: זורם מצפון אל הכנרת, וממנה דרומה עד ים המלח.
+  - id: country.lebanon
+    type: country
+    unit: frame
+    importance: 2
+    geometry: country:LBN
+    name: לבנון
+    hint: מצפון לישראל
+    fact: הגבול עם לבנון עובר לאורך הגליל העליון, מראש הנקרה ועד החרמון.
+  - id: country.syria
+    type: country
+    unit: frame
+    importance: 2
+    geometry: country:SYR
+    name: סוריה
+    hint: מצפון מזרח, מעבר לרמת הגולן
+    fact: רמת הגולן מפרידה בין עמק החולה והכנרת לבין סוריה.
+  - id: country.jordan
+    type: country
+    unit: frame
+    importance: 2
+    geometry: country:JOR
+    name: ירדן
+    hint: ממזרח, לאורך הירדן, ים המלח והערבה
+    fact: הגבול הארוך ביותר של ישראל, מהירמוך ועד מפרץ אילת.
+  - id: country.egypt
+    type: country
+    unit: frame
+    importance: 2
+    geometry: country:EGY
+    name: מצרים
+    hint: מדרום מערב, חצי האי סיני
+    fact: הגבול עם מצרים חוצה את המדבר, מרצועת עזה ועד טאבה ליד אילת.
+
+  # ---------- Unit: big anchors ----------
+  - id: city.jerusalem
+    type: city
+    unit: anchors
+    importance: 1
+    geometry: geonames:281184
+    name: ירושלים
+    hint: בהרי יהודה, במרכז הארץ
+    fact: בירת ישראל והעיר הגדולה בה.
+  - id: city.tel_aviv
+    type: city
+    unit: anchors
+    importance: 1
+    geometry: geonames:293397
+    name: תל אביב-יפו
+    hint: על חוף הים, במרכז הארץ
+    fact: לב גוש דן, המטרופולין הגדול בישראל.
+  - id: city.haifa
+    type: city
+    unit: anchors
+    importance: 1
+    geometry: geonames:294801
+    name: חיפה
+    hint: בצפון, על החוף, למרגלות הכרמל
+    fact: עיר הנמל הגדולה בצפון, על מורדות הר הכרמל.
+  - id: city.beersheba
+    type: city
+    unit: anchors
+    importance: 1
+    geometry: geonames:295530
+    name: באר שבע
+    hint: בצפון הנגב
+    fact: מכונה "בירת הנגב". העיר הגדולה בדרום הארץ.
+  - id: city.eilat
+    type: city
+    unit: anchors
+    importance: 1
+    geometry: geonames:295277
+    name: אילת
+    hint: בקצה הדרומי, על מפרץ אילת
+    fact: העיר הדרומית ביותר בישראל.
+
+  # ---------- Unit: center ----------
+  - id: city.rishon_lezion
+    type: city
+    unit: center
+    importance: 2
+    geometry: geonames:293703
+    name: ראשון לציון
+    hint: דרומית לתל אביב
+    fact: נוסדה ב-1882, מהמושבות הראשונות של העלייה הראשונה.
+  - id: city.petah_tikva
+    type: city
+    unit: center
+    importance: 2
+    geometry: geonames:293918
+    name: פתח תקווה
+    hint: ממזרח לתל אביב
+    fact: מכונה "אם המושבות". נוסדה ב-1878.
+  - id: city.herzliya
+    type: city
+    unit: center
+    importance: 3
+    geometry: geonames:294778
+    name: הרצליה
+    hint: על החוף, צפונית לתל אביב
+    fact: נקראה על שם בנימין זאב הרצל.
+  - id: city.modiin
+    type: city
+    unit: center
+    importance: 3
+    geometry: geonames:282926
+    name: מודיעין
+    hint: באמצע הדרך בין תל אביב לירושלים
+    fact: עיר מתוכננת חדשה יחסית, ליד כביש 443.
+
+  # ---------- Unit: coast and south ----------
+  - id: city.ashdod
+    type: city
+    unit: south_coast
+    importance: 2
+    geometry: geonames:295629
+    name: אשדוד
+    hint: על החוף, דרומית לראשון לציון
+    fact: אחד משני נמלי הים הגדולים בישראל.
+  - id: city.ashkelon
+    type: city
+    unit: south_coast
+    importance: 2
+    geometry: geonames:295620
+    name: אשקלון
+    hint: על החוף, דרומית לאשדוד
+    fact: עיר החוף הדרומית ביותר על הים התיכון בישראל.
+  - id: city.dimona
+    type: city
+    unit: south_coast
+    importance: 3
+    geometry: geonames:295328
+    name: דימונה
+    hint: בנגב, דרום מזרחית לבאר שבע
+    fact: עיר פיתוח בלב הנגב, בדרך מבאר שבע לים המלח.
+
+  # ---------- Unit: Sharon ----------
+  - id: city.netanya
+    type: city
+    unit: sharon
+    importance: 2
+    geometry: geonames:294071
+    name: נתניה
+    hint: על החוף, בין תל אביב לחדרה
+    fact: מכונה "בירת השרון".
+  - id: city.hadera
+    type: city
+    unit: sharon
+    importance: 2
+    geometry: geonames:294946
+    name: חדרה
+    hint: על החוף, באמצע הדרך בין תל אביב לחיפה
+    fact: נוסדה ב-1891 על אדמת ביצות שיובשו.
+
+  # ---------- Unit: north ----------
+  - id: city.akko
+    type: city
+    unit: north
+    importance: 2
+    geometry: geonames:295721
+    name: עכו
+    hint: בצפון מפרץ חיפה
+    fact: העיר העתיקה שלה היא אתר מורשת עולמית.
+  - id: city.nahariya
+    type: city
+    unit: north
+    importance: 3
+    geometry: geonames:294117
+    name: נהריה
+    hint: על החוף, צפונית לעכו
+    fact: עיר החוף הצפונית ביותר בישראל.
+  - id: city.nazareth
+    type: city
+    unit: north
+    importance: 2
+    geometry: geonames:294098
+    name: נצרת
+    hint: בגליל התחתון
+    fact: העיר הערבית הגדולה בישראל.
+  - id: city.afula
+    type: city
+    unit: north
+    importance: 3
+    geometry: geonames:295740
+    name: עפולה
+    hint: בעמק יזרעאל, דרומית לנצרת
+    fact: מכונה "בירת העמק".
+  - id: city.tiberias
+    type: city
+    unit: north
+    importance: 2
+    geometry: geonames:293322
+    name: טבריה
+    hint: על החוף המערבי של הכנרת
+    fact: אחת מארבע ערי הקודש.
+  - id: city.safed
+    type: city
+    unit: north
+    importance: 3
+    geometry: geonames:293100
+    name: צפת
+    hint: בגליל העליון, צפונית מערבית לכנרת
+    fact: מהערים הגבוהות בישראל, ואחת מארבע ערי הקודש.
+  - id: city.kiryat_shmona
+    type: city
+    unit: north
+    importance: 2
+    geometry: geonames:293825
+    name: קריית שמונה
+    hint: בצפון עמק החולה, ליד גבול לבנון
+    fact: העיר הגדולה באצבע הגליל.

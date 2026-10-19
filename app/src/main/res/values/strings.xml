@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">מפה</string>
+    <string name="home_title">המפה שלך</string>
+    <string name="home_known">%1$d מקומות ידועים</string>
+    <string name="home_learned">%1$d מתוך %2$d מקומות בתרגול</string>
+    <string name="home_start">התחילו אימון יומי</string>
+    <string name="home_due">%1$d לחזרה, %2$d חדשים</string>
+    <string name="home_nothing_due">סיימתם להיום. כל הכבוד! חזרו מחר.</string>
+    <string name="home_practice_more">תרגול נוסף</string>
+    <string name="attribution">נתוני מפה: Natural Earth, GeoNames</string>
+    <string name="discover_title">מקום חדש</string>
+    <string name="discover_continue">הבנתי, בואו נתרגל</string>
+    <string name="ask_prompt">סמנו על המפה: %1$s</string>
+    <string name="ask_counter">שאלה %1$d</string>
+    <string name="feedback_perfect">מצוין!</string>
+    <string name="feedback_close">קרוב!</string>
+    <string name="feedback_miss">לא הפעם</string>
+    <string name="feedback_inside">בדיוק במקום</string>
+    <string name="feedback_distance">סטייה של %1$s ק״מ</string>
+    <string name="feedback_continue">המשך</string>
+    <string name="summary_title">סיום אימון</string>
+    <string name="summary_answers">%1$d תשובות, %2$d%% נכונות</string>
+    <string name="summary_new">%1$d מקומות חדשים</string>
+    <string name="summary_error">סטייה ממוצעת: %1$s ק״מ</string>
+    <string name="summary_done">חזרה למפה</string>
+    <string name="quit">יציאה</string>
+</resources>
