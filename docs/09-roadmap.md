@@ -56,8 +56,10 @@ releases, each playable on its own.
 ### 1b. Content - built
 - [x] Tier 1: 19 natural regions and the 7 districts (6 districts plus the Judea and
       Samaria Area), as polygons. Natural regions are unions of the official CBS
-      natural regions (Ministry of Agriculture regions for Judea and Samaria);
-      districts come from OpenStreetMap
+      natural regions (Ministry of Agriculture regions for Judea and Samaria), and the
+      districts are built from the same regions
+- [x] Map outline, lakes and city points from official data (CBS); the Jordan River
+      from OpenStreetMap; Natural Earth only for the neighboring countries
 - [x] Tiers 2 and 3: 97 more cities and towns (118 in all), with aliases and confusables
 - [x] Map shows region outlines (faint dashed borders between natural regions)
 - [x] Name It offers names of the same kind (regions with regions, districts with

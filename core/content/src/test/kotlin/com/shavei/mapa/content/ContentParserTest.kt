@@ -44,8 +44,7 @@ class ContentParserTest {
         val home = content.map.home
         for (p in content.places.filter { it.type == PlaceType.CITY }) {
             val at = (p.shape as Shape.Point).at
-            // The drawn border is coarse; towns right on it may sit just outside.
-            assertTrue(land.distanceTo(at) < 1_500.0, "${p.id} should be on land")
+            assertTrue(land.distanceTo(at) < 300.0, "${p.id} should be on land")
             assertTrue(at.x in home.minX..home.maxX && at.y in home.minY..home.maxY, "${p.id} in home view")
         }
     }

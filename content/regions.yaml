@@ -4,10 +4,10 @@
 # code from content/natural_regions.geojson:
 #   - inside Israel: the Central Bureau of Statistics regions (2018),
 #   - in Judea and Samaria: the Ministry of Agriculture regions (codes 711 to 815).
-# tools/fetch_natural_regions.py downloads them. The pipeline clips the union to the
-# map's land and lakes; where the official borders and the map's coast or border
-# disagree by a few hundred meters, the nearest region takes the strip. Every code
-# must be used exactly once.
+# tools/fetch_sources.py downloads them. The map's land is the union of all of them;
+# the pipeline cuts out the lakes, and where the two official layers leave slivers
+# along the Green Line, the nearest region takes them. Every code must be used
+# exactly once.
 
 regions:
   golan: [291, 292, 293, 294]                # Hermon, northern, middle and southern Golan
@@ -30,3 +30,11 @@ regions:
   judean_desert: [624, 814]                  # Dead Sea region, Megilot
   negev: [621, 622, 623, 626, 627]           # Gerar, Besor, Be'er Sheva, northern and southern Negev Mountains
   arava: [625]                               # Arava
+
+# Corrections to the official layers, each an OpenStreetMap area that moves to a game
+# region. The Judea and Samaria regions follow Israeli council lines, which wrap
+# around Palestinian cities: Jericho's town area lies in "Judea" (812) there, next to
+# the southern Jordan Valley (712), though the city is in the Jordan Valley.
+overrides:
+  jordan_valley:
+    - 8488590  # Jericho (أريحا), OSM relation of its town area
