@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
+import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.ui.map.MapColors
 import com.shavei.mapa.ui.map.MapDecoration
 import com.shavei.mapa.ui.map.MapView
@@ -42,8 +43,12 @@ fun HomeScreen(content: Content, viewModel: HomeViewModel, onStartSession: (extr
     LaunchedEffect(topPx, bottomPx) { camera.setFramePadding(topPx, bottomPx) }
 
     // The trophy: every place you have practiced, colored by how well you know it today.
+    // Regions and districts cover the land and each other, so they get a lighter wash.
     val decorations = content.places.mapNotNull { place ->
-        state.mastery[place.id]?.let { m -> MapDecoration.Highlight(place.shape, MapColors.mastery, alpha = (0.15 + 0.7 * m).toFloat()) }
+        state.mastery[place.id]?.let { m ->
+            val alpha = if (place.type == PlaceType.REGION || place.type == PlaceType.DISTRICT) 0.05 + 0.25 * m else 0.15 + 0.7 * m
+            MapDecoration.Highlight(place.shape, MapColors.mastery, alpha = alpha.toFloat())
+        }
     }
 
     Box(Modifier.fillMaxSize()) {

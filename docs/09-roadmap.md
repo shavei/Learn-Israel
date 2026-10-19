@@ -53,10 +53,19 @@ releases, each playable on its own.
       4 km as the place becomes well known
 - [x] Database migration keeps Phase 0 progress
 
-### 1b. Content
-- [ ] Tier 1: districts and natural regions (polygons)
-- [ ] Tiers 2 and 3: about 100 more cities and towns, with aliases and confusables
-- [ ] Map shows region outlines
+### 1b. Content - built
+- [x] Tier 1: 19 natural regions and the 7 districts (6 districts plus the Judea and
+      Samaria Area), as polygons. Natural regions are hand-drawn sketches (OSM has no
+      boundaries for them) that the pipeline clips to the land and turns into a
+      partition with shared borders; districts come from OpenStreetMap
+- [x] Tiers 2 and 3: 97 more cities and towns (118 in all), with aliases and confusables
+- [x] Map shows region outlines (faint dashed borders between natural regions)
+- [x] Name It offers names of the same kind (regions with regions, districts with
+      districts); a missed tap on a region names the region you tapped
+- [x] Every city is tagged with its natural region in `places.json`, ready for the
+      region percentages in 1c
+- [ ] Human review of region borders, Hebrew names, hints and facts
+      (see `docs/images/phase1b-regions.png`)
 
 ### 1c. Player experience
 - [ ] Onboarding with placement test
@@ -103,6 +112,7 @@ test shows large gains; D7 retention benchmark agreed in advance.
 ## Next steps
 
 1. Install the APK from the README's download link on real phones and run the
-   Phase 0 playtest.
-2. Tune tolerances and session size from the playtest.
-3. Phase 1b: regions and the rest of Tiers 2 to 3.
+   playtest.
+2. Review the 1b content: region borders, Hebrew names, hints and facts.
+3. Tune tolerances and session size from the playtest.
+4. Phase 1c: onboarding, progress screen with region percentages, reminders, settings.

@@ -12,6 +12,7 @@ import com.shavei.mapa.data.CardEntity
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -72,6 +73,29 @@ class QuestionTypesTest {
                 listOf("מצוין!", "לא הפעם").any { compose.onAllNodes(hasText(it)).fetchSemanticsNodes().isNotEmpty() }
             }
             Screenshots.save(scenario, "p1-relate-feedback")
+        }
+    }
+
+    @Test
+    fun namingARegionOffersRegionNames() {
+        val app = ApplicationProvider.getApplicationContext<MapaApplication>()
+        runBlocking {
+            val dao = app.database.progressDao()
+            dao.upsert(card("region.sharon", "LOCATE", 9.0, 5))
+            dao.upsert(card("region.sharon", "NAME", 1.0, -1))
+        }
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("התחילו אימון יומי")
+            compose.onNodeWithText("התחילו אימון יומי").performClick()
+
+            waitForText("מה שם המקום המסומן?")
+            // Wrong options are other regions, never cities.
+            waitForText("השרון")
+            assertTrue(compose.onAllNodes(hasText("נתניה")).fetchSemanticsNodes().isEmpty())
+            Screenshots.save(scenario, "p1b-name-region")
+            compose.onNodeWithText("השרון").performClick()
+            waitForText("מצוין!")
+            Screenshots.save(scenario, "p1b-region-feedback")
         }
     }
 }

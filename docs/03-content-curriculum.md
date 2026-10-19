@@ -38,7 +38,12 @@ Taught first; everything else hangs on it.
 - **The big three anchors:** Jerusalem, Tel Aviv-Yafo, Haifa.
 - **Bottom anchor:** Eilat. **Desert anchor:** Beersheba.
 
-## Tier 1: Regions and districts (about 20 items)
+## Tier 1: Regions and districts (26 items, built in Phase 1b)
+
+Built as 19 natural regions that split the land without overlapping (the list below
+plus Western Galilee, Haifa Bay, Menashe Heights and the southern coastal plain, with
+the Coastal Plain split into its parts), and 7 districts. See `content/regions.yaml`.
+
 
 - **Natural regions:** Upper Galilee, Lower Galilee, Golan Heights, Hula Valley,
   Jezreel Valley, Carmel, Coastal Plain, Sharon, Gush Dan (metro), Shephelah, Judean

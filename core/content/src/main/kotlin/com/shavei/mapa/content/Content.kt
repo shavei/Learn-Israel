@@ -6,7 +6,15 @@ import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.geo.Polygon
 import com.shavei.mapa.geo.Shape
 
-enum class PlaceType { CITY, SEA, LAKE, RIVER, COUNTRY }
+enum class PlaceType {
+    CITY, SEA, LAKE, RIVER, COUNTRY,
+
+    /** A natural region (the Sharon, the Negev). Regions split the land without overlapping. */
+    REGION,
+
+    /** An administrative district. Districts overlap the natural regions. */
+    DISTRICT,
+}
 
 /** Something the player learns: a name, a location, and one memorable fact. */
 data class Place(

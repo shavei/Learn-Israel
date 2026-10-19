@@ -8,7 +8,23 @@
 | Detailed boundaries, rivers, roads, places, multilingual names | OpenStreetMap via Geofabrik regional extract | ODbL 1.0 (attribution + share-alike on the derived database) | Most geometry |
 | Official locality list, codes, Hebrew names, population, district | Israel Central Bureau of Statistics (CBS) locality file, published on data.gov.il | Israeli government open data terms (verify) | Canonical list of localities and their attributes |
 | Multilingual names, Wikipedia links, extra facts | Wikidata | CC0 | Hebrew names and aliases, cross-checking, fact research |
-| Administrative districts and natural regions | CBS geographic files and OSM relations | As above | Tier 1 polygons |
+| Administrative districts | OSM relations (admin_level 4), fetched with the main OSM API by `tools/fetch_districts.py` into `content/districts.geojson` | ODbL 1.0 | Tier 1 district polygons |
+| Natural regions | Hand-drawn sketches in `content/regions.yaml` (OSM has only label points for them), clipped to the land by the pipeline | Our own | Tier 1 region polygons, region outlines on the map |
+
+**Status (Phase 1b):** the pipeline uses Natural Earth (frame), GeoNames (city points,
+via `geonamescache`, plus a few explicit `point:` coordinates for towns too small for
+it), committed OSM district boundaries, and the region sketches. Geofabrik and Overpass
+were unreachable from the build environment, so the district file is fetched once from
+the main OSM API and committed; rerun `tools/fetch_districts.py` to refresh it.
+
+How the natural regions are built: each sketch is a rough polygon whose inner edges
+follow the commonly drawn borders (valleys, streams, ridges) and whose outer edges reach
+past the coast or border. In file order, each region takes its sketch's share of the
+land (lakes removed) that earlier regions did not take, so the regions never overlap
+and neighbors share one border. The build fails if more than 1 km2 of land is left in
+no region. Districts get the same treatment, so the strips where OSM's boundary and the
+Natural Earth coast disagree are filled. The Judea and Samaria Area is the de facto land
+outside the six districts.
 
 Licensing notes:
 - ODbL requires visible attribution ("© OpenStreetMap contributors") in the app, for

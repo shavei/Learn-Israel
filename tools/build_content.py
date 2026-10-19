@@ -3,11 +3,15 @@
 
 Inputs:
   content/places.yaml                    hand-curated curriculum (what is taught)
+  content/regions.yaml                   hand-drawn sketches of the natural regions
+  content/districts.geojson              district boundaries from OpenStreetMap (ODbL),
+                                         refreshed by tools/fetch_districts.py
   Natural Earth 10m GeoJSON (public domain), downloaded into tools/raw/
   GeoNames cities via the geonamescache package (CC BY 4.0)
 
 Outputs (app/src/main/assets/):
-  map.json     background layers (neighbors, land, Gaza, lakes, rivers, Green Line)
+  map.json     background layers (neighbors, land, Gaza, lakes, rivers, region
+               outlines, Green Line)
   places.json  learnable places with Hebrew text and geometry
 
 All coordinates are projected to the Israeli Transverse Mercator grid (EPSG:2039)
@@ -56,7 +60,12 @@ WINDOW = box(32.6, 28.4, 37.2, 34.2)
 NEIGHBORS = ["LBN", "SYR", "JOR", "EGY", "SAU"]
 
 # Simplification tolerance in meters, per layer.
-SIMPLIFY = {"land": 40, "neighbors": 120, "lakes": 30, "rivers": 60, "seas": 120, "green_line": 40}
+SIMPLIFY = {
+    "land": 40, "neighbors": 120, "lakes": 30, "rivers": 60, "seas": 120, "green_line": 40, "districts": 60,
+}
+
+# Land left outside every region or district, in square meters, before the build fails.
+MAX_UNASSIGNED_M2 = 1e6
 
 TO_ITM = Transformer.from_crs("EPSG:4326", "EPSG:2039", always_xy=True)
 
@@ -126,6 +135,50 @@ def by_prop(features, key, value):
     return [shape(f["geometry"]) for f in features if f["properties"].get(key) == value]
 
 
+def partition(area, sketches: dict[str, Polygon], min_part=2e5) -> tuple[dict, object]:
+    """Splits [area] among the sketches in order: each takes what earlier ones left.
+
+    Parts smaller than [min_part] square meters are slivers where a sketch grazes a
+    neighbor; they are left for later sketches. Returns the pieces and whatever no
+    sketch covered.
+    """
+    rest = area
+    pieces = {}
+    for key, sketch in sketches.items():
+        piece = rest.intersection(sketch)
+        pieces[key] = ops.unary_union([p for p in polygons(piece) if p.area >= min_part])
+        rest = rest.difference(pieces[key])
+    return pieces, rest
+
+
+def natural_regions(land_area) -> tuple[dict, object]:
+    sketches = yaml.safe_load((ROOT / "content" / "regions.yaml").read_text())["regions"]
+    return partition(land_area, {k: project(Polygon(v)) for k, v in sketches.items()})
+
+
+def districts(land_area, west_bank_itm) -> tuple[dict, object]:
+    """The six districts, clipped to the land, plus the Judea and Samaria Area.
+
+    OSM boundaries and the Natural Earth coast differ by up to a few hundred meters,
+    so each district also takes the strip of land between its own edge and the coast
+    or border next to it.
+    """
+    features = json.loads((ROOT / "content" / "districts.geojson").read_text())["features"]
+    osm = {f["properties"]["district"]: clean(shape(f["geometry"]), SIMPLIFY["districts"]) for f in features}
+    # The Judea and Samaria Area is what the de facto land adds beyond Israel's districts.
+    osm["judea_samaria"] = west_bank_itm.difference(ops.unary_union(list(osm.values())))
+    exact, rest = partition(land_area, osm)
+    widened, rest = partition(rest, {k: v.buffer(8_000) for k, v in exact.items()}, min_part=0)
+    return {k: ops.unary_union([exact[k], widened[k]]) for k in exact}, rest
+
+
+def outlines(pieces: dict, land_area) -> list:
+    """Borders shared by neighboring areas, without the coast and the outer borders."""
+    edges = ops.unary_union([g.boundary for g in pieces.values()])
+    inner = edges.difference(land_area.boundary.buffer(150))
+    return ops.linemerge(lines(inner)) if not inner.is_empty else inner
+
+
 def main() -> int:
     ne = fetch_natural_earth()
     countries = ne["ne_10m_admin_0_countries"]
@@ -166,6 +219,12 @@ def main() -> int:
     }
     river_geoms = {"Jordan": ops.unary_union(by_prop(rivers, "name", "Jordan")).intersection(WINDOW)}
 
+    # Regions and districts split the land; the lakes are not part of any of them.
+    lakes_itm = ops.unary_union([clean(g, SIMPLIFY["lakes"]) for g in lake_geoms.values()])
+    land_area = land.difference(lakes_itm)
+    region_geoms, region_rest = natural_regions(land_area)
+    district_geoms, district_rest = districts(land_area, clean(west_bank.intersection(WINDOW), SIMPLIFY["land"]))
+
     gn = geonamescache.GeonamesCache(min_city_population=15000).get_cities()
 
     # Labels for areas sit inside the part of the area near Israel, so they stay on screen.
@@ -184,6 +243,10 @@ def main() -> int:
     curriculum = yaml.safe_load((ROOT / "content" / "places.yaml").read_text())["places"]
     places = []
     errors = []
+    for what, rest in (("natural regions", region_rest), ("districts", district_rest)):
+        if rest.area > MAX_UNASSIGNED_M2:
+            spots = ", ".join(f"{p.centroid.x:.0f},{p.centroid.y:.0f}" for p in polygons(rest) if p.area > 1e5)
+            errors.append(f"{what} leave {rest.area / 1e6:.1f} km2 of land uncovered, around ITM {spots}")
     ids = [p["id"] for p in curriculum]
     # Confusable pairs are symmetric: listing B under A also lists A under B.
     confusables: dict[str, set[str]] = {}
@@ -196,16 +259,32 @@ def main() -> int:
     for p in curriculum:
         kind, _, arg = p["geometry"].partition(":")
         geometry = {}
-        if kind == "geonames":
-            city = gn.get(arg)
-            if city is None:
-                errors.append(f"{p['id']}: geonames id {arg} not found")
-                continue
-            pt = project(Point(city["longitude"], city["latitude"]))
+        region = None
+        if kind in ("geonames", "point"):
+            if kind == "geonames":
+                city = gn.get(arg)
+                if city is None:
+                    errors.append(f"{p['id']}: geonames id {arg} not found")
+                    continue
+                lon, lat = city["longitude"], city["latitude"]
+            else:
+                lon, lat = map(float, arg.split(","))
+            pt = project(Point(lon, lat))
             geometry["point"] = [round(pt.x), round(pt.y)]
             label = pt
-            if not land.buffer(500).contains(pt):
+            # Natural Earth's border is coarse: towns right on it (Metula, the Arava) can
+            # fall up to about a kilometer outside the drawn land.
+            if not land.buffer(1_500).contains(pt):
                 errors.append(f"{p['id']}: point is outside the land area")
+            # The natural region it lies in (nearest one for points on the coast).
+            region = min(region_geoms, key=lambda k: region_geoms[k].distance(pt))
+        elif kind in ("region", "district"):
+            geoms = region_geoms if kind == "region" else district_geoms
+            if arg not in geoms or geoms[arg].is_empty:
+                errors.append(f"{p['id']}: no {kind} named {arg}")
+                continue
+            geometry["polygons"] = encode_polygons(geoms[arg])
+            label = area_label(geoms[arg])
         elif kind == "country":
             geometry["polygons"] = encode_polygons(neighbor_geoms[arg])
             label = area_label(neighbor_geoms[arg])
@@ -230,21 +309,22 @@ def main() -> int:
             continue
         if not any(geometry.values()):
             errors.append(f"{p['id']}: empty geometry")
-        places.append(
-            {
-                "id": p["id"],
-                "type": p["type"],
-                "unit": p["unit"],
-                "importance": p["importance"],
-                "name": p["name"],
-                "hint": p["hint"],
-                "fact": p["fact"],
-                "geometry": geometry,
-                "label": [round(label.x), round(label.y)],
-                "aliases": p.get("aliases", []),
-                "confusables": sorted(confusables.get(p["id"], set())),
-            }
-        )
+        place = {
+            "id": p["id"],
+            "type": p["type"],
+            "unit": p["unit"],
+            "importance": p["importance"],
+            "name": p["name"],
+            "hint": p["hint"],
+            "fact": p["fact"],
+            "geometry": geometry,
+            "label": [round(label.x), round(label.y)],
+            "aliases": p.get("aliases", []),
+            "confusables": sorted(confusables.get(p["id"], set())),
+        }
+        if region is not None:
+            place["region"] = region
+        places.append(place)
 
     if len(ids) != len(set(ids)):
         errors.append("duplicate place ids")
@@ -269,9 +349,10 @@ def main() -> int:
             {"id": "lakes", "polygons": [
                 r for g in lake_geoms.values() for r in encode_polygons(clean(g, SIMPLIFY["lakes"]), min_area=1e4)
             ]},
+            {"id": "regions", "lines": encode_lines(outlines(region_geoms, land_area))},
             {"id": "green_line", "lines": encode_lines(green_line)},
         ],
-        "attribution": "Natural Earth; GeoNames (CC BY 4.0)",
+        "attribution": "Natural Earth; GeoNames (CC BY 4.0); © OpenStreetMap contributors (ODbL)",
     }
 
     ASSETS.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,11 @@
 package com.shavei.mapa.learning
 
+import com.shavei.mapa.content.Content
+import com.shavei.mapa.content.Place
+import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.geo.MapPoint
+import com.shavei.mapa.geo.Polygon
+import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
 import com.shavei.mapa.learning.fsrs.FsrsCard
@@ -190,6 +195,18 @@ class SessionEngineTest {
         val slip = Grader.gradeTyped(content2, "ירושלם", 6_000)
         assertEquals(Rating.GOOD, slip.rating)
         assertTrue(slip.spellingSlip)
+    }
+
+    @Test
+    fun aMissOnARegionNamesTheRegionThePlayerTapped() {
+        fun square(x0: Double) = Shape.Area(listOf(Polygon(listOf(doubleArrayOf(x0, 0.0, x0 + 10_000, 0.0, x0 + 10_000, 10_000.0, x0, 10_000.0, x0, 0.0)))))
+        fun region(i: Int) = Place("region.r$i", PlaceType.REGION, "u0", 1, "אזור$i", "", "", square(i * 10_000.0), MapPoint(i * 10_000.0 + 5_000, 5_000.0))
+        val regions = Content(content.map, listOf(region(0), region(1), region(2)))
+        val e = SessionEngine(regions, scheduler, mapOf(CardKey("region.r0", Facet.LOCATE) to reviewed(30.0, -1.0)), 10, clock = { now }, random = Random(1))
+        val q = e.next()!!
+        val a = e.submit(q, Response.Tap(MapPoint(25_000.0, 5_000.0)), 3_000)
+        assertEquals(Rating.AGAIN, a.grade.rating)
+        assertEquals("region.r2", a.tappedNear?.id)
     }
 
     @Test

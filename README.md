@@ -3,9 +3,10 @@
 An Android game, in Hebrew, that teaches the geography of Israel, built on the science of how
 people actually remember.
 
-> **Status:** Phase 1 in progress. A daily session on a blank map with 30 places:
-> find them, name them (choice, then typed), and relate them ("which is further
-> north?"), scheduled by spaced repetition (FSRS). See the [roadmap](docs/09-roadmap.md).
+> **Status:** Phase 1 in progress. A daily session on a blank map with 153 places
+> (the frame, 19 natural regions, 7 districts and 118 cities and towns): find them,
+> name them (choice, then typed), and relate them ("which is further north?"),
+> scheduled by spaced repetition (FSRS). See the [roadmap](docs/09-roadmap.md).
 
 ## Install on your phone
 
@@ -68,7 +69,9 @@ The design is built on the most robust findings in learning science:
 | `core/content/` | Place and map models, parser for the generated assets |
 | `core/learning/` | FSRS scheduler (port of py-fsrs), tap grading, session engine, mastery |
 | `content/places.yaml` | The curriculum: which places are taught, with Hebrew names, hints and facts |
-| `tools/build_content.py` | Data pipeline: Natural Earth + GeoNames + `places.yaml` into `app/src/main/assets/` |
+| `content/regions.yaml` | Hand-drawn sketches of the natural regions, turned into a partition of the land by the pipeline |
+| `content/districts.geojson` | District boundaries from OpenStreetMap, refreshed by `tools/fetch_districts.py` |
+| `tools/build_content.py` | Data pipeline: Natural Earth + GeoNames + OSM districts + the files above into `app/src/main/assets/` |
 
 ## Build and test
 
@@ -94,5 +97,7 @@ CI checks that the committed assets match the pipeline output.
 ## Data credits
 
 Map data from [Natural Earth](https://www.naturalearthdata.com/) (public domain). City
-locations from [GeoNames](https://www.geonames.org/) (CC BY 4.0). The FSRS scheduler is
+locations from [GeoNames](https://www.geonames.org/) (CC BY 4.0). District boundaries and a
+few town locations © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
+(ODbL 1.0). The FSRS scheduler is
 ported from [py-fsrs](https://github.com/open-spaced-repetition/py-fsrs) (MIT).
