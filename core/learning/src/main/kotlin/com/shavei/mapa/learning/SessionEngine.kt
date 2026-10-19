@@ -2,11 +2,12 @@ package com.shavei.mapa.learning
 
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.Place
-import com.shavei.mapa.geo.MapPoint
-import com.shavei.mapa.learning.fsrs.CardState
+import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.learning.fsrs.FsrsCard
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
 import com.shavei.mapa.learning.fsrs.MINUTE_MS
+import com.shavei.mapa.learning.fsrs.Rating
+import kotlin.random.Random
 
 data class SessionConfig(
     /** Questions in a normal session. */
@@ -15,49 +16,46 @@ data class SessionConfig(
     val overtime: Int = 8,
     val maxNewPerSession: Int = 5,
     val maxNewPerDay: Int = 10,
+    /** New skills (NAME, RELATE) on places the player already knows. */
+    val maxNewFacetsPerSession: Int = 4,
+    /** Back-to-back practice of two confusable places. */
+    val maxContrastPairs: Int = 2,
     /** Learning cards due within this window may be asked early, as in Anki. */
     val learnAheadMs: Long = 20 * MINUTE_MS,
     /** A card is not asked again until this many other questions have passed. */
     val minGap: Int = 3,
-    /** Stop adding new places when recent accuracy drops below this (keeps success near 85%). */
-    val minAccuracyForNew: Double = 0.7,
     /** Extra practice after the daily work is done: review places early, weakest first. */
     val strengthenWeakest: Boolean = false,
 )
 
-data class Question(val place: Place, val isNew: Boolean)
-
-data class Answer(
-    val place: Place,
-    val tap: MapPoint,
-    val grade: Grade,
-    val responseMs: Long,
-    val before: FsrsCard?,
-    val after: FsrsCard,
-    val at: Long,
-)
-
 /**
- * Composes and runs one daily session: due learning steps first, then due reviews
- * (most at risk first), then a few new places, then learning steps a little early.
- * See docs/04-learning-engine.md.
+ * Composes and runs one daily session (docs/04-learning-engine.md):
+ * due learning steps first, then due reviews (most at risk first, with confusable
+ * places as contrast pairs), then new places and new skills on known places, then
+ * learning steps a little early. Keeps success near 85 percent by adapting how many
+ * new places it introduces.
  */
 class SessionEngine(
     private val content: Content,
     private val scheduler: FsrsScheduler,
-    initialCards: Map<String, FsrsCard>,
+    initialCards: Map<CardKey, StudyCard>,
     private val newIntroducedToday: Int,
     private val config: SessionConfig = SessionConfig(),
     private val clock: () -> Long = System::currentTimeMillis,
+    private val random: Random = Random.Default,
 ) {
     private val cards = initialCards.toMutableMap()
-    private val history = mutableListOf<String>()
+    private val history = mutableListOf<CardKey>()
     private val _answers = mutableListOf<Answer>()
-    private var newThisSession = 0
+    private var newPlacesThisSession = 0
+    private var newFacetsThisSession = 0
+    private var contrastPairs = 0
+    private var pendingContrast: CardKey? = null
+    private var current: Question? = null
 
     val answers: List<Answer> get() = _answers
-    fun card(placeId: String): FsrsCard? = cards[placeId]
-    fun cardsSnapshot(): Map<String, FsrsCard> = cards.toMap()
+    fun card(key: CardKey): StudyCard? = cards[key]
+    fun card(placeId: String, facet: Facet = Facet.LOCATE) = cards[CardKey(placeId, facet)]
 
     private val newOrder: List<Place> by lazy {
         val unitRank = content.unitOrder.withIndex().associate { it.value to it.index }
@@ -66,54 +64,202 @@ class SessionEngine(
             .map { it.value }
     }
 
-    /** The next question, or null when the session is over. */
+    /** The next question, or null when the session is over. Repeats until the question is answered. */
     fun next(): Question? {
+        current?.let { return it }
         val now = clock()
         if (_answers.size >= config.size + config.overtime) return null
-        return pick(now, config.minGap) ?: pick(now, 1)
+        return (pick(now, config.minGap) ?: pick(now, 1)).also { current = it }
     }
 
-    fun submit(question: Question, tap: MapPoint, responseMs: Long): Answer {
+    fun submit(question: Question, response: Response, responseMs: Long): Answer {
         val now = clock()
-        val before = cards[question.place.id]
-        val grade = Grader.grade(question.place, tap, responseMs, firstReview = before == null)
-        val after = scheduler.review(before ?: FsrsCard(due = now), grade.rating, now)
-        if (before == null) newThisSession++
-        cards[question.place.id] = after
-        history += question.place.id
-        return Answer(question.place, tap, grade, responseMs, before, after, now).also { _answers += it }
+        current = null
+        val key = question.key
+        val before = cards[key]
+        val grade = grade(question, response, responseMs, firstReview = before == null, stability = before?.fsrs?.stability)
+        val fsrs = scheduler.review(before?.fsrs ?: FsrsCard(due = now), grade.rating, now)
+        // Anything but a clean miss counts as progress, so a hinted success turns hints off.
+        val after = StudyCard(fsrs, struggles = if (grade.rating != Rating.AGAIN) 0 else (before?.struggles ?: 0) + 1)
+        if (before == null) {
+            if (question is Question.Locate && question.isNew) newPlacesThisSession++ else newFacetsThisSession++
+        }
+        cards[key] = after
+        history += key
+        val near = (response as? Response.Tap)?.takeIf { !grade.isCorrect }?.let { nearestOtherPlace(question.place, it) }
+        return Answer(question, response, grade, responseMs, before, after, now, near).also { _answers += it }
+    }
+
+    private fun grade(q: Question, r: Response, ms: Long, firstReview: Boolean, stability: Double?): Grade = when (q) {
+        is Question.Locate -> Grader.grade(q.place, (r as Response.Tap).at, ms, firstReview, q.hint, stability)
+        is Question.NameChoice -> Grader.gradeChoice((r as Response.Choice).placeId == q.place.id, q.hint)
+        is Question.NameTyped -> Grader.gradeTyped(q.place, (r as Response.Typed).text, ms)
+        is Question.Relate -> Grader.gradeChoice((r as Response.Choice).placeId == q.correct.id)
     }
 
     private fun pick(now: Long, gap: Int): Question? {
         val recent = history.takeLast(gap).toSet()
-        fun eligible(id: String) = id !in recent
-        val inMainPart = _answers.size < config.size
+        val placesByFacet = history.groupBy({ it.placeId }, { it.facet })
+        // Sibling rule: one skill per place per session, so one answer never cues another.
+        fun eligible(key: CardKey) =
+            key !in recent && placesByFacet[key.placeId].orEmpty().all { it == key.facet }
 
-        val inLearning = cards.filter { (id, c) -> c.state != CardState.REVIEW && eligible(id) }
-        inLearning.filterValues { it.due <= now }.minByOrNull { it.value.due }
-            ?.let { return question(it.key, false) }
+        val inMainPart = _answers.size < config.size
+        val inLearning = cards.filter { (k, c) -> !c.isReview && eligible(k) }
+
+        inLearning.filterValues { it.fsrs.due <= now }.entries.sortedBy { it.value.fsrs.due }
+            .firstNotNullOfOrNull { question(it.key, now) }?.let { return it }
 
         if (inMainPart) {
-            cards.filter { (id, c) -> c.state == CardState.REVIEW && (c.due <= now || config.strengthenWeakest) && eligible(id) }
-                .minWithOrNull(compareBy({ scheduler.retrievability(it.value, now) }, { it.value.stability }))
-                ?.let { return question(it.key, false) }
+            pendingContrast?.let { key ->
+                pendingContrast = null
+                if (eligible(key)) question(key, now)?.let { return it }
+            }
 
-            if (canIntroduceNew()) {
-                newOrder.firstOrNull { it.id !in cards && eligible(it.id) }
-                    ?.let { return Question(it, isNew = true) }
+            cards.filter { (k, c) -> c.isReview && (c.fsrs.due <= now || config.strengthenWeakest) && eligible(k) }
+                .entries.sortedWith(compareBy({ scheduler.retrievability(it.value.fsrs, now) }, { it.value.stability }))
+                .firstNotNullOfOrNull { e -> question(e.key, now)?.also { planContrast(e.key) } }
+                ?.let { return it }
+
+            if (canIntroduceNewPlace()) {
+                newOrder.firstOrNull { p -> CardKey(p.id, Facet.LOCATE) !in cards && placesByFacet[p.id] == null }
+                    ?.let { return Question.Locate(it, isNew = true, hint = false) }
+            }
+
+            if (newFacetsThisSession < config.maxNewFacetsPerSession) {
+                newOrder.asSequence()
+                    .flatMap { p -> sequenceOf(CardKey(p.id, Facet.NAME), CardKey(p.id, Facet.RELATE)) }
+                    .filter { it !in cards && eligible(it) && placesByFacet[it.placeId] == null && isUnlocked(it) }
+                    .firstNotNullOfOrNull { question(it, now) }
+                    ?.let { return it }
             }
         }
 
-        return inLearning.filterValues { it.due <= now + config.learnAheadMs }.minByOrNull { it.value.due }
-            ?.let { question(it.key, false) }
+        return inLearning.filterValues { it.fsrs.due <= now + config.learnAheadMs }.entries.sortedBy { it.value.fsrs.due }
+            .firstNotNullOfOrNull { question(it.key, now) }
     }
 
-    private fun canIntroduceNew(): Boolean {
-        if (newThisSession >= config.maxNewPerSession) return false
-        if (newIntroducedToday + newThisSession >= config.maxNewPerDay) return false
+    /** The facet ladder: name and relate a place once finding it has been stable for a week. */
+    private fun isUnlocked(key: CardKey): Boolean {
+        val locate = cards[CardKey(key.placeId, Facet.LOCATE)] ?: return false
+        return when (key.facet) {
+            Facet.LOCATE -> true
+            Facet.NAME -> locate.isReview && locate.stability >= NAME_UNLOCK_DAYS
+            Facet.RELATE -> content.place(key.placeId)?.type == PlaceType.CITY &&
+                locate.isReview && locate.stability >= RELATE_UNLOCK_DAYS
+        }
+    }
+
+    private fun question(key: CardKey, now: Long): Question? {
+        val place = content.place(key.placeId) ?: return null
+        val card = cards[key]
+        val hint = (card?.struggles ?: 0) >= HINT_AFTER_MISSES
+        return when (key.facet) {
+            Facet.LOCATE -> Question.Locate(place, isNew = card == null, hint = hint)
+            // Recognition first; typed recall once the name is stable. A struggling player gets choices back.
+            Facet.NAME -> if (card != null && card.stability >= TYPED_NAME_DAYS && !hint) {
+                Question.NameTyped(place)
+            } else {
+                Question.NameChoice(place, nameOptions(place), hint)
+            }
+            Facet.RELATE -> relateQuestion(place)
+        }
+    }
+
+    /** Four names: the answer, then confusables and nearby places of the same kind. */
+    private fun nameOptions(place: Place): List<Place> {
+        val sameKind = content.places.filter { it.id != place.id && it.type.isCity() == place.type.isCity() }
+        val distractors = (place.confusables.mapNotNull(content::place) +
+            sameKind.sortedBy { it.label.distanceTo(place.label) }.take(6).shuffled(random))
+            .distinct().take(3)
+        return (distractors + place).shuffled(random)
+    }
+
+    /** A two-way relation between [place] and a city the player already knows. */
+    private fun relateQuestion(place: Place): Question.Relate? {
+        val known = content.places.filter {
+            it.id != place.id && it.type == PlaceType.CITY && cards[CardKey(it.id, Facet.LOCATE)]?.isReview == true
+        }
+        if (known.isEmpty()) return null
+        val partners = (place.confusables.mapNotNull(content::place).filter { it in known } +
+            known.sortedBy { it.label.distanceTo(place.label) }.take(5).shuffled(random)).distinct()
+        val at = place.label
+        for (other in partners) {
+            val candidates = mutableListOf<Pair<Relation, Place>>()
+            val dx = at.x - other.label.x
+            val dy = at.y - other.label.y
+            if (kotlin.math.abs(dy) >= MIN_SEPARATION_M) {
+                candidates += Relation.Further(Relation.Direction.NORTH) to if (dy > 0) place else other
+                candidates += Relation.Further(Relation.Direction.SOUTH) to if (dy < 0) place else other
+            }
+            if (kotlin.math.abs(dx) >= MIN_SEPARATION_M) {
+                candidates += Relation.Further(Relation.Direction.EAST) to if (dx > 0) place else other
+                candidates += Relation.Further(Relation.Direction.WEST) to if (dx < 0) place else other
+            }
+            for (ref in known) {
+                if (ref.id == other.id) continue
+                val a = ref.label.distanceTo(at)
+                val b = ref.label.distanceTo(other.label)
+                if (maxOf(a, b) >= minOf(a, b) * CLOSER_RATIO) {
+                    candidates += Relation.CloserTo(ref) to if (a < b) place else other
+                }
+            }
+            if (candidates.isNotEmpty()) {
+                val chosen = candidates.random(random)
+                return Question.Relate(place, chosen.first, listOf(place, other).shuffled(random), chosen.second)
+            }
+        }
+        return null
+    }
+
+    /** After reviewing a place with a known confusable, ask the partner right after it. */
+    private fun planContrast(key: CardKey) {
+        if (key.facet != Facet.LOCATE || contrastPairs >= config.maxContrastPairs) return
+        val place = content.place(key.placeId) ?: return
+        val partner = place.confusables.map { CardKey(it, Facet.LOCATE) }.firstOrNull { k ->
+            val c = cards[k]
+            c != null && c.isReview && c.stability >= CONTRAST_MIN_DAYS && history.none { it.placeId == k.placeId }
+        } ?: return
+        pendingContrast = partner
+        contrastPairs++
+    }
+
+    /** New places per session shrink when recent accuracy drops, keeping success near 85%. */
+    private fun canIntroduceNewPlace(): Boolean {
+        if (newIntroducedToday + newPlacesThisSession >= config.maxNewPerDay) return false
         val recent = _answers.takeLast(8)
-        return recent.size < 4 || recent.count { it.grade.isCorrect }.toDouble() / recent.size >= config.minAccuracyForNew
+        val budget = if (recent.size < 4) {
+            config.maxNewPerSession
+        } else {
+            val accuracy = recent.count { it.grade.isCorrect }.toDouble() / recent.size
+            when {
+                accuracy < 0.6 -> 0
+                accuracy < 0.75 -> 1
+                accuracy < 0.85 -> 3
+                else -> config.maxNewPerSession
+            }
+        }
+        return newPlacesThisSession < minOf(budget, config.maxNewPerSession)
     }
 
-    private fun question(id: String, isNew: Boolean) = Question(checkNotNull(content.place(id)), isNew)
+    /** The city the player most likely meant when a tap missed: one within its own tolerance of the tap. */
+    private fun nearestOtherPlace(target: Place, tap: Response.Tap): Place? =
+        content.places.asSequence()
+            .filter { it.id != target.id && it.type == PlaceType.CITY }
+            .map { it to it.shape.distanceTo(tap.at) }
+            .filter { (p, d) -> d <= Grader.tolerance(p) }
+            .minByOrNull { it.second }
+            ?.first
+
+    private fun PlaceType.isCity() = this == PlaceType.CITY
+
+    companion object {
+        const val NAME_UNLOCK_DAYS = 7.0
+        const val RELATE_UNLOCK_DAYS = 7.0
+        const val TYPED_NAME_DAYS = 3.0
+        const val CONTRAST_MIN_DAYS = 3.0
+        const val HINT_AFTER_MISSES = 2
+        const val MIN_SEPARATION_M = 15_000.0
+        const val CLOSER_RATIO = 1.4
+    }
 }

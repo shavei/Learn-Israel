@@ -3,6 +3,7 @@ package com.shavei.mapa.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
+import com.shavei.mapa.learning.Facet
 import com.shavei.mapa.learning.SessionConfig
 import com.shavei.mapa.learning.isKnown
 import com.shavei.mapa.learning.mastery
@@ -31,16 +32,18 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
             val cards = app.progress.cards()
             val config = SessionConfig()
             val places = app.content.places
-            val notStarted = places.count { it.id !in cards }
+            // The map shows LOCATE: knowing where a place is comes first.
+            val locate = cards.filterKeys { it.facet == Facet.LOCATE }.mapKeys { it.key.placeId }
+            val notStarted = places.count { it.id !in locate }
             val newLeftToday = (config.maxNewPerDay - app.progress.newIntroducedToday(now)).coerceAtLeast(0)
             _state.value = HomeState(
                 loaded = true,
                 total = places.size,
-                learned = cards.size,
-                known = cards.values.count { isKnown(it) },
-                dueNow = cards.values.count { it.due <= now },
+                learned = locate.size,
+                known = locate.values.count { isKnown(it.fsrs) },
+                dueNow = cards.values.count { it.fsrs.due <= now },
                 newAvailable = minOf(notStarted, newLeftToday, config.maxNewPerSession),
-                mastery = cards.mapValues { (_, c) -> app.scheduler.mastery(c, now) },
+                mastery = locate.mapValues { (_, c) -> app.scheduler.mastery(c.fsrs, now) },
             )
         }
     }

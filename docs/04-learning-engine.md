@@ -50,16 +50,24 @@ Map answers are not binary. We convert error to an FSRS grade.
 ### LOCATE on a point item (city, site)
 
 ```
-d       = great-circle distance from tap to the place (km)
-tol     = tolerance for this item (km), by type and size:
-            big city 3, town 2, small locality 1.5, site 1.5
-            (tap inside a city polygon counts as d = 0)
+d       = distance from tap to the place (km); a tap inside a city polygon is d = 0
+tol     = base tolerance x learning multiplier
+          base: city 4 km, river 4 km, areas max(2 km, 10% of their size)
+          multiplier by the LOCATE card's stability (how well the place is known):
+            new or under 1 day  2.5   (a new city: 10 km)
+            under 3 days        2.0   (8 km)
+            under 10 days       1.5   (6 km)
+            under 21 days       1.25  (5 km)
+            21 days or more     1.0   (4 km)
 ratio   = d / tol
 
-ratio <= 1    -> Good   (Easy if fast AND confidence "sure" AND not first review)
+ratio <= 1    -> Good   (Easy if fast, within half the tolerance, and not first review)
 ratio <= 3    -> Hard   (right area, not precise)
 ratio >  3    -> Again
 ```
+
+Early attempts are forgiving so the first sessions stay near the 85 percent success
+target; precision is asked for once the memory is stable.
 
 ### LOCATE on an area item (region, lake, crater)
 Tap inside the polygon = Good (Easy with the speed/confidence rule). Outside: `d` is

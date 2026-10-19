@@ -25,4 +25,18 @@
     <string name="summary_error">סטייה ממוצעת: %1$s ק״מ</string>
     <string name="summary_done">חזרה למפה</string>
     <string name="quit">יציאה</string>
+    <string name="ask_name_choice">מה שם המקום המסומן?</string>
+    <string name="ask_name_typed">כתבו את שם המקום המסומן</string>
+    <string name="name_check">בדיקה</string>
+    <string name="relate_north">מה צפוני יותר?</string>
+    <string name="relate_south">מה דרומי יותר?</string>
+    <string name="relate_east">מה מזרחי יותר?</string>
+    <string name="relate_west">מה מערבי יותר?</string>
+    <string name="relate_closer">מה קרוב יותר ל%1$s?</string>
+    <string name="hint">רמז: %1$s</string>
+    <string name="feedback_tapped_near">סימנתם את %1$s</string>
+    <string name="feedback_you_chose">בחרתם: %1$s</string>
+    <string name="feedback_you_typed">כתבתם: %1$s</string>
+    <string name="feedback_answer_is">התשובה: %1$s</string>
+    <string name="feedback_spelling">הכתיב המדויק: %1$s</string>
 </resources>

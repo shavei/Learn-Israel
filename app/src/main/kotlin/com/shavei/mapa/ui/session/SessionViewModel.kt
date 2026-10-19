@@ -7,6 +7,7 @@ import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
 import com.shavei.mapa.learning.Question
+import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.SessionConfig
 import com.shavei.mapa.learning.SessionEngine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,7 @@ import java.util.UUID
 
 sealed interface SessionUi {
     data object Loading : SessionUi
-    data class Discover(val question: Question, val number: Int) : SessionUi
+    data class Discover(val question: Question.Locate, val number: Int) : SessionUi
     data class Ask(val question: Question, val number: Int) : SessionUi
     data class Feedback(val answer: Answer, val number: Int) : SessionUi
     data class Finished(val summary: SessionSummary) : SessionUi
@@ -52,22 +53,29 @@ class SessionViewModel(private val app: MapaApplication, extraPractice: Boolean)
         ask(ui.question)
     }
 
-    fun onTap(point: MapPoint) {
-        val ui = _ui.value as? SessionUi.Ask ?: return
-        val answer = engine.submit(ui.question, point, System.currentTimeMillis() - askedAt)
-        _ui.value = SessionUi.Feedback(answer, ui.number)
-        viewModelScope.launch { app.progress.save(answer, sessionId) }
-    }
+    fun onTap(point: MapPoint) = answer(Response.Tap(point)) { it is Question.Locate }
+
+    fun onChoose(placeId: String) = answer(Response.Choice(placeId)) { it is Question.NameChoice || it is Question.Relate }
+
+    fun onType(text: String) = answer(Response.Typed(text)) { it is Question.NameTyped }
 
     fun onContinue() {
         if (_ui.value is SessionUi.Feedback) advance()
+    }
+
+    private inline fun answer(response: Response, accepts: (Question) -> Boolean) {
+        val ui = _ui.value as? SessionUi.Ask ?: return
+        if (!accepts(ui.question)) return
+        val answer = engine.submit(ui.question, response, System.currentTimeMillis() - askedAt)
+        _ui.value = SessionUi.Feedback(answer, ui.number)
+        viewModelScope.launch { app.progress.save(answer, sessionId) }
     }
 
     private fun advance() {
         val q = engine.next()
         _ui.value = when {
             q == null -> SessionUi.Finished(summary())
-            q.isNew -> SessionUi.Discover(q, number + 1)
+            q is Question.Locate && q.isNew -> SessionUi.Discover(q, number + 1)
             else -> return ask(q)
         }
     }
@@ -80,11 +88,11 @@ class SessionViewModel(private val app: MapaApplication, extraPractice: Boolean)
 
     private fun summary(): SessionSummary {
         val answers = engine.answers
-        val cityErrors = answers.filter { it.place.type == PlaceType.CITY }.map { it.grade.errorMeters }
+        val cityErrors = answers.filter { it.place.type == PlaceType.CITY }.mapNotNull { it.grade.errorMeters }
         return SessionSummary(
             answers = answers.size,
             correct = answers.count { it.grade.isCorrect },
-            newPlaces = answers.count { it.before == null },
+            newPlaces = answers.count { it.before == null && it.question is Question.Locate },
             averageCityErrorMeters = cityErrors.takeIf { it.isNotEmpty() }?.average(),
         )
     }

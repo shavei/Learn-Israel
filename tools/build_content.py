@@ -184,6 +184,15 @@ def main() -> int:
     curriculum = yaml.safe_load((ROOT / "content" / "places.yaml").read_text())["places"]
     places = []
     errors = []
+    ids = [p["id"] for p in curriculum]
+    # Confusable pairs are symmetric: listing B under A also lists A under B.
+    confusables: dict[str, set[str]] = {}
+    for p in curriculum:
+        for other in p.get("confusables", []):
+            if other not in ids:
+                errors.append(f"{p['id']}: unknown confusable {other}")
+            confusables.setdefault(p["id"], set()).add(other)
+            confusables.setdefault(other, set()).add(p["id"])
     for p in curriculum:
         kind, _, arg = p["geometry"].partition(":")
         geometry = {}
@@ -232,10 +241,11 @@ def main() -> int:
                 "fact": p["fact"],
                 "geometry": geometry,
                 "label": [round(label.x), round(label.y)],
+                "aliases": p.get("aliases", []),
+                "confusables": sorted(confusables.get(p["id"], set())),
             }
         )
 
-    ids = [p["id"] for p in curriculum]
     if len(ids) != len(set(ids)):
         errors.append("duplicate place ids")
     if errors:
