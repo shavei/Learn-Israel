@@ -27,7 +27,8 @@ What Phase 0 simplified, on purpose:
   (`core:geo`, `core:content`, `core:learning`) plus `app`, instead of the full module
   split in doc 05. Split further when features grow.
 - The Green Line layer is in the map data but has no settings switch yet (Phase 1).
-- Pin It tolerances (3 km for cities) are first guesses, to tune in the playtest.
+- Pin It tolerances are first guesses, to tune in the playtest (Phase 1a made them
+  forgiving for new places: 10 km for a new city, tightening to 4 km).
 
 ## Phase 1: MVP (L)
 
@@ -48,6 +49,8 @@ releases, each playable on its own.
 - [x] Confusable pairs asked back to back once both are known
 - [x] New places per session adapt to recent accuracy (85 percent target)
 - [x] Feedback names the city you tapped when you missed
+- [x] Pin It tolerance widens for new places (10 km for a new city) and tightens to
+      4 km as the place becomes well known
 - [x] Database migration keeps Phase 0 progress
 
 ### 1b. Content

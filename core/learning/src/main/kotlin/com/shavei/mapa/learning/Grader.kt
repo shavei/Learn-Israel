@@ -27,16 +27,38 @@ object Grader {
     /** Error bands, as multiples of the tolerance: within 1x is right, within 3x is close. */
     private const val CLOSE_FACTOR = 3.0
 
+    /** How close a tap must be for a place the player knows well. */
     fun tolerance(place: Place): Double = when (place.type) {
-        PlaceType.CITY -> 3_000.0
-        PlaceType.RIVER -> 3_000.0
+        PlaceType.CITY -> 4_000.0
+        PlaceType.RIVER -> 4_000.0
         PlaceType.LAKE, PlaceType.SEA, PlaceType.COUNTRY ->
             max(2_000.0, 0.1 * (place.shape as Shape.Area).characteristicSize())
     }
 
+    /**
+     * Widens the tolerance while a place is still being learned, so early attempts
+     * succeed (around 10 km for a new city) and precision is asked for only once the
+     * memory is stable (4 km after three weeks). [stabilityDays] is the LOCATE card's
+     * FSRS stability before this answer, null for a new place.
+     */
+    fun learningMultiplier(stabilityDays: Double?): Double = when {
+        stabilityDays == null || stabilityDays < 1.0 -> 2.5
+        stabilityDays < 3.0 -> 2.0
+        stabilityDays < 10.0 -> 1.5
+        stabilityDays < 21.0 -> 1.25
+        else -> 1.0
+    }
+
     /** A tap on the map. With [hint] on, the best possible rating is HARD. */
-    fun grade(place: Place, tap: MapPoint, responseMs: Long, firstReview: Boolean, hint: Boolean = false): Grade {
-        val tolerance = tolerance(place)
+    fun grade(
+        place: Place,
+        tap: MapPoint,
+        responseMs: Long,
+        firstReview: Boolean,
+        hint: Boolean = false,
+        stabilityDays: Double? = null,
+    ): Grade {
+        val tolerance = tolerance(place) * learningMultiplier(stabilityDays)
         val error = place.shape.distanceTo(tap)
         val rating = when {
             error <= tolerance ->

@@ -77,7 +77,7 @@ class SessionEngine(
         current = null
         val key = question.key
         val before = cards[key]
-        val grade = grade(question, response, responseMs, firstReview = before == null)
+        val grade = grade(question, response, responseMs, firstReview = before == null, stability = before?.fsrs?.stability)
         val fsrs = scheduler.review(before?.fsrs ?: FsrsCard(due = now), grade.rating, now)
         // Anything but a clean miss counts as progress, so a hinted success turns hints off.
         val after = StudyCard(fsrs, struggles = if (grade.rating != Rating.AGAIN) 0 else (before?.struggles ?: 0) + 1)
@@ -90,8 +90,8 @@ class SessionEngine(
         return Answer(question, response, grade, responseMs, before, after, now, near).also { _answers += it }
     }
 
-    private fun grade(q: Question, r: Response, ms: Long, firstReview: Boolean): Grade = when (q) {
-        is Question.Locate -> Grader.grade(q.place, (r as Response.Tap).at, ms, firstReview, q.hint)
+    private fun grade(q: Question, r: Response, ms: Long, firstReview: Boolean, stability: Double?): Grade = when (q) {
+        is Question.Locate -> Grader.grade(q.place, (r as Response.Tap).at, ms, firstReview, q.hint, stability)
         is Question.NameChoice -> Grader.gradeChoice((r as Response.Choice).placeId == q.place.id, q.hint)
         is Question.NameTyped -> Grader.gradeTyped(q.place, (r as Response.Typed).text, ms)
         is Question.Relate -> Grader.gradeChoice((r as Response.Choice).placeId == q.correct.id)
