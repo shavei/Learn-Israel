@@ -133,13 +133,15 @@ regions:
     - [35.45, 32.45]
     - [35.45, 32.58]
 
-  gush_dan:  # the Tel Aviv metropolis, Herzliya to Rishon LeZion and out to Lod
+  gush_dan:  # the Tel Aviv metropolis, Herzliya to Rishon LeZion and out to Lod and Rosh HaAyin
     - [34.60, 32.19]
     - [34.85, 32.185]
     - [34.87, 32.15]
     - [34.93, 32.13]
     - [34.98, 32.10]
-    - [34.98, 31.96]
+    - [34.975, 32.075]
+    - [34.935, 32.065]
+    - [34.925, 32.01]
     - [34.92, 31.90]
     - [34.84, 31.91]
     - [34.82, 31.945]
@@ -164,8 +166,9 @@ regions:
     - [34.55, 31.57]
     - [34.30, 31.57]
 
-  shephelah:  # the low hills between the coastal plain and the mountains
-    - [34.86, 31.98]
+  shephelah:  # the low hills between the coastal plain and the mountains, Elad to Lachish
+    - [34.90, 32.08]
+    - [35.03, 32.08]
     - [35.03, 31.98]
     - [35.05, 31.88]
     - [35.02, 31.80]

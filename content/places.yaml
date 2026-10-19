@@ -612,7 +612,7 @@ places:
     importance: 4
     geometry: geonames:8428480
     name: אלעד
-    hint: דרומית לראש העין, למרגלות הרי השומרון
+    hint: דרומית לראש העין, בצפון השפלה
     fact: עיר חדשה שנוסדה בסוף שנות ה-90.
   - id: city.shoham
     type: city
@@ -1415,7 +1415,7 @@ places:
     unit: districts
     importance: 3
     geometry: district:judea_samaria
-    name: אזור יהודה והשומרון
+    name: יהודה ושומרון
     hint: ההרים שממזרח לקו הירוק, משכם ועד חברון
     fact: אינו אחד משישת המחוזות, ומנוהל כאזור נפרד.
-    aliases: [יהודה ושומרון, יהודה והשומרון, הגדה המערבית, יוש]
+    aliases: [אזור יהודה והשומרון, יהודה והשומרון, הגדה המערבית, יוש]

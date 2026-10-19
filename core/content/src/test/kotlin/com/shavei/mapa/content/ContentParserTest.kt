@@ -114,6 +114,10 @@ class ContentParserTest {
         }
         inside("region.sharon", "city.netanya")
         inside("region.gush_dan", "city.ramat_gan")
+        inside("region.gush_dan", "city.lod")
+        inside("region.shephelah", "city.elad")
+        inside("region.shephelah", "city.shoham")
+        inside("region.lower_galilee", "city.karmiel")
         inside("region.upper_galilee", "city.safed")
         inside("region.lower_galilee", "city.nazareth")
         inside("region.golan", "city.katzrin")
