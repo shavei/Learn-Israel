@@ -109,8 +109,9 @@ class SessionEngineTest {
     }
 
     @Test
-    fun namingUnlocksOnceLocatingIsStableAndStartsAsMultipleChoice() {
-        val e = engine(mapOf(key(0) to reviewed(2.5, 4.0)), newToday = 10)
+    fun namingUnlocksAfterAWeekOfStableLocatingAndStartsAsMultipleChoice() {
+        assertNull(engine(mapOf(key(0) to reviewed(6.5, 4.0)), newToday = 10).next(), "not yet at 6.5 days")
+        val e = engine(mapOf(key(0) to reviewed(7.5, 4.0)), newToday = 10)
         val q = assertIs<Question.NameChoice>(e.next())
         assertEquals("city.c0", q.place.id)
         assertEquals(4, q.options.size)
@@ -177,6 +178,18 @@ class SessionEngineTest {
         assertEquals(key(4), e.next()!!.key)
         e.submit(e.next()!!, respond(e.next()!!, true), 3_000)
         assertEquals(key(5), e.next()!!.key, "the partner follows even though it is not due")
+    }
+
+    @Test
+    fun oneTypoInATypedNameStillCounts() {
+        val e = engine(mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0)), newToday = 10)
+        val q = assertIs<Question.NameTyped>(e.next())
+        val a = e.submit(q, Response.Typed("עיר"), 6_000)
+        assertEquals(Rating.AGAIN, a.grade.rating, "too short to forgive")
+        val content2 = testContent().places.first { it.id == "city.c0" }.copy(name = "ירושלים")
+        val slip = Grader.gradeTyped(content2, "ירושלם", 6_000)
+        assertEquals(Rating.GOOD, slip.rating)
+        assertTrue(slip.spellingSlip)
     }
 
     @Test

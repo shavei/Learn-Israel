@@ -245,7 +245,7 @@ private fun feedbackLines(answer: Answer, content: Content): List<String> {
             )
         }
         is Response.Typed -> when {
-            answer.grade.rating == Rating.HARD -> listOf(stringResource(R.string.feedback_almost, q.place.name))
+            answer.grade.spellingSlip -> listOf(stringResource(R.string.feedback_spelling, q.place.name))
             correct -> listOf(q.place.name)
             else -> listOf(
                 stringResource(R.string.feedback_answer_is, q.place.name),

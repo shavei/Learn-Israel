@@ -13,6 +13,8 @@ data class Grade(
     /** For taps: how far from the place, 0 when inside an area. Null for other answers. */
     val errorMeters: Double? = null,
     val toleranceMeters: Double? = null,
+    /** A typed name accepted with one wrong letter; feedback shows the exact spelling. */
+    val spellingSlip: Boolean = false,
 ) {
     val isCorrect: Boolean get() = rating == Rating.GOOD || rating == Rating.EASY
 }
@@ -49,13 +51,13 @@ object Grader {
     fun gradeChoice(correct: Boolean, hint: Boolean = false): Grade =
         Grade(capForHint(if (correct) Rating.GOOD else Rating.AGAIN, hint))
 
-    fun gradeTyped(place: Place, typed: String, responseMs: Long): Grade = Grade(
+    /** Spelling is not the point: one slip on a longer name still counts as knowing it. */
+    fun gradeTyped(place: Place, typed: String, responseMs: Long): Grade =
         when (HebrewNames.match(typed, listOf(place.name) + place.aliases)) {
-            HebrewNames.Match.EXACT -> if (responseMs < FLUENT_RESPONSE_MS * 2) Rating.EASY else Rating.GOOD
-            HebrewNames.Match.CLOSE -> Rating.HARD
-            HebrewNames.Match.WRONG -> Rating.AGAIN
-        },
-    )
+            HebrewNames.Match.EXACT -> Grade(if (responseMs < FLUENT_RESPONSE_MS * 2) Rating.EASY else Rating.GOOD)
+            HebrewNames.Match.CLOSE -> Grade(Rating.GOOD, spellingSlip = true)
+            HebrewNames.Match.WRONG -> Grade(Rating.AGAIN)
+        }
 
     private fun capForHint(rating: Rating, hint: Boolean) =
         if (hint && (rating == Rating.GOOD || rating == Rating.EASY)) Rating.HARD else rating

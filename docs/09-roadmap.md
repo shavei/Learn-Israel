@@ -37,9 +37,11 @@ releases, each playable on its own.
 ### 1a. Learning core - built
 - [x] Skills per place: `LOCATE`, `NAME`, `RELATE`, each with its own FSRS card
 - [x] Name It: multiple choice (confusables and nearby places as distractors), then
-      typed once stable, with Hebrew spelling-variant matching and aliases
+      typed once stable, with Hebrew spelling-variant matching and aliases; one
+      typo on a longer name still counts as correct (feedback shows the spelling)
 - [x] Which Way: further north/south/east/west, and closer to a third known city
-- [x] Facet ladder: name unlocks at 2 days of LOCATE stability, relations at 3
+- [x] Facet ladder: naming and relations unlock once finding the place has been
+      stable for a week
 - [x] Sibling rule: one skill per place per session
 - [x] Hint ladder: two misses in a row bring a hint (text hint, or choices instead of
       typing); hinted answers count at most HARD; a success removes the hint

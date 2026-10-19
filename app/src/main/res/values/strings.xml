@@ -38,5 +38,5 @@
     <string name="feedback_you_chose">בחרתם: %1$s</string>
     <string name="feedback_you_typed">כתבתם: %1$s</string>
     <string name="feedback_answer_is">התשובה: %1$s</string>
-    <string name="feedback_almost">כמעט! הכתיב הנכון: %1$s</string>
+    <string name="feedback_spelling">הכתיב המדויק: %1$s</string>
 </resources>

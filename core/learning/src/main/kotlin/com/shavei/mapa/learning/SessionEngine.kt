@@ -139,7 +139,7 @@ class SessionEngine(
             .firstNotNullOfOrNull { question(it.key, now) }
     }
 
-    /** The facet ladder: name a place once you can find it; relate it once that is stable. */
+    /** The facet ladder: name and relate a place once finding it has been stable for a week. */
     private fun isUnlocked(key: CardKey): Boolean {
         val locate = cards[CardKey(key.placeId, Facet.LOCATE)] ?: return false
         return when (key.facet) {
@@ -254,8 +254,8 @@ class SessionEngine(
     private fun PlaceType.isCity() = this == PlaceType.CITY
 
     companion object {
-        const val NAME_UNLOCK_DAYS = 2.0
-        const val RELATE_UNLOCK_DAYS = 3.0
+        const val NAME_UNLOCK_DAYS = 7.0
+        const val RELATE_UNLOCK_DAYS = 7.0
         const val TYPED_NAME_DAYS = 3.0
         const val CONTRAST_MIN_DAYS = 3.0
         const val HINT_AFTER_MISSES = 2
