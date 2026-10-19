@@ -40,9 +40,10 @@ Taught first; everything else hangs on it.
 
 ## Tier 1: Regions and districts (26 items, built in Phase 1b)
 
-Built as 19 natural regions that split the land without overlapping (the list below
-plus Western Galilee, Haifa Bay, Menashe Heights and the southern coastal plain, with
-the Coastal Plain split into its parts), and 7 districts. See `content/regions.yaml`.
+Built as 19 natural regions that split the land without overlapping, each a group of
+the official CBS natural regions (the list below, with the Coastal Plain split into the
+Haifa region, the Carmel coast, the Sharon, Gush Dan and the southern coastal plain,
+plus Western Galilee and the Menashe Plateau), and 7 districts. See `content/regions.yaml`.
 
 
 - **Natural regions:** Upper Galilee, Lower Galilee, Golan Heights, Hula Valley,

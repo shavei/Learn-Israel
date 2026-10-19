@@ -9,20 +9,22 @@
 | Official locality list, codes, Hebrew names, population, district | Israel Central Bureau of Statistics (CBS) locality file, published on data.gov.il | Israeli government open data terms (verify) | Canonical list of localities and their attributes |
 | Multilingual names, Wikipedia links, extra facts | Wikidata | CC0 | Hebrew names and aliases, cross-checking, fact research |
 | Administrative districts | OSM relations (admin_level 4), fetched with the main OSM API by `tools/fetch_districts.py` into `content/districts.geojson` | ODbL 1.0 | Tier 1 district polygons |
-| Natural regions | Hand-drawn sketches in `content/regions.yaml` (OSM has only label points for them), clipped to the land by the pipeline | Our own | Tier 1 region polygons, region outlines on the map |
+| Natural regions | Israel Central Bureau of Statistics, official natural regions (אזורים טבעיים) 2018, public ArcGIS layer; Judea and Samaria regions (codes 711 to 815) from the Ministry of Agriculture's 2025 layer. Fetched by `tools/fetch_natural_regions.py` into `content/natural_regions.geojson` | Israeli government data | Tier 1 region polygons, region outlines on the map |
 
 **Status (Phase 1b):** the pipeline uses Natural Earth (frame), GeoNames (city points,
 via `geonamescache`, plus a few explicit `point:` coordinates for towns too small for
-it), committed OSM district boundaries, and the region sketches. Geofabrik and Overpass
+it), committed OSM district boundaries, and the committed official natural regions. Geofabrik and Overpass
 were unreachable from the build environment, so the district file is fetched once from
 the main OSM API and committed; rerun `tools/fetch_districts.py` to refresh it.
 
-How the natural regions are built: each sketch is a rough polygon whose inner edges
-follow the commonly drawn borders (valleys, streams, ridges) and whose outer edges reach
-past the coast or border. In file order, each region takes its sketch's share of the
-land (lakes removed) that earlier regions did not take, so the regions never overlap
-and neighbors share one border. The build fails if more than 1 km2 of land is left in
-no region. Districts get the same treatment, so the strips where OSM's boundary and the
+How the natural regions are built: the CBS divides Israel into about 50 official
+natural regions. `content/regions.yaml` groups them into the game's 19 regions (for
+example the Sharon is the Hadera region plus western, eastern and southern Sharon).
+The pipeline clips each group to the map's land and lakes. The official borders and the
+Natural Earth coast and borders disagree by up to a few hundred meters, so the leftover
+strips go to the nearest region, and the build fails if more than 1 km2 of land is
+still in no region. The regions are then simplified together, so neighbors keep one
+shared border. Districts get the same treatment, so the strips where OSM's boundary and the
 Natural Earth coast disagree are filled. The Judea and Samaria Area is the de facto land
 outside the six districts.
 
