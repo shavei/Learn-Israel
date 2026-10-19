@@ -3,8 +3,11 @@
 An Android game, in Hebrew, that teaches the geography of Israel, built on the science of how
 people actually remember.
 
-> **Status:** planning. This repository currently contains the design plan only. No
-> app code yet.
+> **Status:** Phase 0 prototype. The core loop works: a daily session on a blank map
+> with 30 places, spaced repetition (FSRS), and distance feedback. See the
+> [roadmap](docs/09-roadmap.md).
+
+![Phase 0: home, a new place, a question, a correct answer, a miss, and the mastery map](docs/images/phase0-flow.png)
 
 ## The idea in one paragraph
 
@@ -48,8 +51,40 @@ The design is built on the most robust findings in learning science:
 | [10. Decisions and risks](docs/10-risks-and-open-questions.md) | Decisions made, and how we handle risks |
 | [References](docs/references.md) | Papers, algorithms, data sources |
 
-## Next step
+## Project layout
 
-The key product decisions are made (see
-[doc 10](docs/10-risks-and-open-questions.md)). Start Phase 0 from the
-[roadmap](docs/09-roadmap.md).
+| Path | What it is |
+|------|------------|
+| `app/` | Android app (Kotlin, Jetpack Compose, Room): map renderer, home and session screens |
+| `core/geo/` | Pure Kotlin geometry on the Israeli TM grid: distances, point in polygon, shapes |
+| `core/content/` | Place and map models, parser for the generated assets |
+| `core/learning/` | FSRS scheduler (port of py-fsrs), tap grading, session engine, mastery |
+| `content/places.yaml` | The curriculum: which places are taught, with Hebrew names, hints and facts |
+| `tools/build_content.py` | Data pipeline: Natural Earth + GeoNames + `places.yaml` into `app/src/main/assets/` |
+
+## Build and test
+
+Requirements: JDK 17+, Android SDK with platform 35 (set `sdk.dir` in `local.properties`
+or `ANDROID_HOME`).
+
+```bash
+./gradlew test                 # all unit tests, plus Robolectric screen tests
+./gradlew :app:assembleDebug   # APK at app/build/outputs/apk/debug/app-debug.apk
+```
+
+The screen tests save screenshots of a real session to `app/build/screenshots/`.
+
+To change what is taught, edit `content/places.yaml` and regenerate the assets:
+
+```bash
+pip install -r tools/requirements.txt
+python3 tools/build_content.py
+```
+
+CI checks that the committed assets match the pipeline output.
+
+## Data credits
+
+Map data from [Natural Earth](https://www.naturalearthdata.com/) (public domain). City
+locations from [GeoNames](https://www.geonames.org/) (CC BY 4.0). The FSRS scheduler is
+ported from [py-fsrs](https://github.com/open-spaced-repetition/py-fsrs) (MIT).

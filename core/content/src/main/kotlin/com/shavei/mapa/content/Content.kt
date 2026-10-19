@@ -1,0 +1,46 @@
+package com.shavei.mapa.content
+
+import com.shavei.mapa.geo.Bounds
+import com.shavei.mapa.geo.Line
+import com.shavei.mapa.geo.MapPoint
+import com.shavei.mapa.geo.Polygon
+import com.shavei.mapa.geo.Shape
+
+enum class PlaceType { CITY, SEA, LAKE, RIVER, COUNTRY }
+
+/** Something the player learns: a name, a location, and one memorable fact. */
+data class Place(
+    val id: String,
+    val type: PlaceType,
+    val unit: String,
+    val importance: Int,
+    val name: String,
+    val hint: String,
+    val fact: String,
+    val shape: Shape,
+    /** Where the name is drawn: inside the area, near Israel, so it stays on screen. */
+    val label: MapPoint,
+)
+
+/** A background layer of the map (land, neighbors, lakes, ...). */
+data class MapLayer(val id: String, val polygons: List<Polygon>, val lines: List<Line>)
+
+data class MapData(
+    /** The whole drawable window. */
+    val window: Bounds,
+    /** The area the camera frames by default: Israel. */
+    val home: Bounds,
+    val layers: List<MapLayer>,
+    val attribution: String,
+) {
+    fun layer(id: String): MapLayer? = layers.firstOrNull { it.id == id }
+}
+
+class Content(val map: MapData, val places: List<Place>) {
+    private val byId = places.associateBy { it.id }
+
+    fun place(id: String): Place? = byId[id]
+
+    /** Units in curriculum order (the order they first appear in places.json). */
+    val unitOrder: List<String> = places.map { it.unit }.distinct()
+}

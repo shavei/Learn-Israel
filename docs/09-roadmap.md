@@ -4,19 +4,30 @@ Phases are ordered by learning value first. Each ends with a concrete exit test.
 Sizes are relative (S, M, L). The team is one developer working with Claude Code, so
 scope is kept tight and every phase ships something usable.
 
-## Phase 0: Foundations and prototype (M)
+## Phase 0: Foundations and prototype (M) - built
 
 Goal: prove the core loop feels good and teaches.
 
-- [ ] Android project skeleton (modules, Compose, Hilt, Room, CI)
-- [ ] Data pipeline v0: Natural Earth + OSM extract for the frame and 30 places
-- [ ] Map renderer v0: outline, sea, points, pan/zoom, hit testing
-- [ ] FSRS port with reference test vectors
-- [ ] Pin It mode with distance feedback
-- [ ] Minimal daily session (reviews + new items, short-term steps)
+- [x] Android project skeleton (modules, Compose, Room, CI)
+- [x] Data pipeline v0: Natural Earth + GeoNames for the frame and 30 places
+- [x] Map renderer v0: land, neighbors, Gaza, lakes, Jordan River, pan/zoom, hit testing
+- [x] FSRS port with reference test vectors (matches py-fsrs 6.3.2)
+- [x] Pin It mode with distance feedback
+- [x] Minimal daily session (reviews + new items, short-term steps, extra practice)
+- [ ] Playtest: 5 to 8 testers for one week
 
 **Exit test:** 5 to 8 testers play daily for one week; average error on the 30 places
 drops clearly and testers want to keep going.
+
+What Phase 0 simplified, on purpose:
+- One skill per place (`LOCATE`); `NAME` and `RELATE` arrive in Phase 1.
+- Geometry comes from Natural Earth and GeoNames instead of OpenStreetMap; that is
+  enough detail for the frame and cities. OSM comes with regions and roads.
+- Manual dependency wiring instead of Hilt, and three pure Kotlin modules
+  (`core:geo`, `core:content`, `core:learning`) plus `app`, instead of the full module
+  split in doc 05. Split further when features grow.
+- The Green Line layer is in the map data but has no settings switch yet (Phase 1).
+- Pin It tolerances (3 km for cities) are first guesses, to tune in the playtest.
 
 ## Phase 1: MVP (L)
 
@@ -65,12 +76,9 @@ test shows large gains; D7 retention benchmark agreed in advance.
 - [ ] Photo mode (identify the place from a landscape photo)
 - [ ] iOS (Kotlin Multiplatform for `:core:learning` and `:core:geo` makes this cheaper)
 
-## Suggested first sprint (concrete next steps)
+## Next steps
 
-1. Create the Android project skeleton with the module layout from doc 05.
-2. Write `tools/` pipeline to export the coastline, neighbors, Kinneret, Dead Sea,
-   Jordan River, and 30 cities.
-3. Implement `:core:geo` (projection, distance, point-in-polygon) with tests.
-4. Port FSRS into `:core:learning` with reference vectors.
-5. Build the Compose map renderer and a single Pin It screen.
-6. Wire a minimal session and play it every day.
+1. Install the debug APK (CI artifact `mapa-debug-apk`) on real phones and run the
+   Phase 0 playtest.
+2. Tune tolerances and session size from the playtest.
+3. Start Phase 1: Name It mode, regions (Tier 1), and the rest of Tiers 2 to 3.
