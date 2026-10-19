@@ -4,10 +4,10 @@
 # code from content/natural_regions.geojson:
 #   - inside Israel: the Central Bureau of Statistics regions (2018),
 #   - in Judea and Samaria: the Ministry of Agriculture regions (codes 711 to 815).
-# tools/fetch_natural_regions.py downloads them. The pipeline clips the union to the
-# map's land and lakes; where the official borders and the map's coast or border
-# disagree by a few hundred meters, the nearest region takes the strip. Every code
-# must be used exactly once.
+# tools/fetch_sources.py downloads them. The map's land is the union of all of them;
+# the pipeline cuts out the lakes, and where the two official layers leave slivers
+# along the Green Line, the nearest region takes them. Every code must be used
+# exactly once.
 
 regions:
   golan: [291, 292, 293, 294]                # Hermon, northern, middle and southern Golan
@@ -30,3 +30,34 @@ regions:
   judean_desert: [624, 814]                  # Dead Sea region, Megilot
   negev: [621, 622, 623, 626, 627]           # Gerar, Besor, Be'er Sheva, northern and southern Negev Mountains
   arava: [625]                               # Arava
+
+# Corrections to the official layers, each an OpenStreetMap area that moves to a game
+# region. The Judea and Samaria regions follow Israeli council lines, which wrap
+# around Palestinian cities: Jericho's town area lies in "Judea" (812) there, next to
+# the southern Jordan Valley (712), though the city is in the Jordan Valley.
+# Gush Dan follows the CBS (the Tel Aviv, Ramat Gan, Holon, Petah Tikva, Ramla and
+# Rishon LeZion regions), but the Sharon begins at the Yarkon, and Hebrew Wikipedia
+# places these towns north of it in the Sharon: Herzliya and Ramat HaSharon ("השרון
+# הדרומי"), Rosh HaAyin ("במרזבה המזרחית של השרון") and Kafr Qasim ("באזור השרון").
+overrides:
+  jordan_valley:
+    - 8488590  # Jericho (أريحا), OSM relation of its town area
+  judean_desert:
+    - 10044691  # Ma'ale Adumim, OSM municipal area: both Wikipedias place it in the
+                # Judean Desert, though its rainfall (about 260 to 280 mm) is just
+                # above the 250 mm line
+  sharon:
+    - 1382820  # Herzliya, OSM municipal area
+    - 1382821  # Ramat HaSharon
+    - 1401781  # Rosh HaAyin
+    - 1405261  # Kafr Qasim
+
+# The Judean Desert's western edge is a climatic line, the 250 mm annual rainfall line
+# down the Judean hills from Ramallah to Arad (Hebrew Wikipedia, "מדבר יהודה"); here
+# traced from the Israel Meteorological Service's 1991-2020 rainfall normals. The parts of the Judea regions east of it join the Judean Desert,
+# with the Megilot and Dead Sea regions. Its northern edge is disputed; it is taken as
+# the border between the Judea and Samaria regions (811 and 812), near Ramallah.
+climate_splits:
+  judean_desert:
+    isohyet_mm: 250
+    from_codes: [812, 813, 815]

@@ -7,12 +7,13 @@
 #   sea:<lon>,<lat>     the open-water area containing this seed point
 #   lake:<name>         Natural Earth lake polygon(s) with this English name
 #   river:<name>        Natural Earth river centerline(s) with this English name
-#   geonames:<id>       GeoNames city point (CC BY 4.0)
-#   point:<lon>,<lat>   a point, for towns too small for the GeoNames city list
-#                       (coordinates from GeoNames or OpenStreetMap)
+#   cbs:<symbol>        a locality's official point from the CBS locality file
+#                       (content/localities.csv), by its locality symbol
+#   geonames:<id>       GeoNames city point (CC BY 4.0), for cities the CBS does not list
+#   point:<lon>,<lat>   a point (here: Jericho, from OpenStreetMap; GeoNames is 1.4 km off)
 #   region:<key>        a game region from content/regions.yaml (official natural regions)
-#   district:<key>      a district from content/districts.geojson (OpenStreetMap),
-#                       or judea_samaria: the land east of the districts
+#   district:<key>      a district, built from the official natural regions
+#                       (judea_samaria: the natural regions of Judea and Samaria)
 #
 # aliases: other accepted spellings for typed answers (niqqud, punctuation, spaces,
 #   final letters and doubled yod/vav are already ignored by the matcher).
@@ -106,7 +107,7 @@ places:
     type: city
     unit: anchors
     importance: 1
-    geometry: geonames:281184
+    geometry: cbs:3000
     name: ירושלים
     hint: בהרי יהודה, במרכז הארץ
     fact: בירת ישראל והעיר הגדולה בה.
@@ -114,7 +115,7 @@ places:
     type: city
     unit: anchors
     importance: 1
-    geometry: geonames:293397
+    geometry: cbs:5000
     name: תל אביב-יפו
     hint: על חוף הים, במרכז הארץ
     fact: לב גוש דן, המטרופולין הגדול בישראל.
@@ -123,7 +124,7 @@ places:
     type: city
     unit: anchors
     importance: 1
-    geometry: geonames:294801
+    geometry: cbs:4000
     name: חיפה
     hint: בצפון, על החוף, למרגלות הכרמל
     fact: עיר הנמל הגדולה בצפון, על מורדות הר הכרמל.
@@ -131,7 +132,7 @@ places:
     type: city
     unit: anchors
     importance: 1
-    geometry: geonames:295530
+    geometry: cbs:9000
     name: באר שבע
     hint: בצפון הנגב
     fact: מכונה "בירת הנגב". העיר הגדולה בדרום הארץ.
@@ -141,7 +142,7 @@ places:
     type: city
     unit: anchors
     importance: 1
-    geometry: geonames:295277
+    geometry: cbs:2600
     name: אילת
     hint: בקצה הדרומי, על מפרץ אילת
     fact: העיר הדרומית ביותר בישראל.
@@ -226,7 +227,7 @@ places:
     type: city
     unit: center
     importance: 2
-    geometry: geonames:293703
+    geometry: cbs:8300
     name: ראשון לציון
     hint: דרומית לתל אביב
     fact: נוסדה ב-1882, מהמושבות הראשונות של העלייה הראשונה.
@@ -236,7 +237,7 @@ places:
     type: city
     unit: center
     importance: 2
-    geometry: geonames:293918
+    geometry: cbs:7900
     name: פתח תקווה
     hint: ממזרח לתל אביב
     fact: מכונה "אם המושבות". נוסדה ב-1878.
@@ -245,7 +246,7 @@ places:
     type: city
     unit: center
     importance: 3
-    geometry: geonames:294778
+    geometry: cbs:6400
     name: הרצליה
     hint: על החוף, צפונית לתל אביב
     fact: נקראה על שם בנימין זאב הרצל.
@@ -253,7 +254,7 @@ places:
     type: city
     unit: center
     importance: 3
-    geometry: geonames:282926
+    geometry: cbs:1200
     name: מודיעין
     hint: באמצע הדרך בין תל אביב לירושלים
     fact: עיר מתוכננת חדשה יחסית, ליד כביש 443.
@@ -264,7 +265,7 @@ places:
     type: city
     unit: south_coast
     importance: 2
-    geometry: geonames:295629
+    geometry: cbs:70
     name: אשדוד
     hint: על החוף, דרומית לראשון לציון
     fact: אחד משני נמלי הים הגדולים בישראל.
@@ -273,7 +274,7 @@ places:
     type: city
     unit: south_coast
     importance: 2
-    geometry: geonames:295620
+    geometry: cbs:7100
     name: אשקלון
     hint: על החוף, דרומית לאשדוד
     fact: עיר החוף הדרומית ביותר על הים התיכון בישראל.
@@ -281,7 +282,7 @@ places:
     type: city
     unit: south_coast
     importance: 3
-    geometry: geonames:295328
+    geometry: cbs:2200
     name: דימונה
     hint: בנגב, דרום מזרחית לבאר שבע
     fact: עיר פיתוח בלב הנגב, בדרך מבאר שבע לים המלח.
@@ -291,7 +292,7 @@ places:
     type: city
     unit: sharon
     importance: 2
-    geometry: geonames:294071
+    geometry: cbs:7400
     name: נתניה
     hint: על החוף, בין תל אביב לחדרה
     fact: מכונה "בירת השרון".
@@ -300,7 +301,7 @@ places:
     type: city
     unit: sharon
     importance: 2
-    geometry: geonames:294946
+    geometry: cbs:6500
     name: חדרה
     hint: על החוף, באמצע הדרך בין תל אביב לחיפה
     fact: נוסדה ב-1891 על אדמת ביצות שיובשו.
@@ -310,7 +311,7 @@ places:
     type: city
     unit: north
     importance: 2
-    geometry: geonames:295721
+    geometry: cbs:7600
     name: עכו
     hint: בצפון מפרץ חיפה
     fact: העיר העתיקה שלה היא אתר מורשת עולמית.
@@ -319,7 +320,7 @@ places:
     type: city
     unit: north
     importance: 3
-    geometry: geonames:294117
+    geometry: cbs:9100
     name: נהריה
     hint: על החוף, צפונית לעכו
     fact: עיר החוף הצפונית ביותר בישראל.
@@ -327,7 +328,7 @@ places:
     type: city
     unit: north
     importance: 2
-    geometry: geonames:294098
+    geometry: cbs:7300
     name: נצרת
     hint: בגליל התחתון
     fact: העיר הערבית הגדולה בישראל.
@@ -336,7 +337,7 @@ places:
     type: city
     unit: north
     importance: 3
-    geometry: geonames:295740
+    geometry: cbs:7700
     name: עפולה
     hint: בעמק יזרעאל, דרומית לנצרת
     fact: מכונה "בירת העמק".
@@ -344,7 +345,7 @@ places:
     type: city
     unit: north
     importance: 2
-    geometry: geonames:293322
+    geometry: cbs:6700
     name: טבריה
     hint: על החוף המערבי של הכנרת
     fact: אחת מארבע ערי הקודש.
@@ -353,7 +354,7 @@ places:
     type: city
     unit: north
     importance: 3
-    geometry: geonames:293100
+    geometry: cbs:8000
     name: צפת
     hint: בגליל העליון, צפונית מערבית לכנרת
     fact: מהערים הגבוהות בישראל, ואחת מארבע ערי הקודש.
@@ -361,7 +362,7 @@ places:
     type: city
     unit: north
     importance: 2
-    geometry: geonames:293825
+    geometry: cbs:2800
     name: קריית שמונה
     hint: בצפון עמק החולה, ליד גבול לבנון
     fact: העיר הגדולה באצבע הגליל.
@@ -467,7 +468,7 @@ places:
     importance: 2
     geometry: region:judean_desert
     name: מדבר יהודה
-    hint: לאורך החוף המערבי של ים המלח
+    hint: ממזרח להרי יהודה, ויורד עד ים המלח
     fact: מדבר בצל הגשם של הרי יהודה. בו מצדה ועין גדי.
 
   # ---------- Unit: Gush Dan ----------
@@ -475,7 +476,7 @@ places:
     type: city
     unit: dan
     importance: 2
-    geometry: geonames:293788
+    geometry: cbs:8600
     name: רמת גן
     hint: ממזרח לתל אביב, צמודה לה
     fact: בה הבורסה ליהלומים והאצטדיון הלאומי.
@@ -484,7 +485,7 @@ places:
     type: city
     unit: dan
     importance: 3
-    geometry: geonames:294999
+    geometry: cbs:6300
     name: גבעתיים
     hint: בין תל אביב לרמת גן
     fact: שמה פירושו "שתי גבעות", הגבעות שעליהן נבנתה.
@@ -493,7 +494,7 @@ places:
     type: city
     unit: dan
     importance: 2
-    geometry: geonames:295514
+    geometry: cbs:6100
     name: בני ברק
     hint: ממזרח לתל אביב, בין רמת גן לפתח תקווה
     fact: העיר הצפופה ביותר בישראל.
@@ -502,7 +503,7 @@ places:
     type: city
     unit: dan
     importance: 2
-    geometry: geonames:294751
+    geometry: cbs:6600
     name: חולון
     hint: דרומית לתל אביב, ממזרח לבת ים
     fact: שמה בא מהחולות שעליהם נבנתה.
@@ -511,7 +512,7 @@ places:
     type: city
     unit: dan
     importance: 2
-    geometry: geonames:295548
+    geometry: cbs:6200
     name: בת ים
     hint: על החוף, דרומית ליפו
     fact: נוסדה ב-1926 בשם "בית וגן".
@@ -519,7 +520,7 @@ places:
     type: city
     unit: dan
     importance: 3
-    geometry: geonames:293783
+    geometry: cbs:2650
     name: רמת השרון
     hint: צפונית לתל אביב, מעבר לירקון
     fact: יושבת בקצה הדרומי של השרון, בין תל אביב להרצליה.
@@ -528,7 +529,7 @@ places:
     type: city
     unit: dan
     importance: 4
-    geometry: geonames:294981
+    geometry: cbs:681
     name: גבעת שמואל
     hint: בין בני ברק לפתח תקווה
     fact: נקראה על שם הרב שמואל מוהליבר, ממבשרי הציונות.
@@ -536,7 +537,7 @@ places:
     type: city
     unit: dan
     importance: 3
-    geometry: geonames:12031840
+    geometry: cbs:2620
     name: קריית אונו
     hint: ממזרח לרמת גן
     fact: נקראת על שם העיר המקראית אונו.
@@ -546,7 +547,7 @@ places:
     type: city
     unit: dan
     importance: 4
-    geometry: geonames:293962
+    geometry: cbs:2400
     name: אור יהודה
     hint: ממזרח לחולון, ליד כביש 4
     fact: נקראה על שם הרב יהודה אלקלעי, ממבשרי הציונות.
@@ -555,7 +556,7 @@ places:
     type: city
     unit: dan
     importance: 4
-    geometry: geonames:293207
+    geometry: cbs:9400
     name: יהוד
     hint: ליד נמל התעופה בן גוריון, מצפון לו
     fact: נקראת על שם העיר המקראית יהוד, בנחלת שבט דן.
@@ -566,7 +567,7 @@ places:
     type: city
     unit: dan_ring
     importance: 2
-    geometry: geonames:293725
+    geometry: cbs:8400
     name: רחובות
     hint: דרום מזרחית לראשון לציון
     fact: בה מכון ויצמן למדע.
@@ -575,7 +576,7 @@ places:
     type: city
     unit: dan_ring
     importance: 3
-    geometry: geonames:294074
+    geometry: cbs:7200
     name: נס ציונה
     hint: בין ראשון לציון לרחובות
     fact: מושבה מימי העלייה הראשונה.
@@ -584,7 +585,7 @@ places:
     type: city
     unit: dan_ring
     importance: 2
-    geometry: geonames:294421
+    geometry: cbs:7000
     name: לוד
     hint: דרומית לנמל התעופה בן גוריון
     fact: מהערים העתיקות בארץ, וצומת מסילות הרכבת המרכזי.
@@ -594,7 +595,7 @@ places:
     type: city
     unit: dan_ring
     importance: 2
-    geometry: geonames:293768
+    geometry: cbs:8500
     name: רמלה
     hint: דרומית ללוד, צמודה לה
     fact: נוסדה במאה השמינית, והייתה עיר הבירה של הארץ בימי הביניים המוקדמים.
@@ -602,7 +603,7 @@ places:
     type: city
     unit: dan_ring
     importance: 3
-    geometry: geonames:293690
+    geometry: cbs:2640
     name: ראש העין
     hint: ממזרח לפתח תקווה
     fact: נקראת על שם מעיינות הירקון שלידה.
@@ -611,7 +612,7 @@ places:
     type: city
     unit: dan_ring
     importance: 4
-    geometry: geonames:8428480
+    geometry: cbs:1309
     name: אלעד
     hint: דרומית לראש העין
     fact: עיר חדשה שנוסדה בסוף שנות ה-90.
@@ -619,7 +620,7 @@ places:
     type: city
     unit: dan_ring
     importance: 4
-    geometry: geonames:8428283
+    geometry: cbs:1304
     name: שוהם
     hint: ממזרח לנמל התעופה בן גוריון
     fact: יישוב מתוכנן שנוסד בשנות ה-90.
@@ -628,7 +629,7 @@ places:
     type: city
     unit: dan_ring
     importance: 2
-    geometry: geonames:294514
+    geometry: cbs:6900
     name: כפר סבא
     hint: בשרון, צמודה לרעננה ממזרח
     fact: נוסדה כמושבה ב-1903.
@@ -638,7 +639,7 @@ places:
     type: city
     unit: dan_ring
     importance: 2
-    geometry: geonames:293807
+    geometry: cbs:8700
     name: רעננה
     hint: בשרון, ממזרח להרצליה
     fact: נוסדה ב-1922 בידי מתיישבים מניו יורק.
@@ -646,7 +647,7 @@ places:
     type: city
     unit: dan_ring
     importance: 3
-    geometry: geonames:294760
+    geometry: cbs:9700
     name: הוד השרון
     hint: דרומית לכפר סבא
     fact: נוצרה ב-1964 מאיחוד ארבעה יישובים.
@@ -654,7 +655,7 @@ places:
     type: city
     unit: dan_ring
     importance: 4
-    geometry: geonames:295525
+    geometry: cbs:2530
     name: באר יעקב
     hint: בין ראשון לציון לרמלה
     fact: מושבה שנוסדה ב-1907.
@@ -662,7 +663,7 @@ places:
     type: city
     unit: dan_ring
     importance: 4
-    geometry: point:34.8464,31.8535
+    geometry: cbs:28
     name: מזכרת בתיה
     hint: דרום מזרחית לרחובות
     fact: נקראה על שם בתיה, אמו של הברון רוטשילד.
@@ -671,7 +672,7 @@ places:
     type: city
     unit: dan_ring
     importance: 5
-    geometry: point:34.8227,31.8611
+    geometry: cbs:469
     name: קריית עקרון
     hint: דרומית לרחובות
     fact: נקראת על שם העיר הפלשתית עקרון.
@@ -682,7 +683,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 4
-    geometry: point:34.8856,32.2716
+    geometry: cbs:182
     name: אבן יהודה
     hint: בשרון, דרום מזרחית לנתניה
     fact: נקראה על שם אליעזר בן יהודה, מחיה השפה העברית.
@@ -690,7 +691,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 4
-    geometry: geonames:294492
+    geometry: cbs:168
     name: כפר יונה
     hint: ממזרח לנתניה
     fact: שוכנת לצד נחל אלכסנדר.
@@ -698,7 +699,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 5
-    geometry: point:34.9181,32.2531
+    geometry: cbs:154
     name: תל מונד
     hint: בשרון, צפונית לכפר סבא
     fact: נקראה על שם אלפרד מונד, הלורד מלצ'ט.
@@ -706,7 +707,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 3
-    geometry: geonames:293943
+    geometry: cbs:7800
     name: פרדס חנה-כרכור
     hint: בצפון השרון, צפון מזרחית לחדרה
     fact: נוצרה מאיחוד שתי מושבות, פרדס חנה וכרכור.
@@ -715,7 +716,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 3
-    geometry: geonames:293067
+    geometry: cbs:9300
     name: זכרון יעקב
     hint: בקצה הדרומי של הכרמל, מעל החוף
     fact: נקראה על שם יעקב, אביו של הברון רוטשילד.
@@ -725,7 +726,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 4
-    geometry: geonames:295410
+    geometry: cbs:9800
     name: בנימינה
     hint: בין זכרון יעקב לפרדס חנה
     fact: נקראה על שם הברון בנימין אדמונד דה רוטשילד.
@@ -734,7 +735,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 4
-    geometry: geonames:293969
+    geometry: cbs:1020
     name: אור עקיבא
     hint: ליד החוף, צפונית לחדרה
     fact: סמוכה לקיסריה העתיקה. נקראה על שם רבי עקיבא.
@@ -742,7 +743,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 3
-    geometry: geonames:295130
+    geometry: cbs:2730
     name: טייבה
     hint: במזרח השרון, ממזרח לנתניה
     fact: העיר הגדולה במשולש הדרומי.
@@ -752,7 +753,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 4
-    geometry: geonames:295127
+    geometry: cbs:2720
     name: טירה
     hint: במזרח השרון, צפון מזרחית לכפר סבא
     fact: עיר במשולש הדרומי, בין כפר סבא לטייבה.
@@ -760,7 +761,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 4
-    geometry: geonames:293896
+    geometry: cbs:638
     name: קלנסווה
     hint: במזרח השרון, צפונית לטייבה
     fact: עיר במשולש הדרומי, למרגלות הרי השומרון.
@@ -769,7 +770,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 4
-    geometry: geonames:294604
+    geometry: cbs:634
     name: כפר קאסם
     hint: ממזרח לפתח תקווה, צפונית לראש העין
     fact: העיר הדרומית במשולש.
@@ -778,7 +779,7 @@ places:
     type: city
     unit: sharon_towns
     importance: 4
-    geometry: geonames:295571
+    geometry: cbs:6000
     name: באקה אל-גרביה
     hint: בצפון המשולש, ממזרח לחדרה
     fact: עיר בצפון המשולש, למרגלות הרי השומרון.
@@ -789,7 +790,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 3
-    geometry: geonames:293845
+    geometry: cbs:6800
     name: קריית אתא
     hint: ממזרח למפרץ חיפה
     fact: הגדולה בערי הקריות.
@@ -798,7 +799,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 3
-    geometry: geonames:293844
+    geometry: cbs:9500
     name: קריית ביאליק
     hint: בקריות, צפון מזרחית לחיפה
     fact: נקראה על שם המשורר חיים נחמן ביאליק.
@@ -808,7 +809,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 3
-    geometry: geonames:293831
+    geometry: cbs:8200
     name: קריית מוצקין
     hint: בקריות, בין קריית ים לקריית ביאליק
     fact: נקראה על שם לאו מוצקין, ממנהיגי התנועה הציונית.
@@ -818,7 +819,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 3
-    geometry: geonames:293822
+    geometry: cbs:9600
     name: קריית ים
     hint: על חוף מפרץ חיפה, בקריות
     fact: כשמה, יושבת על חוף מפרץ חיפה.
@@ -827,7 +828,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 4
-    geometry: geonames:294078
+    geometry: cbs:2500
     name: נשר
     hint: על מורדות הכרמל, דרום מזרחית לחיפה
     fact: צמחה סביב מפעל המלט "נשר".
@@ -836,7 +837,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 4
-    geometry: geonames:293308
+    geometry: cbs:2100
     name: טירת כרמל
     hint: למרגלות הכרמל, דרומית לחיפה
     fact: יושבת בין הכרמל לחוף הים.
@@ -844,7 +845,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 3
-    geometry: geonames:295365
+    geometry: cbs:494
     name: דאלית אל-כרמל
     hint: על רכס הכרמל, דרום מזרחית לחיפה
     fact: היישוב הדרוזי הגדול בישראל.
@@ -853,7 +854,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 4
-    geometry: geonames:293823
+    geometry: cbs:2300
     name: קריית טבעון
     hint: בין מפרץ חיפה לעמק יזרעאל
     fact: סמוכה לבית שערים העתיקה, מקום קבורתו של רבי יהודה הנשיא.
@@ -862,7 +863,7 @@ places:
     type: city
     unit: haifa_carmel
     importance: 5
-    geometry: point:34.9127,32.5368
+    geometry: cbs:541
     name: ג'סר א-זרקא
     hint: על החוף, צפונית לקיסריה
     fact: היישוב הערבי היחיד על חוף הים התיכון בישראל.
@@ -873,7 +874,7 @@ places:
     type: city
     unit: galilee_west
     importance: 2
-    geometry: geonames:294577
+    geometry: cbs:1139
     name: כרמיאל
     hint: בבקעת בית הכרם, באמצע הדרך בין עכו לצפת
     fact: נוסדה ב-1964 כעיר מרכזית לגליל.
@@ -882,7 +883,7 @@ places:
     type: city
     unit: galilee_west
     importance: 3
-    geometry: geonames:293420
+    geometry: cbs:1063
     name: מעלות-תרשיחא
     hint: בגליל העליון, ממזרח לנהריה
     fact: עיר משותפת ליהודים ולערבים, שנוצרה מאיחוד מעלות ותרשיחא.
@@ -891,7 +892,7 @@ places:
     type: city
     unit: galilee_west
     importance: 4
-    geometry: point:35.1486,33.0761
+    geometry: cbs:812
     name: שלומי
     hint: ליד גבול לבנון, צפון מזרחית לנהריה
     fact: נקראה על שם שלומי, אביו של נשיא שבט אשר במקרא.
@@ -899,7 +900,7 @@ places:
     type: city
     unit: galilee_west
     importance: 5
-    geometry: point:35.2725,32.9973
+    geometry: cbs:1263
     name: כפר ורדים
     hint: בגליל העליון, דרומית למעלות
     fact: הוקם ב-1984 ביוזמת התעשיין סטף ורטהיימר.
@@ -907,7 +908,7 @@ places:
     type: city
     unit: galilee_west
     importance: 4
-    geometry: geonames:293181
+    geometry: cbs:502
     name: ירכא
     hint: בגליל המערבי, ממזרח לעכו
     fact: מהיישובים הדרוזיים הגדולים בגליל.
@@ -915,7 +916,7 @@ places:
     type: city
     unit: galilee_west
     importance: 3
-    geometry: geonames:293539
+    geometry: cbs:8800
     name: שפרעם
     hint: בגליל התחתון, ממזרח לקריות
     fact: בה מצודה מהמאה ה-18, מימי השליט דאהר אל-עומר.
@@ -926,7 +927,7 @@ places:
     type: city
     unit: galilee_upper
     importance: 3
-    geometry: point:35.5438,32.9682
+    geometry: cbs:26
     name: ראש פינה
     hint: למרגלות הרי צפת, מעל עמק החולה
     fact: מהמושבות הראשונות, נוסדה ב-1882.
@@ -935,7 +936,7 @@ places:
     type: city
     unit: galilee_upper
     importance: 4
-    geometry: point:35.5449,32.9823
+    geometry: cbs:2034
     name: חצור הגלילית
     hint: ממזרח לצפת, ליד ראש פינה
     fact: סמוכה לתל חצור, עיר חשובה בתקופת המקרא.
@@ -944,7 +945,7 @@ places:
     type: city
     unit: galilee_upper
     importance: 3
-    geometry: point:35.5779,33.28
+    geometry: cbs:43
     name: מטולה
     hint: בקצה הצפוני של אצבע הגליל
     fact: היישוב העירוני הצפוני ביותר בישראל.
@@ -953,7 +954,7 @@ places:
     type: city
     unit: galilee_upper
     importance: 4
-    geometry: point:35.377,32.9648
+    geometry: cbs:480
     name: בית ג'ן
     hint: על הר מירון, מערבית לצפת
     fact: מהיישובים הגבוהים בישראל, כ-900 מטר מעל פני הים.
@@ -964,7 +965,7 @@ places:
     type: city
     unit: galilee_lower
     importance: 3
-    geometry: geonames:294097
+    geometry: cbs:1061
     name: נוף הגליל
     hint: על ההר שממזרח לנצרת
     fact: עד 2019 נקראה נצרת עילית.
@@ -974,7 +975,7 @@ places:
     type: city
     unit: galilee_lower
     importance: 4
-    geometry: geonames:294210
+    geometry: cbs:874
     name: מגדל העמק
     hint: מעל עמק יזרעאל, דרום מערבית לנצרת
     fact: עיר פיתוח שנוסדה ב-1953.
@@ -983,7 +984,7 @@ places:
     type: city
     unit: galilee_lower
     importance: 4
-    geometry: geonames:294610
+    geometry: cbs:509
     name: כפר כנא
     hint: צפון מזרחית לנצרת
     fact: לפי המסורת הנוצרית, כאן הפך ישו מים ליין.
@@ -992,7 +993,7 @@ places:
     type: city
     unit: galilee_lower
     importance: 3
-    geometry: point:35.2977,32.865
+    geometry: cbs:7500
     name: סח'נין
     hint: בגליל התחתון, דרומית לכרמיאל
     fact: מהערים הערביות הגדולות בגליל.
@@ -1002,7 +1003,7 @@ places:
     type: city
     unit: galilee_lower
     importance: 4
-    geometry: point:35.3358,32.8486
+    geometry: cbs:531
     name: עראבה
     hint: בגליל התחתון, ממזרח לסח'נין
     fact: שוכנת בבקעת סח'נין, לצד סח'נין ודיר חנא.
@@ -1011,7 +1012,7 @@ places:
     type: city
     unit: galilee_lower
     importance: 4
-    geometry: geonames:293426
+    geometry: cbs:8900
     name: טמרה
     hint: דרום מזרחית לעכו
     fact: מהערים הערביות הגדולות בגליל המערבי.
@@ -1019,7 +1020,7 @@ places:
     type: city
     unit: galilee_lower
     importance: 4
-    geometry: geonames:294387
+    geometry: cbs:481
     name: מע'אר
     hint: בגליל התחתון, מערבית לכנרת
     fact: חיים בה יחד דרוזים, נוצרים ומוסלמים.
@@ -1028,7 +1029,7 @@ places:
     type: city
     unit: galilee_lower
     importance: 4
-    geometry: point:35.4199,32.6877
+    geometry: cbs:47
     name: כפר תבור
     hint: למרגלות הר תבור
     fact: מושבה מ-1901, שנקראה על שם ההר הסמוך.
@@ -1038,7 +1039,7 @@ places:
     type: city
     unit: jezreel
     importance: 2
-    geometry: geonames:295435
+    geometry: cbs:9200
     name: בית שאן
     hint: בעמק בית שאן, ליד הירדן, דרומית לכנרת
     fact: בתחומה עיר רומית עתיקה, ובה תיאטרון גדול.
@@ -1047,7 +1048,7 @@ places:
     type: city
     unit: jezreel
     importance: 3
-    geometry: point:35.0944,32.6481
+    geometry: cbs:240
     name: יקנעם עילית
     hint: בקצה המערבי של עמק יזרעאל, למרגלות הכרמל
     fact: מרכז של חברות הייטק בצפון.
@@ -1056,7 +1057,7 @@ places:
     type: city
     unit: jezreel
     importance: 3
-    geometry: geonames:293286
+    geometry: cbs:2710
     name: אום אל-פחם
     hint: בוואדי עארה, ממזרח לחדרה
     fact: שוכנת על רכס גבוה מעל ואדי עארה.
@@ -1067,7 +1068,7 @@ places:
     type: city
     unit: golan
     importance: 3
-    geometry: point:35.6877,32.992
+    geometry: cbs:4100
     name: קצרין
     hint: במרכז רמת הגולן, צפון מזרחית לכנרת
     fact: העיר היחידה ברמת הגולן.
@@ -1075,7 +1076,7 @@ places:
     type: city
     unit: golan
     importance: 3
-    geometry: point:35.7694,33.2684
+    geometry: cbs:4201
     name: מג'דל שמס
     hint: למרגלות החרמון, בצפון רמת הגולן
     fact: היישוב הדרוזי הגדול ברמת הגולן.
@@ -1085,7 +1086,7 @@ places:
     type: city
     unit: golan
     importance: 5
-    geometry: point:35.7575,33.2312
+    geometry: cbs:4203
     name: מסעדה
     hint: בצפון רמת הגולן, ליד אגם רם
     fact: סמוכה לאגם רם, שממלא לוע של הר געש.
@@ -1095,7 +1096,7 @@ places:
     type: city
     unit: jerusalem_hills
     importance: 2
-    geometry: geonames:295432
+    geometry: cbs:2610
     name: בית שמש
     hint: מערבית לירושלים, בשפלה
     fact: נקראת על שם עיר מקראית, שאליה לפי המסורת הוחזר ארון הברית.
@@ -1104,7 +1105,7 @@ places:
     type: city
     unit: jerusalem_hills
     importance: 3
-    geometry: geonames:294245
+    geometry: cbs:1015
     name: מבשרת ציון
     hint: ממערב לירושלים, צמודה לה
     fact: שוכנת על כביש 1, בכניסה לירושלים.
@@ -1114,7 +1115,7 @@ places:
     type: city
     unit: jerusalem_hills
     importance: 4
-    geometry: point:35.1093,31.8059
+    geometry: cbs:472
     name: אבו גוש
     hint: ממערב לירושלים, ליד כביש 1
     fact: ידוע במסעדות החומוס ובכנסיות שבו.
@@ -1123,7 +1124,7 @@ places:
     type: city
     unit: jerusalem_hills
     importance: 2
-    geometry: geonames:282993
+    geometry: cbs:3616
     name: מעלה אדומים
     hint: ממזרח לירושלים, בשולי מדבר יהודה
     fact: נקראת על שם מעלה עתיק בדרך מירושלים ליריחו.
@@ -1132,7 +1133,7 @@ places:
     type: city
     unit: jerusalem_hills
     importance: 3
-    geometry: geonames:8199378
+    geometry: cbs:3797
     name: מודיעין עילית
     hint: צפון מזרחית למודיעין
     fact: נבנתה בשנות ה-90, סמוך למודיעין.
@@ -1142,7 +1143,7 @@ places:
     type: city
     unit: jerusalem_hills
     importance: 3
-    geometry: point:35.1039,31.6992
+    geometry: cbs:3780
     name: ביתר עילית
     hint: דרום מערבית לירושלים
     fact: נקראת על שם ביתר העתיקה, מעוז מרד בר כוכבא.
@@ -1151,7 +1152,7 @@ places:
     type: city
     unit: jerusalem_hills
     importance: 4
-    geometry: point:35.1501,31.653
+    geometry: cbs:3650
     name: אפרת
     hint: דרומית לבית לחם
     fact: נקראת על שם אפרת, השם המקראי של אזור בית לחם.
@@ -1171,7 +1172,7 @@ places:
     type: city
     unit: judea_samaria
     importance: 4
-    geometry: point:35.1192,31.5278
+    geometry: cbs:3611
     name: קריית ארבע
     hint: צמודה לחברון ממזרח
     fact: קרית ארבע הוא שמה המקראי של חברון.
@@ -1188,7 +1189,7 @@ places:
     type: city
     unit: judea_samaria
     importance: 2
-    geometry: geonames:284899
+    geometry: point:35.4598,31.856
     name: יריחו
     hint: בבקעת הירדן, צפונית לים המלח
     fact: מהערים העתיקות בעולם, ומהנמוכות שבהן.
@@ -1214,7 +1215,7 @@ places:
     type: city
     unit: judea_samaria
     importance: 3
-    geometry: geonames:8199394
+    geometry: cbs:3570
     name: אריאל
     hint: בשומרון, ממזרח לראש העין
     fact: בה אוניברסיטת אריאל.
@@ -1224,7 +1225,7 @@ places:
     type: city
     unit: south_west
     importance: 3
-    geometry: geonames:293222
+    geometry: cbs:2660
     name: יבנה
     hint: בין רחובות לאשדוד, קרוב לחוף
     fact: לפי המסורת, ישבה בה הסנהדרין אחרי חורבן בית שני.
@@ -1232,7 +1233,7 @@ places:
     type: city
     unit: south_west
     importance: 3
-    geometry: geonames:295064
+    geometry: cbs:2550
     name: גדרה
     hint: דרומית לרחובות
     fact: נוסדה ב-1884 בידי אנשי תנועת ביל"ו.
@@ -1240,7 +1241,7 @@ places:
     type: city
     unit: south_west
     importance: 3
-    geometry: geonames:293835
+    geometry: cbs:1034
     name: קריית מלאכי
     hint: דרום מזרחית לאשדוד
     fact: נקראה על שם יהודי לוס אנג'לס, עיר המלאכים, שתרמו להקמתה.
@@ -1250,7 +1251,7 @@ places:
     type: city
     unit: south_west
     importance: 2
-    geometry: geonames:293842
+    geometry: cbs:2630
     name: קריית גת
     hint: בדרום השפלה, ממזרח לאשקלון
     fact: נקראת על שם העיר הפלשתית גת.
@@ -1259,7 +1260,7 @@ places:
     type: city
     unit: south_west
     importance: 2
-    geometry: geonames:293619
+    geometry: cbs:1031
     name: שדרות
     hint: בנגב המערבי, ליד רצועת עזה
     fact: עיר פיתוח שנוסדה ב-1951.
@@ -1268,7 +1269,7 @@ places:
     type: city
     unit: south_west
     importance: 3
-    geometry: geonames:294068
+    geometry: cbs:246
     name: נתיבות
     hint: בנגב המערבי, בין שדרות לבאר שבע
     fact: בה קבר הבבא סאלי, שאליו עולים רבים לרגל.
@@ -1277,7 +1278,7 @@ places:
     type: city
     unit: south_west
     importance: 3
-    geometry: geonames:293992
+    geometry: cbs:31
     name: אופקים
     hint: בנגב המערבי, מערבית לבאר שבע
     fact: עיר פיתוח שנוסדה ב-1955.
@@ -1288,7 +1289,7 @@ places:
     type: city
     unit: negev
     importance: 2
-    geometry: geonames:8184212
+    geometry: cbs:1161
     name: רהט
     hint: צפונית לבאר שבע
     fact: העיר הבדואית הגדולה בישראל.
@@ -1296,7 +1297,7 @@ places:
     type: city
     unit: negev
     importance: 2
-    geometry: geonames:295657
+    geometry: cbs:2560
     name: ערד
     hint: בצפון מזרח הנגב, בין באר שבע לים המלח
     fact: עיר מתוכננת מ-1962, ליד תל ערד המקראית.
@@ -1305,7 +1306,7 @@ places:
     type: city
     unit: negev
     importance: 3
-    geometry: point:34.9251,30.9888
+    geometry: cbs:831
     name: ירוחם
     hint: בנגב, דרום מערבית לדימונה
     fact: סמוכה למכתש הגדול.
@@ -1315,7 +1316,7 @@ places:
     type: city
     unit: negev
     importance: 2
-    geometry: point:34.8012,30.612
+    geometry: cbs:99
     name: מצפה רמון
     hint: בהר הנגב, באמצע הדרך מבאר שבע לאילת
     fact: שוכנת על שפת מכתש רמון, הגדול במכתשים.
@@ -1324,7 +1325,7 @@ places:
     type: city
     unit: negev
     importance: 4
-    geometry: point:34.8476,31.2648
+    geometry: cbs:666
     name: עומר
     hint: צמודה לבאר שבע מצפון מזרח
     fact: יישוב פרברי ירוק ליד באר שבע.
@@ -1334,7 +1335,7 @@ places:
     type: city
     unit: negev
     importance: 4
-    geometry: geonames:8310136
+    geometry: cbs:1054
     name: תל שבע
     hint: ממזרח לבאר שבע
     fact: העיירה הבדואית הראשונה שתוכננה, ב-1968.
@@ -1344,7 +1345,7 @@ places:
     type: city
     unit: arava
     importance: 3
-    geometry: point:35.0601,29.8962
+    geometry: cbs:866
     name: יטבתה
     hint: בערבה הדרומית, צפונית לאילת
     fact: קיבוץ בנווה מדבר, הידוע במוצרי החלב שלו.
@@ -1352,7 +1353,7 @@ places:
     type: city
     unit: arava
     importance: 4
-    geometry: point:35.2382,30.6569
+    geometry: cbs:806
     name: עין יהב
     hint: בערבה התיכונה
     fact: מושב שמגדל ירקות במדבר.

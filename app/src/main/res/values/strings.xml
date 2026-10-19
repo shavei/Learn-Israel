@@ -8,7 +8,7 @@
     <string name="home_due">%1$d לחזרה, %2$d חדשים</string>
     <string name="home_nothing_due">סיימתם להיום. כל הכבוד! חזרו מחר.</string>
     <string name="home_practice_more">תרגול נוסף</string>
-    <string name="attribution">נתוני מפה: Natural Earth, GeoNames, © OpenStreetMap contributors, הלמ״ס</string>
+    <string name="attribution">נתוני מפה: Natural Earth, GeoNames, © OpenStreetMap contributors, הלמ״ס, UN OCHA</string>
     <string name="discover_title">מקום חדש</string>
     <string name="discover_continue">הבנתי, בואו נתרגל</string>
     <string name="ask_prompt">סמנו על המפה: %1$s</string>

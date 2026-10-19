@@ -70,9 +70,12 @@ The design is built on the most robust findings in learning science:
 | `core/learning/` | FSRS scheduler (port of py-fsrs), tap grading, session engine, mastery |
 | `content/places.yaml` | The curriculum: which places are taught, with Hebrew names, hints and facts |
 | `content/regions.yaml` | Which official natural regions make up each of the game's 19 regions |
-| `content/natural_regions.geojson` | Official natural regions (CBS; Ministry of Agriculture for Judea and Samaria), refreshed by `tools/fetch_natural_regions.py` |
-| `content/districts.geojson` | District boundaries from OpenStreetMap, refreshed by `tools/fetch_districts.py` |
-| `tools/build_content.py` | Data pipeline: Natural Earth + GeoNames + OSM districts + the files above into `app/src/main/assets/` |
+| `content/natural_regions.geojson` | Official natural regions (CBS; Ministry of Agriculture for Judea and Samaria): the land's outline, the regions and the districts |
+| `content/localities.csv` | CBS locality file: official points of the cities and towns |
+| `content/jordan_river.geojson` | The Jordan River from OpenStreetMap |
+| `tools/fetch_sources.py` | Refreshes the source files in `content/` |
+| `content/surroundings.geojson`, `content/palestine.geojson` | Coastlines, neighbors and the Dead Sea (OpenStreetMap); Gaza and the Green Line (UN OCHA) |
+| `tools/build_content.py` | Data pipeline: the files above + `places.yaml` into `app/src/main/assets/` |
 
 ## Build and test
 
@@ -97,9 +100,11 @@ CI checks that the committed assets match the pipeline output.
 
 ## Data credits
 
-Map data from [Natural Earth](https://www.naturalearthdata.com/) (public domain). City
-locations from [GeoNames](https://www.geonames.org/) (CC BY 4.0). District boundaries and a
-few town locations © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
-(ODbL 1.0). Natural regions from the Israel Central Bureau of Statistics and, for Judea and
-Samaria, the Ministry of Agriculture. The FSRS scheduler is
+Israel's outline, natural regions, districts and city and town locations from the Israel
+Central Bureau of Statistics (natural regions 2018, locality file 2023); natural regions of
+Judea and Samaria from the Ministry of Agriculture. Gaza and the Green Line from UN OCHA
+(CC BY-IGO). Coastlines, neighboring countries, the Dead Sea, the Jordan River and the
+location of Jericho © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
+(ODbL 1.0). Locations of the other Palestinian cities from
+[GeoNames](https://www.geonames.org/) (CC BY 4.0). The FSRS scheduler is
 ported from [py-fsrs](https://github.com/open-spaced-repetition/py-fsrs) (MIT).

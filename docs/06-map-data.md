@@ -4,29 +4,56 @@
 
 | Data | Source | License | Use |
 |------|--------|---------|-----|
-| Coastline, neighbors, seas, lakes | Natural Earth (1:10m) | Public domain | Frame layer, background |
 | Detailed boundaries, rivers, roads, places, multilingual names | OpenStreetMap via Geofabrik regional extract | ODbL 1.0 (attribution + share-alike on the derived database) | Most geometry |
 | Official locality list, codes, Hebrew names, population, district | Israel Central Bureau of Statistics (CBS) locality file, published on data.gov.il | Israeli government open data terms (verify) | Canonical list of localities and their attributes |
 | Multilingual names, Wikipedia links, extra facts | Wikidata | CC0 | Hebrew names and aliases, cross-checking, fact research |
-| Administrative districts | OSM relations (admin_level 4), fetched with the main OSM API by `tools/fetch_districts.py` into `content/districts.geojson` | ODbL 1.0 | Tier 1 district polygons |
-| Natural regions | Israel Central Bureau of Statistics, official natural regions (אזורים טבעיים) 2018, public ArcGIS layer; Judea and Samaria regions (codes 711 to 815) from the Ministry of Agriculture's 2025 layer. Fetched by `tools/fetch_natural_regions.py` into `content/natural_regions.geojson` | Israeli government data | Tier 1 region polygons, region outlines on the map |
+| Israel's outline, natural regions, districts, Kinneret and Dead Sea shores | Israel Central Bureau of Statistics, official natural regions (אזורים טבעיים) 2018, public ArcGIS layer; Judea and Samaria regions (codes 711 to 815) from the Ministry of Agriculture's 2025 layer, which uses the same codes | Israeli government data | Land outline, Tier 1 regions and districts, region outlines |
+| City and town points | CBS locality file 2023 (data.gov.il): official point, natural region and district of every locality | Israeli government open data | All Israeli cities and towns |
+| Palestinian cities | GeoNames; OpenStreetMap for Jericho (GeoNames is 1.4 km off there) | CC BY 4.0; ODbL | Hebron, Bethlehem, Jericho, Shechem, Ramallah |
+| Jordan River | OpenStreetMap relation 2246907 (main stream) | ODbL 1.0 | Frame item and map layer |
+| Coastlines, neighboring countries, the whole Dead Sea | OpenStreetMap: land polygons from osmdata.openstreetmap.de (built from the coastline), country relations (Lebanon 184843, Syria 184840, Jordan 184818, Egypt 1473947, Saudi Arabia 307584), Dead Sea relation 9351124 | ODbL 1.0 | Neighbors, seas, the Dead Sea's northern basin |
+| Judean Desert's western edge | Israel Meteorological Service, mean annual rainfall 1991-2020 (400 m grid, published by the CBS as a public ArcGIS image service); the 250 mm line is traced from it | Israeli government data | Splitting the Judea regions between the Judean Mountains and the Judean Desert |
+| Gaza Strip, Green Line | UN OCHA common operational dataset for the State of Palestine (HDX "cod-ab-pse"); the West Bank's western edge is the 1949 armistice line, with East Jerusalem and the Latrun no-man's-land on its eastern side | CC BY-IGO | Gaza, the optional Green Line layer |
 
-**Status (Phase 1b):** the pipeline uses Natural Earth (frame), GeoNames (city points,
-via `geonamescache`, plus a few explicit `point:` coordinates for towns too small for
-it), committed OSM district boundaries, and the committed official natural regions. Geofabrik and Overpass
-were unreachable from the build environment, so the district file is fetched once from
-the main OSM API and committed; rerun `tools/fetch_districts.py` to refresh it.
+**Status (Phase 1b):** `tools/fetch_sources.py` downloads the official natural regions,
+the CBS locality file and the Jordan River into `content/`, where they are committed so
+the build is reproducible and offline; Natural Earth is no longer used. Checked against
+known border points (Taba, Kerem Shalom), the official outline is within about 20 m;
+Natural Earth's was 150 to 600 m off there and up to a few kilometers along the
+Egyptian and Jordanian borders.
 
-How the natural regions are built: the CBS divides Israel into about 50 official
-natural regions. `content/regions.yaml` groups them into the game's 19 regions (for
-example the Sharon is the Hadera region plus western, eastern and southern Sharon).
-The pipeline clips each group to the map's land and lakes. The official borders and the
-Natural Earth coast and borders disagree by up to a few hundred meters, so the leftover
-strips go to the nearest region, and the build fails if more than 1 km2 of land is
-still in no region. The regions are then simplified together, so neighbors keep one
-shared border. Districts get the same treatment, so the strips where OSM's boundary and the
-Natural Earth coast disagree are filled. The Judea and Samaria Area is the de facto land
-outside the six districts.
+How the map is built:
+- **Land:** the union of all official natural regions (Israel, the Golan, Judea and
+  Samaria), with the gaps where the CBS and Ministry layers meet closed.
+- **Natural regions:** `content/regions.yaml` groups the about 60 official regions into
+  the game's 19 (for example the Sharon is the Hadera region plus western, eastern and
+  southern Sharon). Every code is used exactly once, or the build fails. Where the
+  official grouping and the geographic definitions disagree, `content/regions.yaml`
+  moves areas, each with its source:
+  - the Judean Desert takes the parts of the Judea regions (812, 813, 815) east of the
+    250 mm rainfall line, its western edge in Hebrew Wikipedia's definition (traced from
+    the IMS 1991-2020 normals; checked against Jerusalem 523 mm, Tel Aviv 522 mm,
+    Be'er Sheva 192 mm and Eilat 23 mm). Ma'ale Adumim (260 to 280 mm, just above the
+    line) also joins it: both Wikipedias, and definitions of the desert as the slopes
+    east of the watershed (CET youth encyclopedia, English Wikipedia), place it there;
+  - Herzliya, Ramat HaSharon, Rosh HaAyin and Kafr Qasim (their OSM municipal areas)
+    move from Gush Dan to the Sharon, which begins at the Yarkon; Hebrew Wikipedia
+    places each of them in the Sharon;
+  - Jericho's town area moves to the Jordan Valley (the Judea and Samaria layer follows
+    Israeli council lines, which put it in "Judea").
+  The build checks each city against its CBS natural region, allowing for these moves.
+- **Districts:** every official natural region lies in one district and its code starts
+  with the district's number, so the districts are unions of natural regions.
+- **Checks:** every Israeli city must lie in the natural region and the district the CBS
+  locality file gives it, and within 300 m of the land.
+- **Neighbors and Gaza:** OSM's land, split by the OSM country boundaries and the UN
+  OCHA Gaza boundary. Where OSM's land and Israel's official outline disagree, the strip
+  goes to whatever lies next to it: a neighbor, Gaza or the sea.
+- **Lakes:** the official Kinneret; the Dead Sea is OSM's northern basin (both halves)
+  plus the official southern ponds.
+- **Green Line:** the UN OCHA West Bank boundary where it faces Israel.
+- Regions and districts are each simplified together (150 m), so neighbors keep one
+  shared border.
 
 Licensing notes:
 - ODbL requires visible attribution ("© OpenStreetMap contributors") in the app, for
