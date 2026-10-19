@@ -3,7 +3,9 @@
 
 Inputs:
   content/places.yaml                    hand-curated curriculum (what is taught)
-  content/regions.yaml                   hand-drawn sketches of the natural regions
+  content/regions.yaml                   which official natural regions make up each game region
+  content/natural_regions.geojson        official natural regions (CBS; Ministry of Agriculture for
+                                         Judea and Samaria), refreshed by tools/fetch_natural_regions.py
   content/districts.geojson              district boundaries from OpenStreetMap (ODbL),
                                          refreshed by tools/fetch_districts.py
   Natural Earth 10m GeoJSON (public domain), downloaded into tools/raw/
@@ -61,7 +63,7 @@ NEIGHBORS = ["LBN", "SYR", "JOR", "EGY", "SAU"]
 
 # Simplification tolerance in meters, per layer.
 SIMPLIFY = {
-    "land": 40, "neighbors": 120, "lakes": 30, "rivers": 60, "seas": 120, "green_line": 40, "districts": 60,
+    "land": 40, "neighbors": 120, "lakes": 30, "rivers": 60, "seas": 120, "green_line": 40, "districts": 60, "regions": 150,
 }
 
 # Land left outside every region or district, in square meters, before the build fails.
@@ -135,41 +137,64 @@ def by_prop(features, key, value):
     return [shape(f["geometry"]) for f in features if f["properties"].get(key) == value]
 
 
-def partition(area, sketches: dict[str, Polygon], min_part=2e5) -> tuple[dict, object]:
-    """Splits [area] among the sketches in order: each takes what earlier ones left.
+def partition(area, shapes: dict, min_part=2e5) -> tuple[dict, object]:
+    """Splits [area] among the shapes in order: each takes what earlier ones left.
 
-    Parts smaller than [min_part] square meters are slivers where a sketch grazes a
-    neighbor; they are left for later sketches. Returns the pieces and whatever no
-    sketch covered.
+    Parts smaller than [min_part] square meters are slivers where a shape grazes a
+    neighbor; they are left for later shapes. Returns the pieces and whatever no
+    shape covered.
     """
     rest = area
     pieces = {}
-    for key, sketch in sketches.items():
-        piece = rest.intersection(sketch)
+    for key, s in shapes.items():
+        piece = rest.intersection(s)
         pieces[key] = ops.unary_union([p for p in polygons(piece) if p.area >= min_part])
         rest = rest.difference(pieces[key])
     return pieces, rest
 
 
-def natural_regions(land_area) -> tuple[dict, object]:
-    sketches = yaml.safe_load((ROOT / "content" / "regions.yaml").read_text())["regions"]
-    return partition(land_area, {k: project(Polygon(v)) for k, v in sketches.items()})
+def fill(land_area, shapes: dict) -> tuple[dict, object]:
+    """Splits the land among official areas whose outer edges differ from the map's.
+
+    The official borders and the Natural Earth coast and borders disagree by up to a
+    few hundred meters (more along the Egyptian border), so after the exact split the
+    leftover strips go to the nearest area: areas grow step by step into what is left.
+    Returns the areas and the land still left over.
+    """
+    exact, rest = partition(land_area, shapes)
+    grown = dict(exact)
+    for step in (100, 250, 500, 1_000, 2_000, 4_000, 8_000):
+        if rest.is_empty:
+            break
+        taken, rest = partition(rest, {k: grown[k].buffer(step) for k in grown}, min_part=0)
+        grown = {k: ops.unary_union([grown[k], taken[k]]) for k in grown}
+    return grown, rest
+
+
+def natural_regions(land_area) -> tuple[dict, object, list[str]]:
+    """The game's natural regions: unions of the official natural regions (by code)."""
+    groups = yaml.safe_load((ROOT / "content" / "regions.yaml").read_text())["regions"]
+    features = json.loads((ROOT / "content" / "natural_regions.geojson").read_text())["features"]
+    official = {f["properties"]["code"]: shape(f["geometry"]) for f in features}
+    used = [c for codes in groups.values() for c in codes]
+    errors = [f"natural region code {c} is used twice in regions.yaml" for c in set(used) if used.count(c) > 1]
+    errors += [f"natural region code {c} is not in regions.yaml" for c in official if c not in used]
+    errors += [f"regions.yaml: unknown natural region code {c}" for c in used if c not in official]
+    shapes = {k: project(ops.unary_union([official[c] for c in codes if c in official])) for k, codes in groups.items()}
+    pieces, rest = fill(land_area, shapes)
+    # Simplified together, so neighbors keep exactly one shared border.
+    keys = list(pieces)
+    simplified = shapely.coverage_simplify([pieces[k] for k in keys], SIMPLIFY["regions"])
+    return {k: g.buffer(0) for k, g in zip(keys, simplified)}, rest, errors
 
 
 def districts(land_area, west_bank_itm) -> tuple[dict, object]:
-    """The six districts, clipped to the land, plus the Judea and Samaria Area.
-
-    OSM boundaries and the Natural Earth coast differ by up to a few hundred meters,
-    so each district also takes the strip of land between its own edge and the coast
-    or border next to it.
-    """
+    """The six districts, clipped to the land, plus the Judea and Samaria Area."""
     features = json.loads((ROOT / "content" / "districts.geojson").read_text())["features"]
     osm = {f["properties"]["district"]: clean(shape(f["geometry"]), SIMPLIFY["districts"]) for f in features}
     # The Judea and Samaria Area is what the de facto land adds beyond Israel's districts.
     osm["judea_samaria"] = west_bank_itm.difference(ops.unary_union(list(osm.values())))
-    exact, rest = partition(land_area, osm)
-    widened, rest = partition(rest, {k: v.buffer(8_000) for k, v in exact.items()}, min_part=0)
-    return {k: ops.unary_union([exact[k], widened[k]]) for k in exact}, rest
+    return fill(land_area, osm)
 
 
 def outlines(pieces: dict, land_area) -> list:
@@ -222,7 +247,7 @@ def main() -> int:
     # Regions and districts split the land; the lakes are not part of any of them.
     lakes_itm = ops.unary_union([clean(g, SIMPLIFY["lakes"]) for g in lake_geoms.values()])
     land_area = land.difference(lakes_itm)
-    region_geoms, region_rest = natural_regions(land_area)
+    region_geoms, region_rest, region_errors = natural_regions(land_area)
     district_geoms, district_rest = districts(land_area, clean(west_bank.intersection(WINDOW), SIMPLIFY["land"]))
 
     gn = geonamescache.GeonamesCache(min_city_population=15000).get_cities()
@@ -242,7 +267,7 @@ def main() -> int:
     # ---------- places ----------
     curriculum = yaml.safe_load((ROOT / "content" / "places.yaml").read_text())["places"]
     places = []
-    errors = []
+    errors = list(region_errors)
     for what, rest in (("natural regions", region_rest), ("districts", district_rest)):
         if rest.area > MAX_UNASSIGNED_M2:
             spots = ", ".join(f"{p.centroid.x:.0f},{p.centroid.y:.0f}" for p in polygons(rest) if p.area > 1e5)

@@ -55,9 +55,9 @@ releases, each playable on its own.
 
 ### 1b. Content - built
 - [x] Tier 1: 19 natural regions and the 7 districts (6 districts plus the Judea and
-      Samaria Area), as polygons. Natural regions are hand-drawn sketches (OSM has no
-      boundaries for them) that the pipeline clips to the land and turns into a
-      partition with shared borders; districts come from OpenStreetMap
+      Samaria Area), as polygons. Natural regions are unions of the official CBS
+      natural regions (Ministry of Agriculture regions for Judea and Samaria);
+      districts come from OpenStreetMap
 - [x] Tiers 2 and 3: 97 more cities and towns (118 in all), with aliases and confusables
 - [x] Map shows region outlines (faint dashed borders between natural regions)
 - [x] Name It offers names of the same kind (regions with regions, districts with

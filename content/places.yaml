@@ -10,7 +10,7 @@
 #   geonames:<id>       GeoNames city point (CC BY 4.0)
 #   point:<lon>,<lat>   a point, for towns too small for the GeoNames city list
 #                       (coordinates from GeoNames or OpenStreetMap)
-#   region:<key>        a natural region sketched in content/regions.yaml
+#   region:<key>        a game region from content/regions.yaml (official natural regions)
 #   district:<key>      a district from content/districts.geojson (OpenStreetMap),
 #                       or judea_samaria: the land east of the districts
 #
@@ -386,24 +386,24 @@ places:
     hint: לאורך החוף, מעכו ועד ראש הנקרה
     fact: מישור חוף צר בין הרי הגליל לים.
     aliases: [גליל מערבי]
-  - id: region.haifa_bay
+  - id: region.haifa
     type: region
     unit: regions_north
     importance: 2
-    geometry: region:haifa_bay
-    name: מפרץ חיפה
-    hint: בין חיפה לעכו
-    fact: לאורך המפרץ משתרע עמק זבולון, ובו יושבות הקריות.
-    aliases: [הקריות, עמק זבולון]
-  - id: region.carmel
+    geometry: region:haifa
+    name: אזור חיפה
+    hint: חיפה, הקריות ומפרץ חיפה
+    fact: כולל את העיר חיפה, את צפון הכרמל ואת הקריות שלאורך המפרץ.
+    aliases: [מפרץ חיפה, הקריות, חיפה והקריות]
+  - id: region.carmel_coast
     type: region
     unit: regions_north
     importance: 2
-    geometry: region:carmel
-    name: הכרמל
-    hint: רכס שיורד מחיפה דרומה, לאורך החוף
-    fact: רכס מיוער שמתנשא מעל חיפה ומעל חוף הים.
-    aliases: [הר הכרמל, כרמל]
+    geometry: region:carmel_coast
+    name: חוף הכרמל
+    hint: לאורך החוף מדרום לחיפה, עד זכרון יעקב
+    fact: רצועת חוף למרגלות הכרמל, ודרום רכס הכרמל עם זכרון יעקב.
+    aliases: [הכרמל, דרום הכרמל]
   - id: region.jezreel
     type: region
     unit: regions_north
@@ -418,10 +418,11 @@ places:
     unit: regions_north
     importance: 3
     geometry: region:menashe
-    name: רמות מנשה
+    name: רמת מנשה
     hint: בין הכרמל לוואדי עארה
     fact: גבעות נמוכות ופתוחות בין הכרמל להרי השומרון.
-    confusables: [region.carmel]
+    aliases: [רמות מנשה]
+    confusables: [region.carmel_coast]
 
   # ---------- Unit: more regions, center and east ----------
   - id: region.jordan_valley
@@ -430,7 +431,7 @@ places:
     importance: 2
     geometry: region:jordan_valley
     name: בקעת הירדן
-    hint: לאורך הירדן, מהכנרת ועד ים המלח
+    hint: לאורך הירדן, מסביב לכנרת ועד ים המלח
     fact: חלק מהשבר הסורי-אפריקני, ורובה מתחת לפני הים.
     aliases: [עמק הירדן, הבקעה]
   - id: region.samaria
@@ -466,7 +467,7 @@ places:
     importance: 2
     geometry: region:judean_desert
     name: מדבר יהודה
-    hint: ממזרח להרי יהודה, ויורד עד ים המלח
+    hint: לאורך החוף המערבי של ים המלח
     fact: מדבר בצל הגשם של הרי יהודה. בו מצדה ועין גדי.
 
   # ---------- Unit: Gush Dan ----------
@@ -612,7 +613,7 @@ places:
     importance: 4
     geometry: geonames:8428480
     name: אלעד
-    hint: דרומית לראש העין, בצפון השפלה
+    hint: דרומית לראש העין
     fact: עיר חדשה שנוסדה בסוף שנות ה-90.
   - id: city.shoham
     type: city

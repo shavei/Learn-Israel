@@ -69,7 +69,8 @@ The design is built on the most robust findings in learning science:
 | `core/content/` | Place and map models, parser for the generated assets |
 | `core/learning/` | FSRS scheduler (port of py-fsrs), tap grading, session engine, mastery |
 | `content/places.yaml` | The curriculum: which places are taught, with Hebrew names, hints and facts |
-| `content/regions.yaml` | Hand-drawn sketches of the natural regions, turned into a partition of the land by the pipeline |
+| `content/regions.yaml` | Which official natural regions make up each of the game's 19 regions |
+| `content/natural_regions.geojson` | Official natural regions (CBS; Ministry of Agriculture for Judea and Samaria), refreshed by `tools/fetch_natural_regions.py` |
 | `content/districts.geojson` | District boundaries from OpenStreetMap, refreshed by `tools/fetch_districts.py` |
 | `tools/build_content.py` | Data pipeline: Natural Earth + GeoNames + OSM districts + the files above into `app/src/main/assets/` |
 
@@ -99,5 +100,6 @@ CI checks that the committed assets match the pipeline output.
 Map data from [Natural Earth](https://www.naturalearthdata.com/) (public domain). City
 locations from [GeoNames](https://www.geonames.org/) (CC BY 4.0). District boundaries and a
 few town locations © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
-(ODbL 1.0). The FSRS scheduler is
+(ODbL 1.0). Natural regions from the Israel Central Bureau of Statistics and, for Judea and
+Samaria, the Ministry of Agriculture. The FSRS scheduler is
 ported from [py-fsrs](https://github.com/open-spaced-repetition/py-fsrs) (MIT).
