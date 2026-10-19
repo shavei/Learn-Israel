@@ -10,6 +10,7 @@ Inputs:
   content/localities.csv                 CBS locality file: official city points, by locality symbol
   content/jordan_river.geojson           the Jordan River from OpenStreetMap (ODbL)
   content/region_overrides.geojson       OSM areas moved between regions (see regions.yaml)
+  content/isohyets.geojson               rainfall lines for climate splits (see regions.yaml)
   content/surroundings.geojson           OSM land (from the coastline), the neighboring
                                          countries and the Dead Sea (ODbL)
   content/palestine.geojson              Gaza and the West Bank, UN OCHA (CC BY-IGO); the
@@ -199,12 +200,47 @@ def natural_regions(land_area, official) -> tuple[dict, object, list[str]]:
     shapes = {
         k: project(ops.unary_union([official[c][0] for c in codes if c in official])) for k, codes in groups.items()
     }
-    overrides = json.loads((ROOT / "content" / "region_overrides.geojson").read_text())["features"]
-    for f in overrides:
-        area, target = project(shape(f["geometry"])), f["properties"]["region"]
+    for target, area in region_moves(official):
         shapes = {k: g.union(area) if k == target else g.difference(area) for k, g in shapes.items()}
     pieces, rest = fill(land_area, shapes)
     return simplify_together(pieces), rest, errors
+
+
+def region_moves(official) -> list[tuple[str, object]]:
+    """Areas that move to another game region than their official code says, on the
+    Israeli TM grid: the climate splits and the OSM overrides of regions.yaml. Later
+    moves win, so the overrides come last.
+    """
+    config = yaml.safe_load((ROOT / "content" / "regions.yaml").read_text())
+    moves = []
+    isohyets = json.loads((ROOT / "content" / "isohyets.geojson").read_text())["features"]
+    lines_by_mm = {f["properties"]["rainfall_mm"]: shape(f["geometry"]) for f in isohyets}
+    for target, split in config.get("climate_splits", {}).items():
+        dry = drier_side(lines_by_mm[split["isohyet_mm"]])
+        source = ops.unary_union([official[c][0] for c in split["from_codes"]])
+        moves.append((target, project(source.intersection(dry))))
+    for f in json.loads((ROOT / "content" / "region_overrides.geojson").read_text())["features"]:
+        moves.append((f["properties"]["region"], project(shape(f["geometry"]))))
+    return moves
+
+
+def drier_side(isohyet):
+    """The part of the map window on the dry side of a rainfall line (toward the Dead Sea).
+
+    The line is extended straight out from both ends past the window's edge, so it
+    cuts the window in two.
+    """
+    coords = list(isohyet.coords)
+
+    def extend(a, b):  # from b, away from a
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        n = (dx * dx + dy * dy) ** 0.5
+        return (b[0] + dx / n * 10, b[1] + dy / n * 10)
+
+    line = LineString([extend(coords[1], coords[0])] + coords + [extend(coords[-2], coords[-1])])
+    sides = list(ops.polygonize(ops.unary_union([WINDOW.boundary, line.intersection(WINDOW)])))
+    dead_sea = Point(35.5, 31.5)
+    return next(p for p in sides if p.contains(dead_sea))
 
 
 def simplify_together(pieces: dict) -> dict:
@@ -289,6 +325,7 @@ def main() -> int:
         localities = {row["symbol"]: row for row in csv.DictReader(f)}
     groups = yaml.safe_load((ROOT / "content" / "regions.yaml").read_text())["regions"]
     region_of_code = {code: key for key, codes in groups.items() for code in codes}
+    moves = region_moves(official)
 
     # Labels for areas sit inside the part of the area near Israel, so they stay on screen.
     near_israel = project(ops.unary_union([land_ll, ocha["gaza"]])).buffer(40_000).envelope
@@ -348,7 +385,8 @@ def main() -> int:
             region = min(region_geoms, key=lambda k: region_geoms[k].distance(pt))
             # The CBS assigns each locality a natural region; the map must agree.
             code = int(loc["natural_region"]) if kind == "cbs" and loc["natural_region"] else None
-            if code is not None and region != region_of_code.get(code):
+            expected = next((t for t, area in reversed(moves) if area.contains(pt)), region_of_code.get(code))
+            if code is not None and region != expected:
                 errors.append(f"{p['id']}: lies in {region}, but the CBS puts it in natural region {code}")
             if kind == "cbs" and loc["district"]:
                 district = DISTRICT_OF_CBS_NUMBER.get(int(loc["district"]))

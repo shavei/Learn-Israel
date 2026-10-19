@@ -468,7 +468,7 @@ places:
     importance: 2
     geometry: region:judean_desert
     name: מדבר יהודה
-    hint: לאורך החוף המערבי של ים המלח
+    hint: ממזרח להרי יהודה, ויורד עד ים המלח
     fact: מדבר בצל הגשם של הרי יהודה. בו מצדה ועין גדי.
 
   # ---------- Unit: Gush Dan ----------

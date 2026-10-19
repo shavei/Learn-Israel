@@ -12,6 +12,7 @@
 | Palestinian cities | GeoNames; OpenStreetMap for Jericho (GeoNames is 1.4 km off there) | CC BY 4.0; ODbL | Hebron, Bethlehem, Jericho, Shechem, Ramallah |
 | Jordan River | OpenStreetMap relation 2246907 (main stream) | ODbL 1.0 | Frame item and map layer |
 | Coastlines, neighboring countries, the whole Dead Sea | OpenStreetMap: land polygons from osmdata.openstreetmap.de (built from the coastline), country relations (Lebanon 184843, Syria 184840, Jordan 184818, Egypt 1473947, Saudi Arabia 307584), Dead Sea relation 9351124 | ODbL 1.0 | Neighbors, seas, the Dead Sea's northern basin |
+| Judean Desert's western edge | KKL-JNF lines of equal annual rainfall (public ArcGIS layer "ilrain"), the 250 mm line | KKL-JNF | Splitting the Judea regions between the Judean Mountains and the Judean Desert |
 | Gaza Strip, Green Line | UN OCHA common operational dataset for the State of Palestine (HDX "cod-ab-pse"); the West Bank's western edge is the 1949 armistice line, with East Jerusalem and the Latrun no-man's-land on its eastern side | CC BY-IGO | Gaza, the optional Green Line layer |
 
 **Status (Phase 1b):** `tools/fetch_sources.py` downloads the official natural regions,
@@ -26,10 +27,18 @@ How the map is built:
   Samaria), with the gaps where the CBS and Ministry layers meet closed.
 - **Natural regions:** `content/regions.yaml` groups the about 60 official regions into
   the game's 19 (for example the Sharon is the Hadera region plus western, eastern and
-  southern Sharon). Every code is used exactly once, or the build fails. One
-  correction: the Judea and Samaria layer follows Israeli council lines, which put
-  Jericho's town area in "Judea"; its OpenStreetMap area is moved to the Jordan Valley
-  (`overrides` in `content/regions.yaml`).
+  southern Sharon). Every code is used exactly once, or the build fails. Where the
+  official grouping and the geographic definitions disagree, `content/regions.yaml`
+  moves areas, each with its source:
+  - the Judean Desert takes the parts of the Judea regions (812, 813, 815) east of the
+    250 mm rainfall line, its western edge in Hebrew Wikipedia's definition (KKL-JNF
+    isohyet);
+  - Herzliya, Ramat HaSharon, Rosh HaAyin and Kafr Qasim (their OSM municipal areas)
+    move from Gush Dan to the Sharon, which begins at the Yarkon; Hebrew Wikipedia
+    places each of them in the Sharon;
+  - Jericho's town area moves to the Jordan Valley (the Judea and Samaria layer follows
+    Israeli council lines, which put it in "Judea").
+  The build checks each city against its CBS natural region, allowing for these moves.
 - **Districts:** every official natural region lies in one district and its code starts
   with the district's number, so the districts are unions of natural regions.
 - **Checks:** every Israeli city must lie in the natural region and the district the CBS
