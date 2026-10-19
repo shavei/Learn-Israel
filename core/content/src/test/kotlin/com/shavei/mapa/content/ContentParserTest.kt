@@ -17,8 +17,11 @@ class ContentParserTest {
     }
 
     @Test
-    fun loadsAllPhase0Places() {
-        assertEquals(30, content.places.size)
+    fun loadsAllPlaces() {
+        val byType = content.places.groupingBy { it.type }.eachCount()
+        assertEquals(19, byType[PlaceType.REGION])
+        assertEquals(7, byType[PlaceType.DISTRICT])
+        assertEquals(118, byType[PlaceType.CITY])
         assertEquals(content.places.size, content.places.map { it.id }.toSet().size)
         assertTrue(content.places.all { it.name.isNotBlank() && it.fact.isNotBlank() && it.hint.isNotBlank() })
     }
@@ -28,7 +31,8 @@ class ContentParserTest {
         for (p in content.places) {
             when (p.type) {
                 PlaceType.CITY -> assertIs<Shape.Point>(p.shape, p.id)
-                PlaceType.SEA, PlaceType.LAKE, PlaceType.COUNTRY -> assertIs<Shape.Area>(p.shape, p.id)
+                PlaceType.SEA, PlaceType.LAKE, PlaceType.COUNTRY, PlaceType.REGION, PlaceType.DISTRICT ->
+                    assertIs<Shape.Area>(p.shape, p.id)
                 PlaceType.RIVER -> assertIs<Shape.Lines>(p.shape, p.id)
             }
         }
@@ -40,7 +44,8 @@ class ContentParserTest {
         val home = content.map.home
         for (p in content.places.filter { it.type == PlaceType.CITY }) {
             val at = (p.shape as Shape.Point).at
-            assertTrue(land.distanceTo(at) < 500.0, "${p.id} should be on land")
+            // The drawn border is coarse; towns right on it may sit just outside.
+            assertTrue(land.distanceTo(at) < 1_500.0, "${p.id} should be on land")
             assertTrue(at.x in home.minX..home.maxX && at.y in home.minY..home.maxY, "${p.id} in home view")
         }
     }
@@ -71,6 +76,57 @@ class ContentParserTest {
         val telAviv = (content.place("city.tel_aviv")!!.shape as Shape.Point).at
         val med = content.place("sea.mediterranean")!!.shape as Shape.Area
         assertTrue(med.contains(MapPoint(telAviv.x - 5_000, telAviv.y)), "the sea is just west of Tel Aviv")
-        assertEquals(listOf("frame", "anchors", "center", "south_coast", "sharon", "north"), content.unitOrder)
+        assertEquals(listOf("frame", "anchors", "regions_main", "center", "south_coast", "sharon", "north"), content.unitOrder.take(7))
+        assertEquals("districts", content.unitOrder.last())
+    }
+
+    @Test
+    fun regionsSplitTheLandWithoutGapsOrOverlaps() {
+        val land = Shape.Area(content.map.layer("land")!!.polygons)
+        val lakes = Shape.Area(content.map.layer("lakes")!!.polygons)
+        val regions = content.places.filter { it.type == PlaceType.REGION }
+        val home = content.map.home
+        var onLand = 0
+        val misses = mutableListOf<MapPoint>()
+        var x = home.minX
+        while (x < home.maxX) {
+            var y = home.minY
+            while (y < home.maxY) {
+                val at = MapPoint(x, y)
+                if (land.contains(at) && !lakes.contains(at)) {
+                    onLand++
+                    val inside = regions.count { (it.shape as Shape.Area).contains(at) }
+                    if (inside != 1) misses += at
+                }
+                y += 2_000.0
+            }
+            x += 2_000.0
+        }
+        assertTrue(onLand > 4_000, "the grid samples the whole country")
+        assertTrue(misses.size <= 2, "points in no region or in two: $misses")
+    }
+
+    @Test
+    fun placesFallInTheRightRegionsAndDistricts() {
+        fun inside(area: String, city: String) {
+            val shape = content.place(area)!!.shape as Shape.Area
+            assertTrue(shape.contains((content.place(city)!!.shape as Shape.Point).at), "$city in $area")
+        }
+        inside("region.sharon", "city.netanya")
+        inside("region.gush_dan", "city.ramat_gan")
+        inside("region.upper_galilee", "city.safed")
+        inside("region.lower_galilee", "city.nazareth")
+        inside("region.golan", "city.katzrin")
+        inside("region.hula", "city.kiryat_shmona")
+        inside("region.negev", "city.beersheba")
+        inside("region.arava", "city.eilat")
+        inside("region.judean_mountains", "city.jerusalem")
+        inside("district.tel_aviv", "city.tel_aviv")
+        inside("district.haifa", "city.hadera")
+        inside("district.center", "city.netanya")
+        inside("district.jerusalem", "city.beit_shemesh")
+        inside("district.north", "city.katzrin")
+        inside("district.south", "city.ashdod")
+        inside("district.judea_samaria", "city.shechem")
     }
 }

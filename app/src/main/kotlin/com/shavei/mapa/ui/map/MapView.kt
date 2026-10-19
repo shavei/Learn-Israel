@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -44,6 +45,7 @@ object MapColors {
     val lake = Color(0xFF7FB2DC)
     val river = Color(0xFF3A7FC0)
     val greenLine = Color(0xFF4F9A5A)
+    val regionOutline = Color(0x998A8478)
     val target = Color(0xFFD9480F)
     val tap = Color(0xFF1C1B1F)
     val good = Color(0xFF2B8A3E)
@@ -191,6 +193,10 @@ fun MapView(
             drawPath(layers.gaza, MapColors.border, style = Stroke(width = px))
             drawPath(layers.land, MapColors.land)
             drawPath(layers.land, MapColors.border, style = Stroke(width = 1.5f * px))
+            drawPath(
+                layers.regions, MapColors.regionOutline,
+                style = Stroke(width = px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f * px, 4f * px))),
+            )
             drawPath(layers.rivers, MapColors.river, style = Stroke(width = 2f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
             drawPath(layers.lakes, MapColors.lake)
             if (showGreenLine) drawPath(layers.greenLine, MapColors.greenLine, style = Stroke(width = 1.5f * px))
@@ -255,13 +261,16 @@ private class BaseLayers(
     val land: Path,
     val lakes: Path,
     val rivers: Path,
+    val regions: Path,
     val greenLine: Path,
 ) {
     companion object {
         fun build(map: MapData, origin: MapPoint): BaseLayers {
             fun polys(id: String) = polygonsPath(map.layer(id)?.polygons.orEmpty(), origin)
             fun lines(id: String) = linesPath(map.layer(id)?.lines.orEmpty(), origin)
-            return BaseLayers(polys("neighbors"), polys("gaza"), polys("land"), polys("lakes"), lines("rivers"), lines("green_line"))
+            return BaseLayers(
+                polys("neighbors"), polys("gaza"), polys("land"), polys("lakes"), lines("rivers"), lines("regions"), lines("green_line"),
+            )
         }
     }
 }

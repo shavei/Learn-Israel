@@ -67,7 +67,7 @@ class AppFlowTest {
         screenshot("6-miss")
 
         compose.onNodeWithText("יציאה").performClick()
-        waitForText("2 מתוך 30 מקומות בתרגול")
+        waitForText("2 מתוך 153 מקומות בתרגול")
         screenshot("7-home-after")
     }
 }

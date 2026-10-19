@@ -168,7 +168,7 @@ class SessionEngine(
 
     /** Four names: the answer, then confusables and nearby places of the same kind. */
     private fun nameOptions(place: Place): List<Place> {
-        val sameKind = content.places.filter { it.id != place.id && it.type.isCity() == place.type.isCity() }
+        val sameKind = content.places.filter { it.id != place.id && it.type.kind == place.type.kind }
         val distractors = (place.confusables.mapNotNull(content::place) +
             sameKind.sortedBy { it.label.distanceTo(place.label) }.take(6).shuffled(random))
             .distinct().take(3)
@@ -242,16 +242,26 @@ class SessionEngine(
         return newPlacesThisSession < minOf(budget, config.maxNewPerSession)
     }
 
-    /** The city the player most likely meant when a tap missed: one within its own tolerance of the tap. */
-    private fun nearestOtherPlace(target: Place, tap: Response.Tap): Place? =
-        content.places.asSequence()
-            .filter { it.id != target.id && it.type == PlaceType.CITY }
+    /**
+     * The place the player most likely meant when a tap missed: for a region or a
+     * district, the one the tap fell in; otherwise a city within its own tolerance of the tap.
+     */
+    private fun nearestOtherPlace(target: Place, tap: Response.Tap): Place? {
+        val areaKind = target.type == PlaceType.REGION || target.type == PlaceType.DISTRICT
+        return content.places.asSequence()
+            .filter { it.id != target.id && if (areaKind) it.type == target.type else it.type == PlaceType.CITY }
             .map { it to it.shape.distanceTo(tap.at) }
-            .filter { (p, d) -> d <= Grader.tolerance(p) }
+            .filter { (p, d) -> if (areaKind) d == 0.0 else d <= Grader.tolerance(p) }
             .minByOrNull { it.second }
             ?.first
+    }
 
-    private fun PlaceType.isCity() = this == PlaceType.CITY
+    /** Places of one kind stand in for each other as wrong names: cities, regions, districts, the frame. */
+    private val PlaceType.kind: PlaceType
+        get() = when (this) {
+            PlaceType.CITY, PlaceType.REGION, PlaceType.DISTRICT -> this
+            else -> PlaceType.SEA
+        }
 
     companion object {
         const val NAME_UNLOCK_DAYS = 7.0
