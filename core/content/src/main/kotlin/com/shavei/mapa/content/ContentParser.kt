@@ -60,6 +60,8 @@ object ContentParser {
         val fact: String,
         val geometry: GeometryJson,
         val label: List<Double>,
+        val aliases: List<String> = emptyList(),
+        val confusables: List<String> = emptyList(),
     ) {
         fun toPlace() = Place(
             id = id,
@@ -71,6 +73,8 @@ object ContentParser {
             fact = fact,
             shape = geometry.toShape(id),
             label = MapPoint(label[0], label[1]),
+            aliases = aliases,
+            confusables = confusables,
         )
     }
 

@@ -10,14 +10,14 @@ import kotlin.math.max
 
 data class Grade(
     val rating: Rating,
-    /** How far the tap was from the place, 0 when inside an area. */
-    val errorMeters: Double,
-    val toleranceMeters: Double,
+    /** For taps: how far from the place, 0 when inside an area. Null for other answers. */
+    val errorMeters: Double? = null,
+    val toleranceMeters: Double? = null,
 ) {
     val isCorrect: Boolean get() = rating == Rating.GOOD || rating == Rating.EASY
 }
 
-/** Turns a tap on the map into an FSRS rating (see docs/04-learning-engine.md). */
+/** Turns an answer into an FSRS rating (see docs/04-learning-engine.md). */
 object Grader {
     /** Answers faster than this can earn EASY. */
     const val FLUENT_RESPONSE_MS = 4_000L
@@ -32,7 +32,8 @@ object Grader {
             max(2_000.0, 0.1 * (place.shape as Shape.Area).characteristicSize())
     }
 
-    fun grade(place: Place, tap: MapPoint, responseMs: Long, firstReview: Boolean): Grade {
+    /** A tap on the map. With [hint] on, the best possible rating is HARD. */
+    fun grade(place: Place, tap: MapPoint, responseMs: Long, firstReview: Boolean, hint: Boolean = false): Grade {
         val tolerance = tolerance(place)
         val error = place.shape.distanceTo(tap)
         val rating = when {
@@ -41,6 +42,21 @@ object Grader {
             error <= tolerance * CLOSE_FACTOR -> Rating.HARD
             else -> Rating.AGAIN
         }
-        return Grade(rating, error, tolerance)
+        return Grade(capForHint(rating, hint), error, tolerance)
     }
+
+    /** Picking from options is recognition: weaker evidence than recall, so never EASY. */
+    fun gradeChoice(correct: Boolean, hint: Boolean = false): Grade =
+        Grade(capForHint(if (correct) Rating.GOOD else Rating.AGAIN, hint))
+
+    fun gradeTyped(place: Place, typed: String, responseMs: Long): Grade = Grade(
+        when (HebrewNames.match(typed, listOf(place.name) + place.aliases)) {
+            HebrewNames.Match.EXACT -> if (responseMs < FLUENT_RESPONSE_MS * 2) Rating.EASY else Rating.GOOD
+            HebrewNames.Match.CLOSE -> Rating.HARD
+            HebrewNames.Match.WRONG -> Rating.AGAIN
+        },
+    )
+
+    private fun capForHint(rating: Rating, hint: Boolean) =
+        if (hint && (rating == Rating.GOOD || rating == Rating.EASY)) Rating.HARD else rating
 }

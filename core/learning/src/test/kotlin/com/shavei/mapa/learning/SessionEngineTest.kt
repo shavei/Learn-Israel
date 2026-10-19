@@ -6,9 +6,12 @@ import com.shavei.mapa.learning.fsrs.DAY_MS
 import com.shavei.mapa.learning.fsrs.FsrsCard
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
 import com.shavei.mapa.learning.fsrs.Rating
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SessionEngineTest {
@@ -16,18 +19,32 @@ class SessionEngineTest {
     private val scheduler = FsrsScheduler(fuzz = null)
     private var now = 1_000 * DAY_MS
 
-    private fun engine(cards: Map<String, FsrsCard> = emptyMap(), newToday: Int = 0, config: SessionConfig = SessionConfig()) =
-        SessionEngine(content, scheduler, cards, newToday, config) { now }
+    private fun engine(cards: Map<CardKey, StudyCard> = emptyMap(), newToday: Int = 0, config: SessionConfig = SessionConfig()) =
+        SessionEngine(content, scheduler, cards, newToday, config, clock = { now }, random = Random(1))
 
-    /** Plays a whole session; [correct] decides whether each tap is on target. */
+    private fun key(i: Int, facet: Facet = Facet.LOCATE) = CardKey("city.c$i", facet)
+
+    private fun reviewed(stability: Double, dueInDays: Double, struggles: Int = 0) = StudyCard(
+        FsrsCard(CardState.REVIEW, null, stability, 5.0, due = now + (dueInDays * DAY_MS).toLong(), lastReview = now - 10 * DAY_MS),
+        struggles,
+    )
+
+    /** The response a player gives to [q], right or wrong. */
+    private fun respond(q: Question, correct: Boolean): Response = when (q) {
+        is Question.Locate -> q.place.shape.nearestAnchor(MapPoint(0.0, 0.0))
+            .let { Response.Tap(if (correct) it else MapPoint(it.x, it.y + 90_000)) }
+        is Question.NameChoice -> Response.Choice(if (correct) q.place.id else q.options.first { it != q.place }.id)
+        is Question.NameTyped -> Response.Typed(if (correct) q.place.name else "לא יודע")
+        is Question.Relate -> Response.Choice(if (correct) q.correct.id else q.options.first { it != q.correct }.id)
+    }
+
+    /** Plays a whole session; [correct] decides whether each answer is right. */
     private fun play(e: SessionEngine, correct: (Question) -> Boolean = { true }): List<Question> {
         val asked = mutableListOf<Question>()
         while (true) {
             val q = e.next() ?: break
             asked += q
-            val target = q.place.shape.nearestAnchor(MapPoint(0.0, 0.0))
-            val tap = if (correct(q)) target else MapPoint(target.x, target.y + 50_000)
-            e.submit(q, tap, responseMs = 6_000)
+            e.submit(q, respond(q, correct(q)), responseMs = 6_000)
             now += 10_000
         }
         return asked
@@ -37,38 +54,33 @@ class SessionEngineTest {
     fun freshPlayerLearnsNewPlacesInCurriculumOrder() {
         val e = engine()
         val asked = play(e)
-        val introduced = asked.filter { it.isNew }.map { it.place.id }
+        val introduced = asked.filter { it is Question.Locate && it.isNew }.map { it.place.id }
         // Unit u0 first, importance 1 before 2.
         assertEquals(listOf("city.c0", "city.c2", "lake.l", "city.c1", "city.c3"), introduced)
+        assertTrue(asked.all { it is Question.Locate }, "a brand new player only locates")
         assertTrue(asked.size <= SessionConfig().size + SessionConfig().overtime)
-        asked.zipWithNext().forEach { (a, b) -> assertNotEquals(a.place.id, b.place.id, "no immediate repeats") }
-        // Perfect answers walk each new card through both learning steps into review.
-        assertTrue(introduced.all { e.card(it)!!.state == CardState.REVIEW })
+        asked.zipWithNext().forEach { (a, b) -> assertNotEquals(a.key, b.key, "no immediate repeats") }
+        assertTrue(introduced.all { e.card(it)!!.isReview }, "perfect answers graduate every new place")
     }
 
     @Test
     fun dailyNewCapIsRespected() {
         val asked = play(engine(newToday = 9))
-        assertEquals(1, asked.count { it.isNew })
+        assertEquals(1, asked.count { it is Question.Locate && it.isNew })
     }
 
     @Test
     fun dueReviewsComeBeforeNewAndMostAtRiskFirst() {
-        fun reviewed(stability: Double, daysAgo: Int) = FsrsCard(
-            state = CardState.REVIEW, step = null, stability = stability, difficulty = 5.0,
-            due = now - DAY_MS, lastReview = now - daysAgo * DAY_MS,
-        )
-        val e = engine(mapOf("city.c5" to reviewed(10.0, 12), "city.c6" to reviewed(3.0, 12)))
-        assertEquals("city.c6", e.next()!!.place.id) // lower stability means lower recall now
-        e.submit(e.next()!!, pointOf(content.place("city.c6")!!), 6_000)
-        assertEquals("city.c5", e.next()!!.place.id)
+        val e = engine(mapOf(key(7) to reviewed(10.0, -1.0), key(8) to reviewed(3.0, -1.0)))
+        assertEquals("city.c8", e.next()!!.place.id) // lower stability means lower recall now
+        e.submit(e.next()!!, Response.Tap(pointOf(content.place("city.c8")!!)), 6_000)
+        assertEquals("city.c7", e.next()!!.place.id)
     }
 
     @Test
-    fun strugglingPlayerGetsNoMoreNewPlaces() {
+    fun strugglingPlayerGetsFewerNewPlaces() {
         val asked = play(engine()) { false }
-        assertTrue(asked.count { it.isNew } <= 4, "new places stop once accuracy collapses")
-        assertTrue(asked.last().let { !it.isNew })
+        assertTrue(asked.count { it is Question.Locate && it.isNew } <= 4, "new places stop once accuracy collapses")
     }
 
     @Test
@@ -83,18 +95,96 @@ class SessionEngineTest {
 
     @Test
     fun nothingToDoMeansNoSession() {
-        val done = content.places.associate {
-            it.id to FsrsCard(CardState.REVIEW, null, 30.0, 5.0, due = now + 5 * DAY_MS, lastReview = now)
-        }
-        assertEquals(null, engine(done).next())
+        val done = content.places.flatMap { p -> Facet.entries.map { CardKey(p.id, it) } }
+            .associateWith { reviewed(30.0, 5.0) }
+        assertNull(engine(done).next())
     }
 
     @Test
     fun extraPracticeReviewsWeakestPlacesEarly() {
-        val done = content.places.associate {
-            it.id to FsrsCard(CardState.REVIEW, null, if (it.id == "city.c7") 4.0 else 30.0, 5.0, due = now + 3 * DAY_MS, lastReview = now)
-        }
+        val done = content.places.flatMap { p -> Facet.entries.map { CardKey(p.id, it) } }
+            .associateWith { reviewed(30.0, 3.0) } + (key(7) to reviewed(4.0, 3.0))
         val e = engine(done, config = SessionConfig(strengthenWeakest = true))
-        assertEquals("city.c7", e.next()!!.place.id)
+        assertEquals(key(7), e.next()!!.key)
+    }
+
+    @Test
+    fun namingUnlocksOnceLocatingIsStableAndStartsAsMultipleChoice() {
+        val e = engine(mapOf(key(0) to reviewed(2.5, 4.0)), newToday = 10)
+        val q = assertIs<Question.NameChoice>(e.next())
+        assertEquals("city.c0", q.place.id)
+        assertEquals(4, q.options.size)
+        assertTrue(q.place in q.options)
+        assertEquals(4, q.options.map { it.id }.toSet().size)
+    }
+
+    @Test
+    fun aStableNameIsTypedAndHintsBringBackChoices() {
+        val typed = engine(mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0)), newToday = 10)
+        assertIs<Question.NameTyped>(typed.next())
+
+        val struggling = engine(
+            mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0, struggles = 2)), newToday = 10,
+        )
+        assertTrue(assertIs<Question.NameChoice>(struggling.next()).hint)
+    }
+
+    @Test
+    fun hintCapsTheRatingAndASuccessClearsIt() {
+        val e = engine(mapOf(key(0) to reviewed(4.0, -1.0, struggles = 2)), newToday = 10)
+        val q = assertIs<Question.Locate>(e.next())
+        assertTrue(q.hint)
+        val a = e.submit(q, respond(q, true), 2_000)
+        assertEquals(Rating.HARD, a.grade.rating)
+        assertEquals(0, a.after.struggles)
+    }
+
+    @Test
+    fun relateAsksAboutTwoKnownCitiesWithTheRightAnswer() {
+        // c0 at (0, 0) and c1 at (20 km east, 25 km north); both located and named.
+        val cards = listOf(0, 1).flatMap { i -> listOf(key(i) to reviewed(9.0, 4.0), key(i, Facet.NAME) to reviewed(9.0, 4.0)) }.toMap()
+        val e = engine(cards, newToday = 10)
+        val q = assertIs<Question.Relate>(e.next())
+        assertEquals(setOf("city.c0", "city.c1"), q.options.map { it.id }.toSet())
+        val c0 = content.place("city.c0")!!
+        val c1 = content.place("city.c1")!!
+        val expected = when (val r = q.relation) {
+            is Relation.Further -> when (r.direction) {
+                Relation.Direction.NORTH, Relation.Direction.EAST -> c1
+                Relation.Direction.SOUTH, Relation.Direction.WEST -> c0
+            }
+            is Relation.CloserTo -> error("only two known cities, so no third place to compare against")
+        }
+        assertEquals(expected, q.correct)
+        assertEquals(Rating.GOOD, e.submit(q, Response.Choice(expected.id), 3_000).grade.rating)
+    }
+
+    @Test
+    fun oneSkillPerPlacePerSession() {
+        val cards = (0 until 8).flatMap { i ->
+            listOf(key(i) to reviewed(9.0, -1.0), key(i, Facet.NAME) to reviewed(9.0, -1.0), key(i, Facet.RELATE) to reviewed(9.0, -1.0))
+        }.toMap()
+        val asked = play(engine(cards, newToday = 10))
+        assertTrue(asked.isNotEmpty())
+        for ((placeId, qs) in asked.groupBy { it.place.id }) {
+            assertEquals(1, qs.map { it.facet }.toSet().size, "$placeId was asked with more than one skill")
+        }
+    }
+
+    @Test
+    fun confusablePlacesAreAskedBackToBack() {
+        val e = engine(mapOf(key(4) to reviewed(6.0, -1.0), key(5) to reviewed(6.0, 3.0)), newToday = 10)
+        assertEquals(key(4), e.next()!!.key)
+        e.submit(e.next()!!, respond(e.next()!!, true), 3_000)
+        assertEquals(key(5), e.next()!!.key, "the partner follows even though it is not due")
+    }
+
+    @Test
+    fun aMissNamesTheCityThePlayerTapped() {
+        val e = engine(mapOf(key(0) to reviewed(6.0, -1.0)), newToday = 10)
+        val q = e.next()!!
+        val a = e.submit(q, Response.Tap(pointOf(content.place("city.c3")!!)), 3_000)
+        assertEquals(Rating.AGAIN, a.grade.rating)
+        assertEquals("city.c3", a.tappedNear?.id)
     }
 }

@@ -20,6 +20,10 @@ data class Place(
     val shape: Shape,
     /** Where the name is drawn: inside the area, near Israel, so it stays on screen. */
     val label: MapPoint,
+    /** Other accepted spellings and short forms for typed answers. */
+    val aliases: List<String> = emptyList(),
+    /** Places players tend to mix up with this one; practiced side by side. */
+    val confusables: List<String> = emptyList(),
 )
 
 /** A background layer of the map (land, neighbors, lakes, ...). */

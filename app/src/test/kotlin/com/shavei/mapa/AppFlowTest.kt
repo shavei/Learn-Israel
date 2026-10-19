@@ -1,7 +1,5 @@
 package com.shavei.mapa
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -16,7 +14,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.io.File
 
 /**
  * Drives the real app on the JVM: home screen, then the first steps of a daily session.
@@ -33,14 +30,8 @@ class AppFlowTest {
         compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty() }
 
     private fun screenshot(name: String) {
-        val dir = File(System.getProperty("screenshotDir") ?: "build/screenshots").apply { mkdirs() }
         compose.waitForIdle()
-        // captureToImage() waits for a hardware redraw that Robolectric never delivers,
-        // so draw the window's view tree into a software bitmap instead.
-        val view = compose.activity.window.decorView
-        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-        view.draw(Canvas(bitmap))
-        File(dir, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        Screenshots.save(compose.activity, name)
     }
 
     @Test

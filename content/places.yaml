@@ -8,6 +8,10 @@
 #   river:<name>        Natural Earth river centerline(s) with this English name
 #   geonames:<id>       GeoNames city point (CC BY 4.0)
 #
+# aliases: other accepted spellings for typed answers (niqqud, punctuation, spaces,
+#   final letters and doubled yod/vav are already ignored by the matcher).
+# confusables: places players mix up with this one (pairs are made symmetric).
+#
 # importance: 1 (introduce first) to 5. unit groups places introduced together.
 
 places:
@@ -20,6 +24,7 @@ places:
     name: הים התיכון
     hint: לאורך כל החוף המערבי של ישראל
     fact: כל ערי החוף הגדולות, מאשקלון ועד נהריה, יושבות לחופו.
+    aliases: [ים התיכון, הים הגדול]
   - id: sea.gulf_of_eilat
     type: sea
     unit: frame
@@ -28,6 +33,7 @@ places:
     name: מפרץ אילת
     hint: בקצה הדרומי של ישראל
     fact: זרוע של ים סוף. היציאה הימית של ישראל לאסיה ולאפריקה.
+    aliases: [ים סוף, מפרץ עקבה]
   - id: lake.kinneret
     type: lake
     unit: frame
@@ -36,6 +42,7 @@ places:
     name: הכנרת
     hint: בצפון מזרח, בין הגליל לרמת הגולן
     fact: אגם המים המתוקים הגדול בישראל. נהר הירדן עובר דרכו.
+    aliases: [כנרת, ים כנרת, ים הכנרת, ים גליל]
   - id: lake.dead_sea
     type: lake
     unit: frame
@@ -52,6 +59,7 @@ places:
     name: נהר הירדן
     hint: מחבר את הכנרת לים המלח
     fact: זורם מצפון אל הכנרת, וממנה דרומה עד ים המלח.
+    aliases: [הירדן]
   - id: country.lebanon
     type: country
     unit: frame
@@ -60,6 +68,7 @@ places:
     name: לבנון
     hint: מצפון לישראל
     fact: הגבול עם לבנון עובר לאורך הגליל העליון, מראש הנקרה ועד החרמון.
+    confusables: [country.syria]
   - id: country.syria
     type: country
     unit: frame
@@ -102,6 +111,7 @@ places:
     name: תל אביב-יפו
     hint: על חוף הים, במרכז הארץ
     fact: לב גוש דן, המטרופולין הגדול בישראל.
+    aliases: [תל אביב, תל אביב יפו, תא]
   - id: city.haifa
     type: city
     unit: anchors
@@ -118,6 +128,8 @@ places:
     name: באר שבע
     hint: בצפון הנגב
     fact: מכונה "בירת הנגב". העיר הגדולה בדרום הארץ.
+    aliases: [בש, באר-שבע]
+    confusables: [city.dimona]
   - id: city.eilat
     type: city
     unit: anchors
@@ -136,6 +148,8 @@ places:
     name: ראשון לציון
     hint: דרומית לתל אביב
     fact: נוסדה ב-1882, מהמושבות הראשונות של העלייה הראשונה.
+    aliases: [ראשלצ, ראשון]
+    confusables: [city.petah_tikva]
   - id: city.petah_tikva
     type: city
     unit: center
@@ -144,6 +158,7 @@ places:
     name: פתח תקווה
     hint: ממזרח לתל אביב
     fact: מכונה "אם המושבות". נוסדה ב-1878.
+    aliases: [פתח תקוה, פת]
   - id: city.herzliya
     type: city
     unit: center
@@ -160,6 +175,7 @@ places:
     name: מודיעין
     hint: באמצע הדרך בין תל אביב לירושלים
     fact: עיר מתוכננת חדשה יחסית, ליד כביש 443.
+    aliases: [מודיעין מכבים רעות]
 
   # ---------- Unit: coast and south ----------
   - id: city.ashdod
@@ -170,6 +186,7 @@ places:
     name: אשדוד
     hint: על החוף, דרומית לראשון לציון
     fact: אחד משני נמלי הים הגדולים בישראל.
+    confusables: [city.ashkelon]
   - id: city.ashkelon
     type: city
     unit: south_coast
@@ -196,6 +213,7 @@ places:
     name: נתניה
     hint: על החוף, בין תל אביב לחדרה
     fact: מכונה "בירת השרון".
+    confusables: [city.hadera, city.herzliya]
   - id: city.hadera
     type: city
     unit: sharon
@@ -214,6 +232,7 @@ places:
     name: עכו
     hint: בצפון מפרץ חיפה
     fact: העיר העתיקה שלה היא אתר מורשת עולמית.
+    confusables: [city.nahariya]
   - id: city.nahariya
     type: city
     unit: north
@@ -230,6 +249,7 @@ places:
     name: נצרת
     hint: בגליל התחתון
     fact: העיר הערבית הגדולה בישראל.
+    confusables: [city.afula]
   - id: city.afula
     type: city
     unit: north
@@ -246,6 +266,7 @@ places:
     name: טבריה
     hint: על החוף המערבי של הכנרת
     fact: אחת מארבע ערי הקודש.
+    confusables: [city.safed]
   - id: city.safed
     type: city
     unit: north
@@ -262,3 +283,4 @@ places:
     name: קריית שמונה
     hint: בצפון עמק החולה, ליד גבול לבנון
     fact: העיר הגדולה באצבע הגליל.
+    aliases: [קש]

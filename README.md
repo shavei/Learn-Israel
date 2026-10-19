@@ -3,9 +3,9 @@
 An Android game, in Hebrew, that teaches the geography of Israel, built on the science of how
 people actually remember.
 
-> **Status:** Phase 0 prototype. The core loop works: a daily session on a blank map
-> with 30 places, spaced repetition (FSRS), and distance feedback. See the
-> [roadmap](docs/09-roadmap.md).
+> **Status:** Phase 1 in progress. A daily session on a blank map with 30 places:
+> find them, name them (choice, then typed), and relate them ("which is further
+> north?"), scheduled by spaced repetition (FSRS). See the [roadmap](docs/09-roadmap.md).
 
 ## Install on your phone
 
