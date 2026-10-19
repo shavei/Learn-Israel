@@ -123,6 +123,7 @@ class ContentParserTest {
         inside("region.sharon", "city.herzliya")
         inside("region.sharon", "city.rosh_haayin")
         inside("region.judean_mountains", "city.hebron")
+        inside("region.judean_desert", "city.maale_adumim")
         inside("region.lower_galilee", "city.karmiel")
         inside("region.upper_galilee", "city.safed")
         inside("region.lower_galilee", "city.nazareth")

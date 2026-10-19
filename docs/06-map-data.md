@@ -12,7 +12,7 @@
 | Palestinian cities | GeoNames; OpenStreetMap for Jericho (GeoNames is 1.4 km off there) | CC BY 4.0; ODbL | Hebron, Bethlehem, Jericho, Shechem, Ramallah |
 | Jordan River | OpenStreetMap relation 2246907 (main stream) | ODbL 1.0 | Frame item and map layer |
 | Coastlines, neighboring countries, the whole Dead Sea | OpenStreetMap: land polygons from osmdata.openstreetmap.de (built from the coastline), country relations (Lebanon 184843, Syria 184840, Jordan 184818, Egypt 1473947, Saudi Arabia 307584), Dead Sea relation 9351124 | ODbL 1.0 | Neighbors, seas, the Dead Sea's northern basin |
-| Judean Desert's western edge | KKL-JNF lines of equal annual rainfall (public ArcGIS layer "ilrain"), the 250 mm line | KKL-JNF | Splitting the Judea regions between the Judean Mountains and the Judean Desert |
+| Judean Desert's western edge | Israel Meteorological Service, mean annual rainfall 1991-2020 (400 m grid, published by the CBS as a public ArcGIS image service); the 250 mm line is traced from it | Israeli government data | Splitting the Judea regions between the Judean Mountains and the Judean Desert |
 | Gaza Strip, Green Line | UN OCHA common operational dataset for the State of Palestine (HDX "cod-ab-pse"); the West Bank's western edge is the 1949 armistice line, with East Jerusalem and the Latrun no-man's-land on its eastern side | CC BY-IGO | Gaza, the optional Green Line layer |
 
 **Status (Phase 1b):** `tools/fetch_sources.py` downloads the official natural regions,
@@ -31,8 +31,11 @@ How the map is built:
   official grouping and the geographic definitions disagree, `content/regions.yaml`
   moves areas, each with its source:
   - the Judean Desert takes the parts of the Judea regions (812, 813, 815) east of the
-    250 mm rainfall line, its western edge in Hebrew Wikipedia's definition (KKL-JNF
-    isohyet);
+    250 mm rainfall line, its western edge in Hebrew Wikipedia's definition (traced from
+    the IMS 1991-2020 normals; checked against Jerusalem 523 mm, Tel Aviv 522 mm,
+    Be'er Sheva 192 mm and Eilat 23 mm). Ma'ale Adumim (260 to 280 mm, just above the
+    line) also joins it: both Wikipedias, and definitions of the desert as the slopes
+    east of the watershed (CET youth encyclopedia, English Wikipedia), place it there;
   - Herzliya, Ramat HaSharon, Rosh HaAyin and Kafr Qasim (their OSM municipal areas)
     move from Gush Dan to the Sharon, which begins at the Yarkon; Hebrew Wikipedia
     places each of them in the Sharon;

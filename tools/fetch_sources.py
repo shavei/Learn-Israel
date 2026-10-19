@@ -25,13 +25,15 @@ while the sources keep changing. Rerun this only to refresh them, then rebuild.
                                     the coastline), the neighboring countries' boundaries and
                                     the Dead Sea. Clipped to the map window.
   content/isohyets.geojson          The rainfall lines named under "climate_splits" in
-                                    content/regions.yaml, from KKL-JNF's isohyet layer
-                                    ("קוים שווי גשם", public ArcGIS layer).
+                                    content/regions.yaml, traced from the Israel
+                                    Meteorological Service's mean annual rainfall
+                                    1991-2020 (400 m grid, published by the CBS as a
+                                    public ArcGIS image service).
   content/palestine.geojson         The Gaza Strip and the West Bank from the UN OCHA common
                                     operational dataset (HDX "cod-ab-pse", CC BY-IGO). The West
                                     Bank's western edge is the 1949 armistice line (Green Line).
 
-The land polygons come as a 900 MB download; pyshp reads them (in requirements.txt).
+The land polygons come as a 900 MB download. This script needs tools/requirements-fetch.txt.
 
 Usage:  python3 tools/fetch_sources.py
 """
@@ -66,7 +68,9 @@ AGRICULTURE_REGIONS = (
 JUDEA_SAMARIA_CODES = range(700, 900)
 LOCALITIES_API = "https://data.gov.il/api/3/action/datastore_search"
 LOCALITIES_RESOURCE = "d47a54ff-87f0-44b3-b33a-f284c0c38e5a"  # קובץ היישובים 2023
-KKL_ISOHYETS = "https://services2.arcgis.com/utNNrmXb4IZOLXXs/arcgis/rest/services/ilrain/FeatureServer/0"
+IMS_RAINFALL = (
+    "https://tiledimageservices8.arcgis.com/JcXY3lLZni6BK4El/arcgis/rest/services/Mean_1991_2020/ImageServer"
+)
 JORDAN_RELATION = 2246907
 DEAD_SEA_RELATION = 9351124
 COUNTRY_RELATIONS = {"LBN": 184843, "SYR": 184840, "JOR": 184818, "EGY": 1473947, "SAU": 307584}
@@ -240,19 +244,43 @@ def surroundings() -> None:
 
 
 def isohyets() -> None:
+    import lerc
+    import matplotlib
+    import numpy as np
     import yaml
+    from pyproj import Transformer
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
 
     splits = yaml.safe_load((CONTENT / "regions.yaml").read_text()).get("climate_splits", {})
     wanted = sorted({s["isohyet_mm"] for s in splits.values()})
-    print(f"fetching the KKL-JNF isohyets {wanted} mm")
-    params = urllib.parse.urlencode({"where": "1=1", "outFields": "RAINFALL", "outSR": 4326, "f": "geojson"})
-    rows = json.loads(get(KKL_ISOHYETS + "/query?" + params))["features"]
+    print(f"fetching the IMS rainfall normals 1991-2020 for the isohyets {wanted} mm")
+    info = json.loads(get(IMS_RAINFALL + "?f=json"))
+    tile = info["tileInfo"]
+    ox, oy = tile["origin"]["x"], tile["origin"]["y"]
+    px = tile["lods"][0]["resolution"]
+    size = tile["rows"] * px
+    ext = info["extent"]
+    cols = range(int((ext["xmin"] - ox) // size), int((ext["xmax"] - ox) // size) + 1)
+    rows = range(int((oy - ext["ymax"]) // size), int((oy - ext["ymin"]) // size) + 1)
+    grid = np.vstack([
+        np.hstack([np.asarray(lerc.decode(get(f"{IMS_RAINFALL}/tile/0/{r}/{c}"))[1], dtype=float) for c in cols])
+        for r in rows
+    ])
+    # Cells outside Israel come as zeros.
+    grid[grid <= 0] = np.nan
+    xs = ox + cols[0] * size + px * (np.arange(grid.shape[1]) + 0.5)
+    ys = oy - rows[0] * size - px * (np.arange(grid.shape[0]) + 0.5)
+    to_ll = Transformer.from_crs("EPSG:2039", "EPSG:4326", always_xy=True)
+    contours = plt.contour(xs, ys, np.ma.masked_invalid(grid), levels=wanted)
     features = []
-    for mm in wanted:
-        line = ops.linemerge([shape(f["geometry"]) for f in rows if f["properties"]["RAINFALL"] == mm])
+    for mm, segments in zip(wanted, contours.allsegs):
+        longest = max(segments, key=len)  # the main line; small closed loops are left out
+        line = LineString([to_ll.transform(x, y) for x, y in longest]).simplify(SIMPLIFY_DEG / 2)
         features.append({"type": "Feature", "properties": {"rainfall_mm": mm}, "geometry": rounded(line)})
     out = CONTENT / "isohyets.geojson"
-    out.write_text(collection(features, "KKL-JNF, lines of equal annual rainfall (ilrain)"))
+    out.write_text(collection(features, "Israel Meteorological Service, mean annual rainfall 1991-2020"))
     print(f"  {out.relative_to(ROOT)}: {len(features)} lines")
 
 

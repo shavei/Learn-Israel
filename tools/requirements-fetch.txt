@@ -1,0 +1,5 @@
+# For tools/fetch_sources.py only (refreshing the committed sources), on top of requirements.txt.
+lerc==4.0.1
+matplotlib==3.11.2
+numpy==2.5.3
+pyshp==2.3.1
