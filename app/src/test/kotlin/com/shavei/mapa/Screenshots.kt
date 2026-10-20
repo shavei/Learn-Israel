@@ -14,19 +14,10 @@ import java.io.File
 object Screenshots {
     fun save(activity: Activity, name: String) {
         val dir = File(System.getProperty("screenshotDir") ?: "build/screenshots").apply { mkdirs() }
-        val bitmap = draw(activity)
-        File(dir, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-    }
-
-    /**
-     * Draws the window once. Robolectric draws nothing on its own, and the map asks for
-     * the contour tiles it needs while drawing, so tests draw once before waiting for them.
-     */
-    fun draw(activity: Activity): Bitmap {
         val view = activity.window.decorView
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         view.draw(Canvas(bitmap))
-        return bitmap
+        File(dir, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
     fun <A : Activity> save(scenario: ActivityScenario<A>, name: String) = scenario.onActivity { save(it, name) }

@@ -271,94 +271,15 @@ def outlines(pieces: dict, land_area) -> list:
     return ops.linemerge(lines(inner)) if not inner.is_empty else inner
 
 
-# Height labels for the topographic style, which draws a contour every 25 m and an index
-# contour every LABEL_INTERVAL m (core/content Terrain.kt, TopoStyle). Labels sit on the
-# index contours, traced on the detail grid after the same smoothing the app applies.
-LABEL_INTERVAL = 100
-LABEL_SMOOTHING = 3
-LABEL_SPACING = 6000  # meters along a line between labels
-LABEL_MIN_LENGTH = 3000  # shorter lines get no label
-LABEL_MAX_TURN = 30  # degrees; no label where the line bends more than this across it
-
-
-def blurred(z, passes=1):
-    """The binomial blur of Terrain.kt, repeated: contours read as smooth cartographic lines."""
-    k = np.array([1, 4, 6, 4, 1], float) / 16
-    for _ in range(passes):
-        p = np.pad(z, ((0, 0), (2, 2)), mode="edge")
-        z = sum(k[i] * p[:, i:i + z.shape[1]] for i in range(5))
-        p = np.pad(z, ((2, 2), (0, 0)), mode="edge")
-        z = sum(k[i] * p[i:i + z.shape[0]] for i in range(5))
-    return z
-
-
-# Marching squares: corner bits are top-left 8, top-right 4, bottom-right 2, bottom-left 1.
-# Cell edges: 0 top, 1 bottom, 2 left, 3 right. Saddles (5, 10) are resolved by the cell's mean.
-_SEGMENTS = {
-    1: [(2, 1)], 2: [(1, 3)], 3: [(2, 3)], 4: [(0, 3)], 6: [(0, 1)], 7: [(2, 0)],
-    8: [(2, 0)], 9: [(0, 1)], 11: [(0, 3)], 12: [(2, 3)], 13: [(1, 3)], 14: [(2, 1)],
-}
-
-
-def contour_lines(z, level) -> list[list[tuple[float, float]]]:
-    """Lines where grid z crosses level, in grid coordinates (column, row)."""
-
-    above = z > level
-    case = above[:-1, :-1] * 8 + above[:-1, 1:] * 4 + above[1:, 1:] * 2 + above[1:, :-1] * 1
-    rows, cols = np.nonzero((case != 0) & (case != 15))
-    segments = []
-    for r, c, kind in zip(rows.tolist(), cols.tolist(), case[rows, cols].tolist()):
-        pairs = _SEGMENTS.get(kind)
-        if pairs is None:
-            high = (z[r, c] + z[r, c + 1] + z[r + 1, c] + z[r + 1, c + 1]) / 4 > level
-            if kind == 5:
-                pairs = [(2, 1), (0, 3)] if high else [(2, 0), (1, 3)]
-            else:
-                pairs = [(2, 0), (1, 3)] if high else [(0, 3), (2, 1)]
-        edges = (("h", r, c), ("h", r + 1, c), ("v", r, c), ("v", r, c + 1))
-        segments += [(edges[a], edges[b]) for a, b in pairs]
-
-    at_edge: dict = {}
-    for i, (a, b) in enumerate(segments):
-        at_edge.setdefault(a, []).append(i)
-        at_edge.setdefault(b, []).append(i)
-    used = [False] * len(segments)
-    chains = []
-    for i, (a, b) in enumerate(segments):
-        if used[i]:
-            continue
-        used[i] = True
-        chain = [a, b]
-        for _ in range(2):  # grow from one end, then turn around and grow from the other
-            while True:
-                nxt = [j for j in at_edge[chain[-1]] if not used[j]]
-                if not nxt:
-                    break
-                used[nxt[0]] = True
-                p, q = segments[nxt[0]]
-                chain.append(q if p == chain[-1] else p)
-            chain.reverse()
-        chains.append(chain)
-
-    def point(edge):
-        kind, r, c = edge
-        if kind == "h":
-            z0, z1 = z[r, c], z[r, c + 1]
-            return c + (level - z0) / (z1 - z0), r
-        z0, z1 = z[r, c], z[r + 1, c]
-        return c, r + (level - z0) / (z1 - z0)
-
-    return [[point(e) for e in chain] for chain in chains]
-
-
 def elevation_grid(meta) -> np.ndarray:
     """An elevation grid from content/: rows stored as differences from the cell before."""
     deltas = np.fromfile(ROOT / "content" / f"elevation_{meta['name']}.bin", "<i2").reshape(meta["height"], meta["width"])
     return np.cumsum(deltas.astype(np.int32), axis=1)
 
 
-# The terrain styles show Israel only: the elevation the app gets stops this far outside its
-# land (enough for the smoothing of the contour lines; the app clips terrain to the land).
+# The relief style shows Israel only: the elevation the app gets stops this far outside its
+# land (so slopes at the coast and borders are shaded from real heights; the app clips
+# terrain to the land).
 TERRAIN_MARGIN = 2000
 
 
@@ -379,33 +300,6 @@ def israel_terrain(meta, land) -> tuple[bytes, dict]:
     out = {"name": "israel", "minX": minx + c0 * cell, "maxY": maxy - r0 * cell, "cell": cell,
            "width": c1 - c0, "height": r1 - r0}
     return deltas.tobytes(), out
-
-
-def contour_labels(meta, land) -> dict:
-    """Where to write heights along the index contours, on Israel's land: [x, y, angle in degrees, meters]."""
-    z = blurred(elevation_grid(meta).astype(np.float64), LABEL_SMOOTHING)
-    shapely.prepare(land)
-    cell, minx, maxy = meta["cell"], meta["minX"], meta["maxY"]
-    first = int(np.ceil(z.min() / LABEL_INTERVAL)) * LABEL_INTERVAL
-    labels = []
-    for level in range(first, int(z.max()) + 1, LABEL_INTERVAL):
-        if level == 0:
-            continue
-        for line in contour_lines(z, level):
-            geom = LineString([(minx + (x + 0.5) * cell, maxy - (y + 0.5) * cell) for x, y in line])
-            if geom.length < LABEL_MIN_LENGTH:
-                continue
-            at = LABEL_SPACING / 2
-            while at <= geom.length - LABEL_SPACING / 4:
-                before, here, after = (geom.interpolate(d) for d in (at - 300, at, at + 300))
-                a1 = np.degrees(np.arctan2(here.y - before.y, here.x - before.x))
-                a2 = np.degrees(np.arctan2(after.y - here.y, after.x - here.x))
-                turn = abs((a2 - a1 + 180) % 360 - 180)
-                if turn <= LABEL_MAX_TURN and shapely.contains_xy(land, here.x, here.y):
-                    angle = np.degrees(np.arctan2(after.y - before.y, after.x - before.x))
-                    labels.append([round(here.x), round(here.y), round(float(angle), 1), level])
-                at += LABEL_SPACING
-    return {"version": 1, "labels": labels}
 
 
 def main() -> int:
@@ -606,7 +500,7 @@ def main() -> int:
             {"id": "regions", "lines": encode_lines(outlines(region_geoms, land_area))},
             {"id": "green_line", "lines": encode_lines(green_line)},
         ],
-        # Ground height over Israel for the terrain styles, in elevation_israel.bin.
+        # Ground height over Israel for the relief style, in elevation_israel.bin.
         "elevation": [terrain],
         "attribution": "Israel Central Bureau of Statistics; Ministry of Agriculture; UN OCHA; "
                        "GeoNames (CC BY 4.0); © OpenStreetMap contributors (ODbL); "
@@ -620,9 +514,7 @@ def main() -> int:
         json.dumps({"version": 1, "places": places}, ensure_ascii=False, separators=(",", ":"))
     )
     (ASSETS / "elevation_israel.bin").write_bytes(terrain_bytes)
-    labels = contour_labels(detail, land)
-    (ASSETS / "contour_labels.json").write_text(json.dumps(labels, separators=(",", ":")))
-    for f in ("map.json", "places.json", "contour_labels.json", "elevation_israel.bin"):
+    for f in ("map.json", "places.json", "elevation_israel.bin"):
         print(f"{f}: {(ASSETS / f).stat().st_size // 1024} KB")
     print(f"{len(places)} places")
     return 0

@@ -85,12 +85,6 @@ data class MapPalette(
     val reliefTint: List<Pair<Int, Color>>,
     val reliefShade: Double,
     val reliefHighlight: Double,
-    /** Topographic style: paper, sea and the contour lines (every 25 m, an index line every 100 m). */
-    val topoLand: Color,
-    val topoNeighbor: Color,
-    val topoSea: Color,
-    val contour: Color,
-    val indexContour: Color,
 )
 
 val LightMapPalette = MapPalette(
@@ -123,12 +117,6 @@ val LightMapPalette = MapPalette(
     ),
     reliefShade = 0.6,
     reliefHighlight = 0.3,
-    // The classic topographic sheet: brown contours on a soft green.
-    topoLand = Color(0xFFD5E6BC),
-    topoNeighbor = Color(0xFFE4E0D8),
-    topoSea = Color(0xFFB4D4E4),
-    contour = Color(0xFFB0683A),
-    indexContour = Color(0xFF8A4A22),
 )
 
 val DarkMapPalette = MapPalette(
@@ -161,11 +149,6 @@ val DarkMapPalette = MapPalette(
     ),
     reliefShade = 0.6,
     reliefHighlight = 0.12,
-    topoLand = Color(0xFF252D20),
-    topoNeighbor = Color(0xFF26292C),
-    topoSea = Color(0xFF15283A),
-    contour = Color(0xFFC4915F),
-    indexContour = Color(0xFFEDBB86),
 )
 
 val LocalMapPalette = staticCompositionLocalOf { LightMapPalette }

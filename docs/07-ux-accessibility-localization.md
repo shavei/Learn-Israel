@@ -32,10 +32,9 @@ No signup, no permissions on first run.
 - Mastery colors: gray (unknown) to a warm full color (mastered), with a separate
   outline treatment so color is not the only signal.
 - Light and dark themes. Dark mode map palette designed, not just inverted.
-- Three map styles, chosen in settings with previews: standard (flat), relief
-  (hypsometric tint with hillshading) and topographic (thin contour lines whose interval
-  follows the zoom, with labeled index lines). Each has its own light and dark design; water, borders and
-  outlines are the same in all three.
+- Two map styles, chosen in settings with previews: standard (flat) and relief
+  (hypsometric tint with hillshading, which shows height). Each has its own light and
+  dark design; water, borders and outlines are the same in both.
 - Large tap targets for UI; the map itself is the target in Pin It, so allow
   zoom and provide generous tolerance at default zoom.
 

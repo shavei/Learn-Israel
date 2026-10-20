@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -52,12 +54,14 @@ import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.Place
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
+import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.Relation
 import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.fsrs.Rating
 import com.shavei.mapa.ui.formatKm
+import com.shavei.mapa.ui.formatPoints
 import com.shavei.mapa.ui.map.MapDecoration
 import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
@@ -116,7 +120,9 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                     SessionKind.MAP_TEST -> stringResource(R.string.map_test_counter, ask.number, viewModel.mapTestSize ?: 0)
                     else -> stringResource(R.string.ask_counter, ask.number)
                 }
-                PromptCard(ask.question, counter)
+                // The map test measures without feedback, so it shows no score.
+                val score = if (viewModel.kind == SessionKind.MAP_TEST) null else ask.score
+                PromptCard(ask.question, counter, score)
             }
         }
         // Scrolls rather than covering the map when the system font is very large.
@@ -143,11 +149,21 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
 }
 
 @Composable
-private fun PromptCard(question: Question, counter: String) {
+private fun PromptCard(question: Question, counter: String, score: Int?) {
     Card(Modifier.fillMaxWidth()) {
         // Read as one announcement when a new question appears.
         Column(Modifier.padding(16.dp).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
-            Text(counter, style = MaterialTheme.typography.labelMedium)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(counter, style = MaterialTheme.typography.labelMedium)
+                if (score != null) {
+                    Text(
+                        stringResource(R.string.points, formatPoints(score)),
+                        Modifier.testTag("score"),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
             Text(promptText(question), style = MaterialTheme.typography.headlineSmall)
             val hint = (question as? Question.Locate)?.hint == true || (question as? Question.NameChoice)?.hint == true
             if (hint) {
@@ -242,10 +258,31 @@ private fun FeedbackCard(answer: Answer, content: Content, onContinue: () -> Uni
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(title, style = MaterialTheme.typography.headlineSmall, color = color, fontWeight = FontWeight.Bold)
+            PointsBar(answer.grade.points, color)
             for (line in feedbackLines(answer, content)) Text(line, style = MaterialTheme.typography.titleMedium)
             Text(answer.place.fact)
             Button(onClick = onContinue, Modifier.fillMaxWidth()) { Text(stringResource(R.string.feedback_continue)) }
         }
+    }
+}
+
+/** The answer's points and a bar filled to them, as in GeoGuessr. */
+@Composable
+private fun PointsBar(points: Int, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            stringResource(R.string.points, formatPoints(points)),
+            Modifier.testTag("answer-points"),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        LinearProgressIndicator(
+            progress = { points.toFloat() / Grader.MAX_POINTS },
+            modifier = Modifier.weight(1f).height(8.dp),
+            color = color,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            drawStopIndicator = {},
+        )
     }
 }
 
@@ -302,10 +339,12 @@ private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
                 }
             } else if (summary.placement) {
                 Text(stringResource(R.string.placement_summary_title), style = MaterialTheme.typography.headlineSmall)
+                SummaryPoints(summary)
                 Text(stringResource(R.string.placement_summary_found, summary.correct, summary.answers))
                 Text(stringResource(R.string.placement_summary_note))
             } else {
                 Text(stringResource(R.string.summary_title), style = MaterialTheme.typography.headlineSmall)
+                SummaryPoints(summary)
                 val percent = if (summary.answers == 0) 0 else summary.correct * 100 / summary.answers
                 Text(stringResource(R.string.summary_answers, summary.answers, percent))
                 Text(stringResource(R.string.summary_new, summary.newPlaces))
@@ -313,6 +352,24 @@ private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
             if (test == null) summary.averageCityErrorMeters?.let { Text(stringResource(R.string.summary_error, formatKm(it))) }
             Button(onClick = onDone, Modifier.fillMaxWidth()) { Text(stringResource(R.string.summary_done)) }
         }
+    }
+}
+
+@Composable
+private fun SummaryPoints(summary: SessionSummary) {
+    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            stringResource(R.string.points, formatPoints(summary.points)),
+            Modifier.testTag("session-points"),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            stringResource(R.string.points_of, formatPoints(summary.maxPoints)),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

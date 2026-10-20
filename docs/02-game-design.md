@@ -150,6 +150,9 @@ beginners can compete.
 - Haptic tick on tap, gentle success sound, a different softer sound on miss (never
   harsh).
 - Distance feedback is visual first: a line and a number, color coded.
+- Points as in GeoGuessr: up to 5,000 for each answer, falling with the distance (half
+  for every 10 km off), with a running score and a session total. Points are a score
+  for the player and never change the schedule (docs/04-learning-engine.md, "Points").
 - The fact card appears for 2 to 3 seconds and can be tapped to expand ("Learn more"),
   never blocking flow.
 - Optional confidence buttons (sure / think so / guess) before revealing, unlocked

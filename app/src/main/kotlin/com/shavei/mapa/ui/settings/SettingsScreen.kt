@@ -195,7 +195,7 @@ fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Se
 }
 
 /**
- * The three map styles side by side, each a live, still picture of the same piece of the
+ * The two map styles side by side, each a live, still picture of the same piece of the
  * country (the Judean hills down to the Dead Sea), so the choice shows what it does.
  */
 @Composable
@@ -210,14 +210,12 @@ private fun MapStyles(map: MapData, selected: MapStyle, onSelect: (MapStyle) -> 
                 when (style) {
                     MapStyle.STANDARD -> R.string.map_style_standard
                     MapStyle.RELIEF -> R.string.map_style_relief
-                    MapStyle.TOPOGRAPHIC -> R.string.map_style_topographic
                 },
             )
             val note = stringResource(
                 when (style) {
                     MapStyle.STANDARD -> R.string.map_style_standard_note
                     MapStyle.RELIEF -> R.string.map_style_relief_note
-                    MapStyle.TOPOGRAPHIC -> R.string.map_style_topographic_note
                 },
             )
             val border by animateColorAsState(

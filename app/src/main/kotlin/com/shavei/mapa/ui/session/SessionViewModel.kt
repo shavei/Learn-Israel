@@ -7,6 +7,7 @@ import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.data.AnswerSource
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
+import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.MapTest
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.MapTestResult
@@ -24,7 +25,8 @@ import java.util.UUID
 sealed interface SessionUi {
     data object Loading : SessionUi
     data class Discover(val question: Question.Locate, val number: Int) : SessionUi
-    data class Ask(val question: Question, val number: Int) : SessionUi
+    /** [score] is the points earned so far in this session. */
+    data class Ask(val question: Question, val number: Int, val score: Int) : SessionUi
     data class Feedback(val answer: Answer, val number: Int) : SessionUi
     data class Finished(val summary: SessionSummary) : SessionUi
 }
@@ -34,6 +36,9 @@ data class SessionSummary(
     val correct: Int,
     val newPlaces: Int,
     val averageCityErrorMeters: Double?,
+    /** Points earned, out of [maxPoints] (every answer perfect). */
+    val points: Int = 0,
+    val maxPoints: Int = 0,
     /** The placement test, where [correct] places were found and seeded. */
     val placement: Boolean = false,
     /** The map test's score, and for a post-test the pre-test to compare it with. */
@@ -134,8 +139,10 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     private fun ask(q: Question) {
         number++
         askedAt = System.currentTimeMillis()
-        _ui.value = SessionUi.Ask(q, number)
+        _ui.value = SessionUi.Ask(q, number, score())
     }
+
+    private fun score(): Int = engine.answers.sumOf { it.grade.points }
 
     private fun finishMapTest() {
         val result = (engine as MapTest).result(mapTestKind) ?: return
@@ -155,6 +162,8 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             correct = answers.count { it.grade.isCorrect },
             newPlaces = answers.count { it.before == null && it.question is Question.Locate },
             averageCityErrorMeters = cityErrors.takeIf { it.isNotEmpty() }?.average(),
+            points = score(),
+            maxPoints = answers.size * Grader.MAX_POINTS,
             placement = kind == SessionKind.PLACEMENT,
         )
     }

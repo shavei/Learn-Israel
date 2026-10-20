@@ -29,17 +29,7 @@ object ContentParser {
         )
     }
 
-    /** contour_labels.json: each label as [x, y, angle in degrees, elevation]. */
-    fun parseContourLabels(labelsJson: String): List<ContourLabel> {
-        val file = json.decodeFromString<LabelsFile>(labelsJson)
-        require(file.version == SUPPORTED_VERSION) { "unsupported contour_labels.json version ${file.version}" }
-        return file.labels.map { ContourLabel(it[0], it[1], it[2].toFloat(), it[3].toInt()) }
-    }
-
     private const val SUPPORTED_VERSION = 1
-
-    @Serializable
-    private class LabelsFile(val version: Int, val labels: List<List<Double>>)
 
     @Serializable
     private class ElevationJson(val name: String, val minX: Double, val maxY: Double, val cell: Double, val width: Int, val height: Int)

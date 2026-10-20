@@ -91,6 +91,37 @@ grade by log error ratio.
 Used only to upgrade Good to Easy (fluent recall). Never used to downgrade a correct
 answer, because tapping speed varies by device and person.
 
+### Points
+Separately from the grade, every answer earns points, as in GeoGuessr, so the player
+sees how close they came on a scale they know:
+
+```
+d       = distance from tap to the place (km), 0 inside an area
+points  = 5000                          if d <= 1
+          5000 x 0.5 ^ ((d - 1) / 10)   otherwise (every 10 km further halves them)
+
+          d:      1     3     5    10    20    50   100
+          points: 5000  4353  3789 2679  1340  167   5
+
+NAME, RELATE: 5000 when right (a spelling slip included), 0 when wrong
+```
+
+- **Points never change the schedule.** The grade above decides what FSRS learns; points
+  are feedback and a score. Keeping them apart lets the grade stay forgiving for new
+  places (a wide tolerance) while points stay strict and the same for every place and
+  every stage, so a player can compare today's score with last week's.
+- **One scale for every place.** A fixed 10 km half distance, not one per place type:
+  a tap inside a region is already worth 5000, and being 10 km off means the same for
+  a city or a lake. 10 km is about the gap between neighboring towns, so a tap in the
+  wrong town loses about half, and one in the wrong part of the country (50 km and
+  more) earns almost nothing.
+- **Hints cost no points.** Hints appear on their own after two misses, so taking points
+  for them would punish struggling, not choices; the grade already caps hinted
+  answers at Hard.
+- A session shows its running score above each question, each answer's points with a
+  bar on its feedback, and its total out of the most it could have been (5000 per
+  answer) on the summary. The map test shows no points, as it shows no feedback.
+
 ### Blitz and Daily Challenge
 Reviews from these modes are logged but applied with reduced weight: a success is
 applied only if the card is due within 2 days (avoids inflating stability through

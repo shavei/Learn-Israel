@@ -8,8 +8,8 @@ enum class SessionLength(val questions: Int) { SHORT(10), NORMAL(15), LONG(25) }
 
 enum class ThemeChoice { SYSTEM, LIGHT, DARK }
 
-/** How the land is drawn: flat colors, shaded relief, or contour lines. */
-enum class MapStyle { STANDARD, RELIEF, TOPOGRAPHIC }
+/** How the land is drawn: flat colors, or shaded relief colored by height. */
+enum class MapStyle { STANDARD, RELIEF }
 
 data class Settings(
     val sessionLength: SessionLength = SessionLength.NORMAL,
@@ -57,7 +57,8 @@ class SettingsStore(context: Context) {
         return Settings(
             sessionLength = enumOr(prefs.getString(SESSION_LENGTH, null), d.sessionLength),
             showGreenLine = prefs.getBoolean(GREEN_LINE, d.showGreenLine),
-            mapStyle = enumOr(prefs.getString(MAP_STYLE, null), d.mapStyle),
+            // The topographic style is gone; whoever chose it keeps a map that shows height.
+            mapStyle = enumOr(prefs.getString(MAP_STYLE, null)?.replace("TOPOGRAPHIC", MapStyle.RELIEF.name), d.mapStyle),
             theme = enumOr(prefs.getString(THEME, null), d.theme),
             reminderOn = prefs.getBoolean(REMINDER_ON, d.reminderOn),
             reminderMinutes = prefs.getInt(REMINDER_MINUTES, d.reminderMinutes),
