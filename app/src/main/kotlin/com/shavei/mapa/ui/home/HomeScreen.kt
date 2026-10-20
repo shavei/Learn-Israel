@@ -39,12 +39,14 @@ import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Drill
+import com.shavei.mapa.learning.Rank
 import com.shavei.mapa.ui.Panel
 import com.shavei.mapa.ui.formatTime
 import com.shavei.mapa.ui.rememberNotificationAccess
 import com.shavei.mapa.ui.map.MapDecoration
 import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
+import com.shavei.mapa.ui.progress.rankName
 import com.shavei.mapa.ui.theme.LocalMapPalette
 
 @Composable
@@ -103,6 +105,7 @@ fun HomeScreen(
             }
             if (state.loaded) {
                 Text(stringResource(R.string.home_known, state.known))
+                Text(stringResource(R.string.rank_line, rankName(Rank.of(state.known))))
                 Text(stringResource(R.string.home_learned, state.learned, state.total))
                 StreakLine(state)
             }

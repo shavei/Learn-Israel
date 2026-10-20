@@ -24,6 +24,9 @@
 | 18 | What can free play ask? (2026-10-20) | Only places past their learning steps, for Blitz and Road Trip alike | Free play never teaches a new place; Blitz needs 4 learned places, Road Trip a trip of 3 stops |
 | 19 | Does a road trip count fully for the scheduler? (2026-10-20) | No: the same reduced weight as Blitz (a miss always, a success only when due within 2 days) | Playing for fun never pushes reviews far ahead; a road trip still catches places being forgotten |
 | 20 | Written trips or trips planned from the player's places? (2026-10-20) | Planned on the spot from learned places | Every player gets trips from the first days; written story trips (Ben Gurion to Eilat) can come later, once players know tiers 4 to 6 |
+| 21 | Can a rank go down? (2026-10-20) | Yes: the rank always follows the places known today | A rank means real knowledge; a forgotten place costs a step until it is relearned |
+| 22 | Are achievements kept once earned? (2026-10-20) | Yes: stored with the date first earned | Earned moments are not taken back; the map and the rank carry the honest current state |
+| 23 | When does a pair of places become a learned confusable? (2026-10-20) | After 2 confusions, either way round, for that player | Pairs appear quickly from real mistakes; global pairs wait for the log upload (2e) |
 
 ## Still open
 

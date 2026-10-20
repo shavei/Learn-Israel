@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.RoomDatabase
@@ -75,6 +76,13 @@ data class MapTestEntity(
     val medianErrorMeters: Double,
 )
 
+/** An achievement and when it was first earned; once earned, it is kept. */
+@Entity(tableName = "achievements")
+data class AchievementEntity(
+    @PrimaryKey val id: String,
+    val unlockedAt: Long,
+)
+
 @Dao
 interface ProgressDao {
     @Query("SELECT * FROM cards")
@@ -121,11 +129,28 @@ interface ProgressDao {
     /** Distance errors of Pin It answers, for the history of average error. */
     @Query("SELECT placeId, timestamp, errorMeters FROM reviews WHERE mode = 'LOCATE' AND errorMeters IS NOT NULL ORDER BY timestamp")
     suspend fun locateErrors(): List<LocateError>
+
+    /** Missed taps by the place asked and the place the tap was nearest to. */
+    @Query("SELECT placeId AS asked, tappedNear AS tapped, COUNT(*) AS count FROM reviews WHERE tappedNear IS NOT NULL GROUP BY placeId, tappedNear")
+    suspend fun confusions(): List<ConfusionRow>
+
+    @Query("SELECT * FROM achievements ORDER BY unlockedAt")
+    suspend fun achievements(): List<AchievementEntity>
+
+    /** Keeps the first unlock time of an achievement already stored. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(achievement: AchievementEntity)
 }
 
 data class LocateError(val placeId: String, val timestamp: Long, val errorMeters: Double)
 
-@Database(entities = [CardEntity::class, ReviewEntity::class, MapTestEntity::class], version = 3, exportSchema = false)
+data class ConfusionRow(val asked: String, val tapped: String, val count: Int)
+
+@Database(
+    entities = [CardEntity::class, ReviewEntity::class, MapTestEntity::class, AchievementEntity::class],
+    version = 4,
+    exportSchema = false,
+)
 abstract class MapaDatabase : RoomDatabase() {
     abstract fun progressDao(): ProgressDao
 }
@@ -172,6 +197,15 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
             "CREATE TABLE IF NOT EXISTS `map_tests` (`sessionId` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
                 "`finishedAt` INTEGER NOT NULL, `found` INTEGER NOT NULL, `total` INTEGER NOT NULL, " +
                 "`medianErrorMeters` REAL NOT NULL, PRIMARY KEY(`sessionId`))",
+        )
+    }
+}
+
+/** Phase 2d: achievements, kept once earned. */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `achievements` (`id` TEXT NOT NULL, `unlockedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         )
     }
 }

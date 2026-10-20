@@ -24,8 +24,8 @@ class HabitTest {
 
     @Test
     fun aMissedDayWithoutAFreezeBreaksTheStreak() {
-        assertEquals(Streak(1, 0, true), Streak.of(daysAgo(0, 2, 3), today))
-        assertEquals(Streak(0, 0, false), Streak.of(daysAgo(2, 3), today))
+        assertEquals(Streak(1, 0, true, best = 2), Streak.of(daysAgo(0, 2, 3), today))
+        assertEquals(Streak(0, 0, false, best = 2), Streak.of(daysAgo(2, 3), today))
     }
 
     @Test

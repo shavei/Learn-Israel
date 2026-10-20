@@ -1,16 +1,24 @@
 package com.shavei.mapa.data
 
+import com.shavei.mapa.content.Content
 import com.shavei.mapa.geo.MapPoint
+import com.shavei.mapa.learning.Achievement
+import com.shavei.mapa.learning.AchievementProgress
+import com.shavei.mapa.learning.Achievements
 import com.shavei.mapa.learning.Answer
 import com.shavei.mapa.learning.CardKey
+import com.shavei.mapa.learning.Confusion
 import com.shavei.mapa.learning.Facet
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.MapTestResult
 import com.shavei.mapa.learning.Question
+import com.shavei.mapa.learning.Rank
 import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.ReviewRecord
+import com.shavei.mapa.learning.Streak
 import com.shavei.mapa.learning.StudyCard
 import com.shavei.mapa.learning.center
+import com.shavei.mapa.learning.isKnown
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
 import com.shavei.mapa.learning.fsrs.FsrsCard
@@ -35,6 +43,17 @@ enum class AnswerSource {
     BLITZ,
     ROAD_TRIP,
 }
+
+/** The rank and the achievements (docs/02-game-design.md, "Ranks" and "Achievements"). */
+data class Motivation(
+    val rank: Rank,
+    val known: Int,
+    val progress: Map<Achievement, AchievementProgress>,
+    /** Every achievement earned so far, and when it was first earned. */
+    val earned: Map<Achievement, Long>,
+    /** Earned just now, for the first time. */
+    val newlyEarned: List<Achievement>,
+)
 
 class ProgressRepository(
     private val dao: ProgressDao,
@@ -75,7 +94,25 @@ class ProgressRepository(
             elapsedDays = it.elapsedDays,
             predictedRecall = it.predictedRecall,
             tappedNear = it.tappedNear,
+            errorMeters = it.errorMeters,
         )
+    }
+
+    /** Missed taps on one place that landed nearest another: where learned confusable pairs come from. */
+    suspend fun confusions(): List<Confusion> = dao.confusions().map { Confusion(it.asked, it.tapped, it.count) }
+
+    /**
+     * The rank and the achievements now. An achievement earned for the first time is stored
+     * and kept from then on, even if a place in it later fades; the rank stays current.
+     */
+    suspend fun motivation(content: Content, now: Long, zone: ZoneId = ZoneId.systemDefault()): Motivation {
+        val known = cards().filter { (k, c) -> k.facet == Facet.LOCATE && isKnown(c.fsrs) }.keys.mapTo(HashSet()) { it.placeId }
+        val best = Streak.of(daysPlayed(zone), day(now, zone)).best
+        val progress = Achievements.progress(content, known, reviewRecords(), best)
+        val stored = dao.achievements().mapNotNull { e -> Achievement.entries.firstOrNull { it.name == e.id }?.let { it to e.unlockedAt } }.toMap()
+        val newly = progress.filter { (a, p) -> p.earned && a !in stored }.keys.toList()
+        newly.forEach { dao.insert(AchievementEntity(it.name, now)) }
+        return Motivation(Rank.of(known.size), known.size, progress, stored + newly.associateWith { now }, newly)
     }
 
     suspend fun mapTests(): List<MapTestResult> = dao.mapTests().map {

@@ -65,6 +65,8 @@ class SessionEngine(
     private val config: SessionConfig = SessionConfig(),
     private val clock: () -> Long = System::currentTimeMillis,
     private val random: Random = Random.Default,
+    /** Pairs learned from the player's own missed taps ([LearnedConfusables]), each place to its partners. */
+    private val learnedConfusables: Map<String, Set<String>> = emptyMap(),
 ) : QuestionSource {
     private val cards = initialCards.toMutableMap()
     private val history = mutableListOf<CardKey>()
@@ -248,7 +250,9 @@ class SessionEngine(
         fun nearest(match: (Place) -> Boolean) = content.places
             .filter { it.id != place.id && match(it) }
             .sortedBy { it.label.distanceTo(place.label) }.take(6).shuffled(random)
-        val distractors = (place.confusables.mapNotNull(content::place) +
+        // A learned pair can cross kinds (a stream mixed up with a town): as a wrong name, only one of the same kind.
+        val learned = learnedConfusables[place.id].orEmpty().mapNotNull(content::place).filter { it.type.kind == place.type.kind }
+        val distractors = (place.confusables.mapNotNull(content::place) + learned +
             nearest { it.type.kind == place.type.kind } +
             nearest { it.type.theme == place.type.theme })
             .distinct().take(3)
@@ -261,7 +265,7 @@ class SessionEngine(
             it.id != place.id && it.type == PlaceType.CITY && cards[CardKey(it.id, Facet.LOCATE)]?.isReview == true
         }
         if (known.isEmpty()) return null
-        val partners = (place.confusables.mapNotNull(content::place).filter { it in known } +
+        val partners = (confusables(place).mapNotNull(content::place).filter { it in known } +
             known.sortedBy { it.label.distanceTo(place.label) }.take(5).shuffled(random)).distinct()
         val at = place.label
         for (other in partners) {
@@ -292,11 +296,15 @@ class SessionEngine(
         return null
     }
 
+    /** The pairs seeded by hand, then those learned from this player's missed taps. */
+    private fun confusables(place: Place): List<String> =
+        (place.confusables + learnedConfusables[place.id].orEmpty()).distinct()
+
     /** After reviewing a place with a known confusable, ask the partner right after it. */
     private fun planContrast(key: CardKey) {
         if (key.facet != Facet.LOCATE || contrastPairs >= config.maxContrastPairs) return
         val place = content.place(key.placeId) ?: return
-        val partner = place.confusables.map { CardKey(it, Facet.LOCATE) }.firstOrNull { k ->
+        val partner = confusables(place).map { CardKey(it, Facet.LOCATE) }.firstOrNull { k ->
             val c = cards[k]
             c != null && c.isReview && c.stability >= CONTRAST_MIN_DAYS && history.none { it.placeId == k.placeId }
         } ?: return

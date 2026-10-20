@@ -238,9 +238,25 @@ smaller releases, in order of learning value, each playable on its own.
 - Not yet: written trips with a story ("You land at Ben Gurion..."), trips along the
   highways (with the highways), and a best Blitz score (points are not stored yet)
 
-### 2d. Motivation
-- [ ] Achievements and ranks tied to places at high stability
-- [ ] Learned confusable pairs (from logged missed taps)
+### 2d. Motivation - built
+- [x] Ranks by known places (LOCATE stable for 21 days): Tourist, Hiker (10), Guide
+      (30), Navigator (60), Cartographer (100) and Sabra (150); always the current one,
+      shown on home and on the progress screen with what the next one needs
+- [x] 15 achievements, each a piece of real knowledge (docs/02-game-design.md): the
+      frame, all regions, all districts, the main cities within 3 km, around the
+      Kinneret, a whole region, all cities, nature, ports and airports, heritage, a
+      no-miss session, a place remembered after 30+ days, 7 and 30 days in a row.
+      Stored when first earned and kept (database version 4); the progress screen
+      lists them with their date or how far along they are, and the session summary
+      names new ones and a new rank
+- [x] Learned confusable pairs: two places mixed up twice or more (by the place a
+      missed tap was nearest to, either way round) join the seeded pairs: asked back to
+      back, offered as each other's wrong names, and listed on the progress screen
+- [x] "Share results" adds the rank, the achievements earned and the learned pairs
+- Decided (doc 10): the rank can drop and achievements stay; personal pairs only,
+  from 2 confusions; achievements tied to places use the current content, so new
+  places in a theme reopen nothing already earned
+- Not yet: global confusable pairs (with the log upload, 2e), and a best Blitz score
 
 ### 2e. Data
 - [ ] Opt-in anonymous log upload; first global FSRS parameter fit

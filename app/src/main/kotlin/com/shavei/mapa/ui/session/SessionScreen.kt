@@ -69,6 +69,8 @@ import com.shavei.mapa.ui.map.MapDecoration
 import com.shavei.mapa.ui.map.MapDrag
 import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
+import com.shavei.mapa.ui.progress.achievementTitle
+import com.shavei.mapa.ui.progress.rankName
 import com.shavei.mapa.ui.theme.LocalMapPalette
 import com.shavei.mapa.ui.theme.MapPalette
 import kotlinx.coroutines.delay
@@ -563,7 +565,33 @@ private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
                 Text(stringResource(R.string.summary_new, summary.newPlaces))
             }
             if (test == null) summary.averageCityErrorMeters?.let { Text(stringResource(R.string.summary_error, formatKm(it))) }
+            Motivation(summary)
             Button(onClick = onDone, Modifier.fillMaxWidth()) { Text(stringResource(R.string.summary_done)) }
+        }
+    }
+}
+
+/** A rank gained and achievements earned in this session; they arrive once the answers are saved. */
+@Composable
+private fun Motivation(summary: SessionSummary) {
+    if (summary.newRank == null && summary.newAchievements.isEmpty()) return
+    Column(
+        Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        summary.newRank?.let {
+            Text(
+                stringResource(R.string.summary_new_rank, rankName(it)),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        for (a in summary.newAchievements) {
+            Text(
+                stringResource(R.string.summary_new_achievement, achievementTitle(a)),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }

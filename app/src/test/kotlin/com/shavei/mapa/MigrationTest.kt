@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.shavei.mapa.data.MIGRATION_1_2
 import com.shavei.mapa.data.MIGRATION_2_3
+import com.shavei.mapa.data.MIGRATION_3_4
 import com.shavei.mapa.data.MapaDatabase
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -17,7 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Phase 0 players keep their progress: the v1 database opens as v3 with LOCATE cards. */
+/** Phase 0 players keep their progress: the v1 database opens as v4 with LOCATE cards. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class MigrationTest {
@@ -43,7 +44,7 @@ class MigrationTest {
         }
 
         val room = Room.databaseBuilder(context, MapaDatabase::class.java, "migration-test.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).allowMainThreadQueries().build()
         val cards = room.progressDao().cards()
         assertEquals(1, cards.size)
         with(cards.single()) {
@@ -61,6 +62,8 @@ class MigrationTest {
             assertFalse(hint)
         }
         assertTrue(room.progressDao().mapTests().isEmpty())
+        // Version 4 adds the achievements, none earned yet.
+        assertTrue(room.progressDao().achievements().isEmpty())
         room.close()
     }
 }

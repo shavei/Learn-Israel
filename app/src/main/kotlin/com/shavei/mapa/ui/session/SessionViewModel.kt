@@ -8,20 +8,26 @@ import com.shavei.mapa.content.Place
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.data.AnswerSource
 import com.shavei.mapa.geo.MapPoint
+import com.shavei.mapa.learning.Achievement
 import com.shavei.mapa.learning.Answer
 import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Drill
+import com.shavei.mapa.learning.Facet
 import com.shavei.mapa.learning.Grader
+import com.shavei.mapa.learning.LearnedConfusables
 import com.shavei.mapa.learning.MapTest
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.MapTestResult
 import com.shavei.mapa.learning.PlacementTest
 import com.shavei.mapa.learning.Question
+import com.shavei.mapa.learning.Rank
 import com.shavei.mapa.learning.QuestionSource
 import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.RoadTrip
 import com.shavei.mapa.learning.SessionConfig
 import com.shavei.mapa.learning.SessionEngine
+import com.shavei.mapa.learning.isKnown
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -58,6 +64,10 @@ data class SessionSummary(
     val blitz: Boolean = false,
     /** A road trip: its stops, from the start. */
     val trip: List<Place> = emptyList(),
+    /** Achievements earned for the first time in this session. */
+    val newAchievements: List<Achievement> = emptyList(),
+    /** The rank reached in this session, if it went up. */
+    val newRank: Rank? = null,
 )
 
 enum class SessionKind {
@@ -95,6 +105,12 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     private var number = 0
     private var mapTestKind = MapTestKind.PRE
 
+    /** The last answer's save: each waits for the one before, and the summary for all of them. */
+    private var saving: Job? = null
+
+    /** The rank when the session started, to tell a rank gained in it. */
+    private var rankBefore = Rank.TOURIST
+
     private val source = when (kind) {
         SessionKind.PLACEMENT -> AnswerSource.PLACEMENT
         SessionKind.MAP_TEST -> AnswerSource.MAP_TEST
@@ -118,20 +134,20 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     init {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
+            val cards = app.progress.cards()
+            rankBefore = Rank.of(cards.count { (k, c) -> k.facet == Facet.LOCATE && isKnown(c.fsrs) })
             engine = when (kind) {
                 SessionKind.PLACEMENT -> PlacementTest(app.content, app.scheduler)
                 SessionKind.MAP_TEST -> {
                     if (app.progress.hasAnsweredWithFeedback()) mapTestKind = MapTestKind.POST
                     MapTest(app.content)
                 }
-                SessionKind.BLITZ -> Blitz(app.content, app.scheduler, app.progress.cards(), blitzDurationMs).also { blitz = it }
-                SessionKind.ROAD_TRIP -> app.progress.cards().let { cards ->
-                    RoadTrip(app.scheduler, cards, RoadTrip.plan(app.content, cards)).also { trip = it.stops }
-                }
+                SessionKind.BLITZ -> Blitz(app.content, app.scheduler, cards, blitzDurationMs).also { blitz = it }
+                SessionKind.ROAD_TRIP -> RoadTrip(app.scheduler, cards, RoadTrip.plan(app.content, cards)).also { trip = it.stops }
                 else -> SessionEngine(
                     content = app.content,
                     scheduler = app.scheduler,
-                    initialCards = app.progress.cards(),
+                    initialCards = cards,
                     newIntroducedToday = app.progress.newIntroducedToday(now),
                     config = SessionConfig(
                         size = app.settings.current.sessionLength.questions,
@@ -143,6 +159,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                             else -> null
                         },
                     ),
+                    learnedConfusables = LearnedConfusables.of(app.progress.confusions()),
                 )
             }
             if (kind == SessionKind.BLITZ || kind == SessionKind.ROAD_TRIP) _ui.value = SessionUi.Ready else advance()
@@ -156,7 +173,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
 
     /** The blitz clock ran out: the open question goes unanswered. */
     fun onTimeUp() {
-        if (kind == SessionKind.BLITZ && _ui.value is SessionUi.Ask) _ui.value = SessionUi.Finished(summary())
+        if (kind == SessionKind.BLITZ && _ui.value is SessionUi.Ask) finish()
     }
 
     fun onDiscovered() {
@@ -187,7 +204,11 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         // A tap after the blitz clock ran out does not count.
         if (blitz?.isOver == true) return onTimeUp()
         val answer = engine.submit(ui.question, response, System.currentTimeMillis() - askedAt)
-        viewModelScope.launch { app.progress.save(answer, sessionId, source) }
+        val previous = saving
+        saving = viewModelScope.launch {
+            previous?.join()
+            app.progress.save(answer, sessionId, source)
+        }
         when (kind) {
             // The map test measures and does not teach: straight on to the next place.
             SessionKind.MAP_TEST -> advance()
@@ -201,9 +222,29 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         val q = engine.next()
         if (q == null && kind == SessionKind.MAP_TEST) return finishMapTest()
         _ui.value = when {
-            q == null -> SessionUi.Finished(summary())
+            q == null -> return finish()
             q is Question.Locate && q.isNew -> SessionUi.Discover(q, number + 1)
             else -> return ask(q, last)
+        }
+    }
+
+    /**
+     * The summary at once; then, once every answer is saved, any achievement earned for
+     * the first time and a new rank are added to it.
+     */
+    private fun finish() {
+        _ui.value = SessionUi.Finished(summary())
+        val previous = saving
+        viewModelScope.launch {
+            previous?.join()
+            val motivation = app.progress.motivation(app.content, System.currentTimeMillis())
+            val finished = _ui.value as? SessionUi.Finished ?: return@launch
+            _ui.value = finished.copy(
+                summary = finished.summary.copy(
+                    newAchievements = motivation.newlyEarned,
+                    newRank = motivation.rank.takeIf { it > rankBefore },
+                ),
+            )
         }
     }
 
@@ -218,7 +259,9 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     private fun finishMapTest() {
         val result = (engine as MapTest).result(mapTestKind) ?: return
         _ui.value = SessionUi.Loading
+        val previous = saving
         viewModelScope.launch {
+            previous?.join()
             val pre = app.progress.mapTests().firstOrNull { it.kind == MapTestKind.PRE }
             app.progress.saveMapTest(result, sessionId)
             _ui.value = SessionUi.Finished(summary().copy(mapTest = result, preTest = pre.takeIf { result.kind == MapTestKind.POST }))

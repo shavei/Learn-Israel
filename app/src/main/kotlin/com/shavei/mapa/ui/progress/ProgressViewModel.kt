@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
 import com.shavei.mapa.content.PlaceType
+import com.shavei.mapa.data.Motivation
 import com.shavei.mapa.learning.Facet
+import com.shavei.mapa.learning.LearnedConfusables
 import com.shavei.mapa.learning.LearningStats
 import com.shavei.mapa.learning.MapTest
 import com.shavei.mapa.learning.MapTestResult
@@ -39,7 +41,14 @@ data class ProgressState(
     /** When the next map test opens; null before the first practice. */
     val mapTestNext: LocalDate? = null,
     val appVersion: String = "",
+    /** The rank and the achievements. */
+    val motivation: Motivation? = null,
+    /** Pairs this player mixes up, learned from missed taps, the most confused first. */
+    val mixedPairs: List<MixedPair> = emptyList(),
 )
+
+/** Two places by name, mixed up [count] times. */
+data class MixedPair(val first: String, val second: String, val count: Int)
 
 const val HISTORY_DAYS = 30
 
@@ -72,6 +81,12 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                 mapTests = mapTests,
                 mapTestNext = MapTest.nextDue(daysPlayed.minOrNull(), lastTest),
                 appVersion = app.progress.appVersion,
+                motivation = app.progress.motivation(app.content, now, zone),
+                mixedPairs = LearnedConfusables.pairs(app.progress.confusions()).mapNotNull { pair ->
+                    val first = app.content.place(pair.first) ?: return@mapNotNull null
+                    val second = app.content.place(pair.second) ?: return@mapNotNull null
+                    MixedPair(first.name, second.name, pair.count)
+                },
             )
         }
     }

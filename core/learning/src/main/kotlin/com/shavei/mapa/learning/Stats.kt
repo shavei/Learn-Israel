@@ -24,6 +24,8 @@ data class ReviewRecord(
     val predictedRecall: Double? = null,
     /** For a missed tap: the known place the tap was nearest to. */
     val tappedNear: String? = null,
+    /** For a Pin It answer: how far from the place it landed. */
+    val errorMeters: Double? = null,
 )
 
 /**
@@ -89,6 +91,3 @@ data class LearningStats(
         }
     }
 }
-
-/** GOOD or better: the answer counts as remembered. */
-private val Rating.remembered: Boolean get() = this == Rating.GOOD || this == Rating.EASY

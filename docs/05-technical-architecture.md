@@ -104,6 +104,9 @@ ConfusionEntity(askedPlaceId, tappedPlaceId, count, PK(asked, tapped))
 AchievementEntity(id PK, unlockedAt)
 ```
 
+As built (database version 4): confusions are not a table of their own but a query
+over `reviews.tappedNear`; `achievements(id, unlockedAt)` arrived with Phase 2d.
+
 ## Testing strategy
 
 - `:core:learning`: unit tests with FSRS reference vectors, property tests for the
