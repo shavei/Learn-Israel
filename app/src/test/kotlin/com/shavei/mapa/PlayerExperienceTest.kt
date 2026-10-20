@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
@@ -117,9 +118,10 @@ class PlayerExperienceTest {
             waitForText("הגדרות")
             compose.onNodeWithText("הגדרות").performClick()
             waitForText("אורך אימון")
-            compose.onNodeWithText("קצר, 10 שאלות").performClick()
-            compose.onNodeWithText("הקו הירוק").performClick()
-            compose.onNodeWithText("כהה").performClick()
+            // The settings scroll: bring each row on screen before tapping it.
+            compose.onNodeWithText("קצר, 10 שאלות").performScrollTo().performClick()
+            compose.onNodeWithText("הקו הירוק").performScrollTo().performClick()
+            compose.onNodeWithText("כהה").performScrollTo().performClick()
             compose.waitForIdle()
             Screenshots.save(scenario, "c5-settings-dark")
             compose.onNodeWithText("חזרה").performClick()

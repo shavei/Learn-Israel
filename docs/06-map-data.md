@@ -55,7 +55,16 @@ How the map is built:
 - Regions and districts are each simplified together (150 m), so neighbors keep one
   shared border.
 
+- **Terrain (relief and topographic styles):** the Copernicus DEM GLO-90 (90 m),
+  box-averaged to 270 m and sampled onto a 300 m grid on the Israeli TM projection
+  over the map window (`content/elevation.bin`, described by `content/elevation.json`).
+  The app shades it into the relief; `tools/build_content.py` traces the contour lines
+  (every 100 m, after a light blur and corner rounding) into `contours.json`.
+
 Licensing notes:
+- The Copernicus DEM is free to use with attribution: "Copernicus DEM (c) DLR e.V.
+  2010-2014 and (c) Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS
+  by the European Union and ESA". The map credit names it.
 - ODbL requires visible attribution ("© OpenStreetMap contributors") in the app, for
   example on the About screen and a small map credit. If we distribute the derived
   geometry database, it must be offered under ODbL. The app code itself is not

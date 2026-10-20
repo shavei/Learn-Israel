@@ -81,6 +81,18 @@ data class MapPalette(
     val goodText: Color,
     val closeText: Color,
     val missText: Color,
+    /** Relief style: color by height (meters to color), and how strongly slopes are shaded. */
+    val reliefTint: List<Pair<Int, Color>>,
+    val reliefShade: Double,
+    val reliefHighlight: Double,
+    /** Topographic style: paper, sea and the contour lines (every 100 m, index every 500 m). */
+    val topoLand: Color,
+    val topoNeighbor: Color,
+    val topoSea: Color,
+    val contour: Color,
+    val indexContour: Color,
+    /** Laid over the neighbors and Gaza in the terrain styles, so Israel stays in focus. */
+    val terrainWash: Color,
 )
 
 val LightMapPalette = MapPalette(
@@ -105,6 +117,20 @@ val LightMapPalette = MapPalette(
     goodText = Color(0xFF237032),
     closeText = Color(0xFF8A5A00),
     missText = Color(0xFFC92A2A),
+    // Green lowlands to tan hills and pale peaks, as on classic relief maps.
+    reliefTint = listOf(
+        -450 to Color(0xFF93BF84), 0 to Color(0xFFA3CA8C), 150 to Color(0xFFB9D49B), 350 to Color(0xFFD2DCA6),
+        550 to Color(0xFFE2D9AA), 800 to Color(0xFFDCC290), 1100 to Color(0xFFCDA97D), 1600 to Color(0xFFC2A78B),
+        2200 to Color(0xFFDCD0C3), 2900 to Color(0xFFF2EEE9),
+    ),
+    reliefShade = 0.65,
+    reliefHighlight = 0.35,
+    topoLand = Color(0xFFE6DFC8),
+    topoNeighbor = Color(0xFFDDD6C0),
+    topoSea = Color(0xFFB7CEDB),
+    contour = Color(0xB36E6352),
+    indexContour = Color(0xE64A4134),
+    terrainWash = Color(0x8CF1EEE7),
 )
 
 val DarkMapPalette = MapPalette(
@@ -129,6 +155,20 @@ val DarkMapPalette = MapPalette(
     goodText = Color(0xFF69DB7C),
     closeText = Color(0xFFFFD43B),
     missText = Color(0xFFFF8787),
+    // The same order of hues, deep and muted, so the relief reads at night without glare.
+    reliefTint = listOf(
+        -450 to Color(0xFF2C4430), 0 to Color(0xFF2F4832), 150 to Color(0xFF374D37), 350 to Color(0xFF434F3A),
+        550 to Color(0xFF4B4B3A), 800 to Color(0xFF4F4637), 1100 to Color(0xFF524334), 1600 to Color(0xFF4E4439),
+        2200 to Color(0xFF5E5850), 2900 to Color(0xFF77736D),
+    ),
+    reliefShade = 0.65,
+    reliefHighlight = 0.12,
+    topoLand = Color(0xFF2E2C27),
+    topoNeighbor = Color(0xFF282723),
+    topoSea = Color(0xFF15283A),
+    contour = Color(0x998D8470),
+    indexContour = Color(0xD9B3A88F),
+    terrainWash = Color(0x8C1B1D20),
 )
 
 val LocalMapPalette = staticCompositionLocalOf { LightMapPalette }

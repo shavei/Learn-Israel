@@ -29,11 +29,20 @@ while the sources keep changing. Rerun this only to refresh them, then rebuild.
                                     Meteorological Service's mean annual rainfall
                                     1991-2020 (400 m grid, published by the CBS as a
                                     public ArcGIS image service).
+  content/elevation.bin             Ground height in meters on a 300 m grid in the Israeli TM
+  content/elevation.json            projection covering the map window, from the Copernicus
+                                    DEM GLO-90 (90 m): box-averaged to 270 m, then sampled
+                                    at each cell center. int16, little endian, rows from
+                                    north to south; elevation.json gives the grid. The relief
+                                    and topographic map styles are drawn from it. Copernicus
+                                    DEM (c) DLR e.V. 2010-2014 and (c) Airbus Defence and
+                                    Space GmbH 2014-2018, provided under COPERNICUS by the
+                                    European Union and ESA; free to use with attribution.
   content/palestine.geojson         The Gaza Strip and the West Bank from the UN OCHA common
                                     operational dataset (HDX "cod-ab-pse", CC BY-IGO). The West
                                     Bank's western edge is the 1949 armistice line (Green Line).
 
-The land polygons come as a 900 MB download. This script needs tools/requirements-fetch.txt.
+The land polygons come as a 900 MB download, the elevation tiles as 140 MB. This script needs tools/requirements-fetch.txt.
 
 Usage:  python3 tools/fetch_sources.py
 """
@@ -43,6 +52,7 @@ from __future__ import annotations
 import csv
 import json
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -325,6 +335,78 @@ def region_overrides() -> None:
     print(f"  {out.relative_to(ROOT)}: {len(features)} areas")
 
 
+COPERNICUS_DEM = "https://copernicus-dem-90m.s3.amazonaws.com/{name}/{name}.tif"
+# Elevation grid: cell size in meters and how many 90 m source cells are averaged per side first.
+ELEVATION_CELL = 300
+ELEVATION_AVERAGE = 3
+# The map window in ITM, as in app/src/main/assets/map.json (tools/build_content.py: WINDOW).
+ELEVATION_WINDOW = (-35820, 258853, 415038, 903384)
+
+
+def elevation() -> None:
+    """Resamples the Copernicus DEM GLO-90 tiles over the map window onto an ITM grid."""
+    import tempfile
+
+    import numpy as np
+    import tifffile
+    from pyproj import Transformer
+
+    lats, lons = range(28, 35), range(32, 38)  # whole-degree tiles covering the window's corners
+    n = 1200  # 3 arc seconds per cell below 50 degrees latitude
+    mosaic = np.zeros((len(lats) * n, len(lons) * n), np.float32)  # tiles missing over the sea stay 0
+    with tempfile.TemporaryDirectory() as tmp:
+        for i, lat in enumerate(lats):
+            for j, lon in enumerate(lons):
+                name = f"Copernicus_DSM_COG_30_N{lat:02d}_00_E{lon:03d}_00_DEM"
+                path = Path(tmp) / f"{name}.tif"
+                try:
+                    with urllib.request.urlopen(COPERNICUS_DEM.format(name=name), timeout=300) as r:
+                        path.write_bytes(r.read())
+                except urllib.error.HTTPError as e:
+                    if e.code in (403, 404):
+                        print(f"  no tile {name} (sea)")
+                        continue
+                    raise
+                tile = tifffile.imread(path)
+                if tile.shape != (n, n):
+                    sys.exit(f"{name}: unexpected size {tile.shape}")
+                row = (len(lats) - 1 - i) * n
+                mosaic[row:row + n, j * n:(j + 1) * n] = tile
+                print(f"  {name}")
+
+    k = ELEVATION_AVERAGE
+    h, w = mosaic.shape[0] // k, mosaic.shape[1] // k
+    coarse = mosaic[:h * k, :w * k].reshape(h, k, w, k).mean(axis=(1, 3))
+    step = k / n  # degrees per coarse cell
+    north, west = lats[-1] + 1, lons[0]
+
+    minx, miny, maxx, maxy = ELEVATION_WINDOW
+    width = int(np.ceil((maxx - minx) / ELEVATION_CELL))
+    height = int(np.ceil((maxy - miny) / ELEVATION_CELL))
+    xs = minx + (np.arange(width) + 0.5) * ELEVATION_CELL
+    ys = maxy - (np.arange(height) + 0.5) * ELEVATION_CELL
+    lon, lat = Transformer.from_crs("EPSG:2039", "EPSG:4326", always_xy=True).transform(*np.meshgrid(xs, ys))
+    # Bilinear sampling between coarse cell centers.
+    fr, fc = (north - lat) / step - 0.5, (lon - west) / step - 0.5
+    r0 = np.clip(np.floor(fr).astype(int), 0, h - 2)
+    c0 = np.clip(np.floor(fc).astype(int), 0, w - 2)
+    dr, dc = np.clip(fr - r0, 0, 1), np.clip(fc - c0, 0, 1)
+    z = (coarse[r0, c0] * (1 - dr) * (1 - dc) + coarse[r0 + 1, c0] * dr * (1 - dc)
+         + coarse[r0, c0 + 1] * (1 - dr) * dc + coarse[r0 + 1, c0 + 1] * dr * dc)
+
+    (CONTENT / "elevation.bin").write_bytes(np.round(z).astype("<i2").tobytes())
+    meta = {
+        "source": "Copernicus DEM GLO-90 (c) DLR e.V. 2010-2014 and (c) Airbus Defence and Space GmbH 2014-2018, "
+                  "provided under COPERNICUS by the European Union and ESA",
+        "fetched": date.today().isoformat(),
+        "crs": "EPSG:2039",
+        "minX": minx, "maxY": maxy, "cell": ELEVATION_CELL, "width": width, "height": height,
+        "format": "int16 little endian meters, rows north to south",
+    }
+    (CONTENT / "elevation.json").write_text(json.dumps(meta, indent=2) + "\n")
+    print(f"  content/elevation.bin: {width} x {height}, {z.min():.0f} to {z.max():.0f} m")
+
+
 def main() -> int:
     natural_regions()
     localities()
@@ -333,6 +415,7 @@ def main() -> int:
     isohyets()
     surroundings()
     palestine()
+    elevation()
     return 0
 
 

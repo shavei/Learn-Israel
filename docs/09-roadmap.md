@@ -125,6 +125,19 @@ What 1d simplified, on purpose:
   upload; each player sees their own active days instead.
 - Practice time counts the time spent answering, not reading feedback.
 
+### Map styles - built
+- [x] Three map styles in settings, each with a live preview: standard (flat colors),
+      relief (hypsometric tint under hillshading lit from the north-west) and
+      topographic (contour lines every 100 m, a heavier index line every 500 m)
+- [x] Both terrain styles come from the Copernicus DEM GLO-90, resampled to a 300 m
+      grid on the Israeli TM projection; the contours are traced by the content
+      pipeline, the relief is colored on the phone, so each theme has its own design
+- [x] Terrain is built once, off the main thread, as soon as a style is chosen, and
+      shared by every map; if it is not ready yet it fades in over the flat map
+- [x] Water stays vector: the sea, lakes, borders and region outlines are drawn on top,
+      so coasts are sharp at any zoom, and the neighbors are washed out so Israel
+      stays in focus
+
 **Exit test:** closed beta; retention at review between 85 and 92 percent; pre/post
 test shows large gains; D7 retention benchmark agreed in advance.
 

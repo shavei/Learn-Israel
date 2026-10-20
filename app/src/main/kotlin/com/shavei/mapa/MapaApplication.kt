@@ -10,6 +10,7 @@ import com.shavei.mapa.data.MapaDatabase
 import com.shavei.mapa.data.ProgressRepository
 import com.shavei.mapa.data.SettingsStore
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
+import com.shavei.mapa.ui.map.MapTerrain
 
 /** Manual dependency container. Small enough for Phase 0 that Hilt is not needed yet. */
 class MapaApplication : Application() {
@@ -26,6 +27,9 @@ class MapaApplication : Application() {
     }
 
     val settings: SettingsStore by lazy { SettingsStore(this) }
+
+    /** Relief and contour layers for the map styles, built once and shared by every map. */
+    val terrain: MapTerrain by lazy { MapTerrain(assets, content.map) }
 
     val progress: ProgressRepository by lazy {
         ProgressRepository(database.progressDao(), BuildConfigInfo.versionName(this), scheduler)
