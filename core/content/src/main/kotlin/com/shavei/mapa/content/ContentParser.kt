@@ -23,29 +23,26 @@ object ContentParser {
                 home = map.home.toBounds(),
                 layers = map.layers.map { MapLayer(it.id, it.polygons.toPolygons(), it.lines.toLines()) },
                 attribution = map.attribution,
-                elevation = map.elevation?.let { ElevationInfo(it.minX, it.maxY, it.cell, it.width, it.height) },
+                elevation = map.elevation.map { ElevationInfo(it.name, it.minX, it.maxY, it.cell, it.width, it.height) },
             ),
             places = places.places.map { it.toPlace() },
         )
     }
 
-    /** contours.json, read only when the topographic style is on. */
-    fun parseContours(contoursJson: String): Contours {
-        val file = json.decodeFromString<ContoursFile>(contoursJson)
-        require(file.version == SUPPORTED_VERSION) { "unsupported contours.json version ${file.version}" }
-        return Contours(file.interval, file.index, file.levels.map { ContourLevel(it.elevation, it.lines.toLines()) })
+    /** contour_labels.json: each label as [x, y, angle in degrees, elevation]. */
+    fun parseContourLabels(labelsJson: String): List<ContourLabel> {
+        val file = json.decodeFromString<LabelsFile>(labelsJson)
+        require(file.version == SUPPORTED_VERSION) { "unsupported contour_labels.json version ${file.version}" }
+        return file.labels.map { ContourLabel(it[0], it[1], it[2].toFloat(), it[3].toInt()) }
     }
 
     private const val SUPPORTED_VERSION = 1
 
     @Serializable
-    private class ContoursFile(val version: Int, val interval: Int, val index: Int, val levels: List<ContourLevelJson>)
+    private class LabelsFile(val version: Int, val labels: List<List<Double>>)
 
     @Serializable
-    private class ContourLevelJson(val elevation: Int, val lines: List<List<Double>>)
-
-    @Serializable
-    private class ElevationJson(val minX: Double, val maxY: Double, val cell: Double, val width: Int, val height: Int)
+    private class ElevationJson(val name: String, val minX: Double, val maxY: Double, val cell: Double, val width: Int, val height: Int)
 
     @Serializable
     private class MapFile(
@@ -54,7 +51,7 @@ object ContentParser {
         val home: List<Double>,
         val layers: List<LayerJson>,
         val attribution: String = "",
-        val elevation: ElevationJson? = null,
+        val elevation: List<ElevationJson> = emptyList(),
     )
 
     @Serializable

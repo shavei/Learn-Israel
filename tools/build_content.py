@@ -271,21 +271,25 @@ def outlines(pieces: dict, land_area) -> list:
     return ops.linemerge(lines(inner)) if not inner.is_empty else inner
 
 
-# Contour lines: every CONTOUR_INTERVAL meters, every CONTOUR_INDEX meters an index contour.
-CONTOUR_INTERVAL = 100
-CONTOUR_INDEX = 500
-CONTOUR_MIN_LENGTH = 1500  # meters; shorter loops are noise at this grid size
-CONTOUR_SIMPLIFY = 30
+# Height labels for the topographic style, which draws a contour every 25 m and an index
+# contour every LABEL_INTERVAL m (core/content Terrain.kt, TopoStyle). Labels sit on the
+# index contours, traced on the detail grid after the same smoothing the app applies.
+LABEL_INTERVAL = 100
+LABEL_SMOOTHING = 3
+LABEL_SPACING = 6000  # meters along a line between labels
+LABEL_MIN_LENGTH = 3000  # shorter lines get no label
+LABEL_MAX_TURN = 30  # degrees; no label where the line bends more than this across it
 
 
-def blurred(z):
-    """A light binomial blur, so contours on a 300 m grid read as smooth cartographic lines."""
-
+def blurred(z, passes=1):
+    """The binomial blur of Terrain.kt, repeated: contours read as smooth cartographic lines."""
     k = np.array([1, 4, 6, 4, 1], float) / 16
-    p = np.pad(z, ((2, 2), (0, 0)), mode="edge")
-    z = sum(k[i] * p[i:i + z.shape[0]] for i in range(5))
-    p = np.pad(z, ((0, 0), (2, 2)), mode="edge")
-    return sum(k[i] * p[:, i:i + z.shape[1]] for i in range(5))
+    for _ in range(passes):
+        p = np.pad(z, ((0, 0), (2, 2)), mode="edge")
+        z = sum(k[i] * p[:, i:i + z.shape[1]] for i in range(5))
+        p = np.pad(z, ((2, 2), (0, 0)), mode="edge")
+        z = sum(k[i] * p[i:i + z.shape[0]] for i in range(5))
+    return z
 
 
 # Marching squares: corner bits are top-left 8, top-right 4, bottom-right 2, bottom-left 1.
@@ -347,39 +351,36 @@ def contour_lines(z, level) -> list[list[tuple[float, float]]]:
     return [[point(e) for e in chain] for chain in chains]
 
 
-def chaikin(coords, closed):
-    """One round of corner cutting: rounds the marching squares' corners."""
-    out = [coords[0]] if not closed else []
-    pairs = list(zip(coords, coords[1:]))
-    for (x0, y0), (x1, y1) in pairs:
-        out += [(0.75 * x0 + 0.25 * x1, 0.75 * y0 + 0.25 * y1), (0.25 * x0 + 0.75 * x1, 0.25 * y0 + 0.75 * y1)]
-    out += [out[0]] if closed else [coords[-1]]
-    return out
+def elevation_grid(meta) -> np.ndarray:
+    """An elevation grid from content/: rows stored as differences from the cell before."""
+    deltas = np.fromfile(ROOT / "content" / f"elevation_{meta['name']}.bin", "<i2").reshape(meta["height"], meta["width"])
+    return np.cumsum(deltas.astype(np.int32), axis=1)
 
 
-def contours(meta) -> dict:
-    """Contour lines from the elevation grid, in ITM meters, for the topographic map style."""
-
-    z = np.fromfile(ROOT / "content" / "elevation.bin", "<i2").astype(np.float64)
-    z = blurred(z.reshape(meta["height"], meta["width"]))
+def contour_labels(meta) -> dict:
+    """Where to write heights along the index contours: [x, y, angle in degrees, meters]."""
+    z = blurred(elevation_grid(meta).astype(np.float64), LABEL_SMOOTHING)
     cell, minx, maxy = meta["cell"], meta["minX"], meta["maxY"]
-    first = int(np.ceil(z.min() / CONTOUR_INTERVAL)) * CONTOUR_INTERVAL
-    levels = []
-    for level in range(first, int(z.max()) + 1, CONTOUR_INTERVAL):
+    first = int(np.ceil(z.min() / LABEL_INTERVAL)) * LABEL_INTERVAL
+    labels = []
+    for level in range(first, int(z.max()) + 1, LABEL_INTERVAL):
         if level == 0:
-            continue  # the coastline is drawn from the land outline
-        lines = []
+            continue
         for line in contour_lines(z, level):
-            closed = line[0] == line[-1]
-            coords = [(minx + (x + 0.5) * cell, maxy - (y + 0.5) * cell) for x, y in line]
-            geom = LineString(coords)
-            if geom.length < CONTOUR_MIN_LENGTH:
+            geom = LineString([(minx + (x + 0.5) * cell, maxy - (y + 0.5) * cell) for x, y in line])
+            if geom.length < LABEL_MIN_LENGTH:
                 continue
-            for _ in range(2):
-                coords = chaikin(coords, closed)
-            lines.append(flat(LineString(coords).simplify(CONTOUR_SIMPLIFY).coords))
-        levels.append({"elevation": level, "lines": lines})
-    return {"version": 1, "interval": CONTOUR_INTERVAL, "index": CONTOUR_INDEX, "levels": levels}
+            at = LABEL_SPACING / 2
+            while at <= geom.length - LABEL_SPACING / 4:
+                before, here, after = (geom.interpolate(d) for d in (at - 300, at, at + 300))
+                a1 = np.degrees(np.arctan2(here.y - before.y, here.x - before.x))
+                a2 = np.degrees(np.arctan2(after.y - here.y, after.x - here.x))
+                turn = abs((a2 - a1 + 180) % 360 - 180)
+                if turn <= LABEL_MAX_TURN:
+                    angle = np.degrees(np.arctan2(after.y - before.y, after.x - before.x))
+                    labels.append([round(here.x), round(here.y), round(float(angle), 1), level])
+                at += LABEL_SPACING
+    return {"version": 1, "labels": labels}
 
 
 def main() -> int:
@@ -562,8 +563,8 @@ def main() -> int:
     israel_view = project(ops.unary_union([land_ll, ocha["gaza"]]))
     minx, miny, maxx, maxy = israel_view.bounds
     window_itm = project(WINDOW)
-    elevation = json.loads((ROOT / "content" / "elevation.json").read_text())
-    if [elevation["minX"], elevation["maxY"]] != [round(window_itm.bounds[0]), round(window_itm.bounds[3])]:
+    grids = {g["name"]: g for g in json.loads((ROOT / "content" / "elevation.json").read_text())["grids"]}
+    if [grids["coarse"]["minX"], grids["coarse"]["maxY"]] != [round(window_itm.bounds[0]), round(window_itm.bounds[3])]:
         print("content/elevation.json does not match the map window: rerun tools/fetch_sources.py", file=sys.stderr)
         return 1
     map_json = {
@@ -582,8 +583,10 @@ def main() -> int:
             {"id": "regions", "lines": encode_lines(outlines(region_geoms, land_area))},
             {"id": "green_line", "lines": encode_lines(green_line)},
         ],
-        # Ground height for the relief style, in elevation.bin (copied from content/).
-        "elevation": {k: elevation[k] for k in ("minX", "maxY", "cell", "width", "height")},
+        # Ground height for the terrain styles, in elevation_<name>.bin (copied from content/).
+        "elevation": [
+            {k: g[k] for k in ("name", "minX", "maxY", "cell", "width", "height")} for g in grids.values()
+        ],
         "attribution": "Israel Central Bureau of Statistics; Ministry of Agriculture; UN OCHA; "
                        "GeoNames (CC BY 4.0); © OpenStreetMap contributors (ODbL); "
                        "Copernicus DEM © DLR e.V., © Airbus Defence and Space GmbH, "
@@ -595,9 +598,11 @@ def main() -> int:
     (ASSETS / "places.json").write_text(
         json.dumps({"version": 1, "places": places}, ensure_ascii=False, separators=(",", ":"))
     )
-    (ASSETS / "elevation.bin").write_bytes((ROOT / "content" / "elevation.bin").read_bytes())
-    (ASSETS / "contours.json").write_text(json.dumps(contours(elevation), separators=(",", ":")))
-    for f in ("map.json", "places.json", "elevation.bin", "contours.json"):
+    for name in grids:
+        (ASSETS / f"elevation_{name}.bin").write_bytes((ROOT / "content" / f"elevation_{name}.bin").read_bytes())
+    labels = contour_labels(grids["detail"])
+    (ASSETS / "contour_labels.json").write_text(json.dumps(labels, separators=(",", ":")))
+    for f in ("map.json", "places.json", "contour_labels.json", *(f"elevation_{n}.bin" for n in grids)):
         print(f"{f}: {(ASSETS / f).stat().st_size // 1024} KB")
     print(f"{len(places)} places")
     return 0

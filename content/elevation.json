@@ -2,10 +2,23 @@
   "source": "Copernicus DEM GLO-90 (c) DLR e.V. 2010-2014 and (c) Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA",
   "fetched": "2026-10-20",
   "crs": "EPSG:2039",
-  "minX": -35820,
-  "maxY": 903384,
-  "cell": 300,
-  "width": 1503,
-  "height": 2149,
-  "format": "int16 little endian meters, rows north to south"
+  "format": "int16 little endian meters, rows north to south, each row as differences from the cell before",
+  "grids": [
+    {
+      "name": "coarse",
+      "minX": -35820,
+      "maxY": 903384,
+      "cell": 300,
+      "width": 1503,
+      "height": 2149
+    },
+    {
+      "name": "detail",
+      "minX": 113600,
+      "maxY": 816500,
+      "cell": 100,
+      "width": 1825,
+      "height": 4505
+    }
+  ]
 }

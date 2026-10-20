@@ -22,7 +22,7 @@ asked. Installing a newer build updates the app and keeps your progress.
 
 ![Phase 1c: welcome, placement test, home with the reminder offer, progress, settings in dark mode, and the dark map with the Green Line](docs/images/phase1c-flow.png)
 
-![Map styles: the choice in settings with live previews, then relief and contour lines in light and dark](docs/images/map-styles.png)
+![Map styles: the choice in settings, then the topographic and relief maps zoomed in on the Dead Sea, and both in dark mode](docs/images/map-styles.png)
 
 ![Phase 1d: the map test (no feedback between questions), its summary, the post-test offer a month later, and the progress screen with map test results and learning stats](docs/images/phase1d-flow.png)
 
@@ -81,7 +81,7 @@ The design is built on the most robust findings in learning science:
 | `content/natural_regions.geojson` | Official natural regions (CBS; Ministry of Agriculture for Judea and Samaria): the land's outline, the regions and the districts |
 | `content/localities.csv` | CBS locality file: official points of the cities and towns |
 | `content/jordan_river.geojson` | The Jordan River from OpenStreetMap |
-| `content/elevation.bin`, `content/elevation.json` | Ground height on a 300 m grid (Copernicus DEM GLO-90), for the relief and contour styles |
+| `content/elevation_*.bin`, `content/elevation.json` | Ground height on a 100 m grid over Israel and a 300 m grid around it (Copernicus DEM GLO-90), for the relief and topographic styles |
 | `tools/fetch_sources.py` | Refreshes the source files in `content/` |
 | `content/surroundings.geojson`, `content/palestine.geojson` | Coastlines, neighbors and the Dead Sea (OpenStreetMap); Gaza and the Green Line (UN OCHA) |
 | `tools/build_content.py` | Data pipeline: the files above + `places.yaml` into `app/src/main/assets/` |

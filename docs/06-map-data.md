@@ -56,10 +56,14 @@ How the map is built:
   shared border.
 
 - **Terrain (relief and topographic styles):** the Copernicus DEM GLO-90 (90 m),
-  box-averaged to 270 m and sampled onto a 300 m grid on the Israeli TM projection
-  over the map window (`content/elevation.bin`, described by `content/elevation.json`).
-  The app shades it into the relief; `tools/build_content.py` traces the contour lines
-  (every 100 m, after a light blur and corner rounding) into `contours.json`.
+  sampled onto two grids on the Israeli TM projection: 300 m over the map window
+  (box-averaged to 270 m first) and 100 m over Israel's home view with 12 km to spare
+  (`content/elevation_coarse.bin`, `content/elevation_detail.bin`, described by
+  `content/elevation.json`; each row stored as differences from the cell before, which
+  compresses three times better). The app draws the relief and the contour lines from
+  them on the phone. `tools/build_content.py` places the heights written along the
+  index contours (`contour_labels.json`), traced on the detail grid after the same
+  smoothing the app applies, so each label sits on its line.
 
 Licensing notes:
 - The Copernicus DEM is free to use with attribution: "Copernicus DEM (c) DLR e.V.
