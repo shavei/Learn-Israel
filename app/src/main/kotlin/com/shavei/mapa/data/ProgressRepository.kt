@@ -27,7 +27,6 @@ import com.shavei.mapa.learning.fsrs.Rating
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.math.roundToLong
 
 /** Where an answer was given. Only practice answers make a day of practice. */
 enum class AnswerSource {
@@ -175,7 +174,6 @@ class ProgressRepository(
                 answer = when (val r = answer.response) {
                     is Response.Choice -> r.placeId
                     is Response.Typed -> r.text
-                    is Response.Drawn -> encodePath(r.path)
                     is Response.Tap, is Response.Moved -> null
                 },
                 responseMs = answer.responseMs,
@@ -188,7 +186,6 @@ class ProgressRepository(
                     is Question.Locate -> q.hint
                     is Question.NameChoice -> q.hint
                     is Question.Build -> q.hint
-                    is Question.Trace -> q.hint
                     else -> false
                 },
                 tappedNear = answer.tappedNear?.id,
@@ -202,19 +199,10 @@ class ProgressRepository(
         is Question.NameTyped -> "NAME_TYPED"
         is Question.Relate -> "RELATE"
         is Question.Build -> "BUILD"
-        is Question.Trace -> "TRACE"
-    }
-
-    /** A drawn path as "x,y;x,y;..." in whole meters, at most [MAX_PATH_POINTS] points. */
-    private fun encodePath(path: List<MapPoint>): String {
-        val step = maxOf(1, (path.size + MAX_PATH_POINTS - 1) / MAX_PATH_POINTS)
-        val kept = path.filterIndexed { i, _ -> i % step == 0 || i == path.lastIndex }
-        return kept.joinToString(";") { "${it.x.roundToLong()},${it.y.roundToLong()}" }
     }
 
     private companion object {
         const val PLACEMENT = "PLACEMENT"
         const val MAP_TEST = "MAP_TEST"
-        const val MAX_PATH_POINTS = 200
     }
 }

@@ -6,7 +6,6 @@ import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.geo.Polygon
 import com.shavei.mapa.geo.Shape
-import com.shavei.mapa.geo.samplePoints
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
 import com.shavei.mapa.learning.fsrs.FsrsCard
@@ -44,7 +43,6 @@ class SessionEngineTest {
         is Question.NameTyped -> Response.Typed(if (correct) q.place.name else "לא יודע")
         is Question.Relate -> Response.Choice(if (correct) q.correct.id else q.options.first { it != q.correct }.id)
         is Question.Build -> Response.Moved(0.0, if (correct) 0.0 else 90_000.0)
-        is Question.Trace -> Response.Drawn(samplePoints((q.place.shape as Shape.Lines).lines, 20).map { MapPoint(it.x, it.y + if (correct) 0.0 else 90_000.0) })
     }
 
     /** Plays a whole session; [correct] decides whether each answer is right. */

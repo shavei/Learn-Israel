@@ -70,12 +70,12 @@ sealed interface MapDecoration {
     /** An area drawn [dx] meters east and [dy] meters north of where it lies: a Map Builder shape. */
     data class Moved(val shape: Shape.Area, val dx: Double, val dy: Double, val color: Color, val alpha: Float = 0.45f) : MapDecoration
 
-    /** A path drawn by the player in Trace It. */
+    /** A path across the map: a road trip's route. */
     data class Drawing(val path: List<MapPoint>, val color: Color) : MapDecoration
 }
 
 /**
- * One-finger drags on the map, in map meters, for Map Builder and Trace It. Two fingers
+ * One-finger drags on the map, in map meters, for Map Builder. Two fingers
  * still pan and zoom; a second finger coming down makes the drag so far the start of a
  * pinch, so it is [cancel]led.
  */
@@ -122,14 +122,6 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         val visibleHeight = (size.height - padTop - padBottom).coerceAtLeast(size.height * 0.4f)
         homeScale = min(size.width / padded.width, visibleHeight / padded.height)
         if (resetView) reset()
-    }
-
-    /** Frames [b] in the visible part of the screen, zoomed in as far as it allows. */
-    fun show(b: Bounds) {
-        if (homeScale == 0.0) return
-        val visibleHeight = (size.height - padTop - padBottom).coerceAtLeast(size.height * 0.4f)
-        scale = min(size.width / b.width, visibleHeight / b.height).coerceIn(homeScale * 0.5, homeScale * 12)
-        center = centerPlacing(b.center, visibleCenterY(padTop, padBottom))
     }
 
     /** Frames all of Israel in the visible part of the screen. */
@@ -199,10 +191,8 @@ fun MapView(
     /** What a screen reader says about the map. */
     description: String? = null,
     onTap: ((MapPoint) -> Unit)? = null,
-    /** One-finger drags move a shape or draw (two fingers pan and zoom); null for the usual pan and zoom. */
+    /** One-finger drags move a shape (two fingers pan and zoom); null for the usual pan and zoom. */
     onDrag: MapDrag? = null,
-    /** False while the player traces the Jordan, which the base map would otherwise show. */
-    showRivers: Boolean = true,
     /** False for a still picture of the map, such as the style previews in settings. */
     interactive: Boolean = true,
     look: MapLook = LocalMapLook.current,
@@ -256,9 +246,7 @@ fun MapView(
                 layers.regions, colors.regionOutline,
                 style = Stroke(width = px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f * px, 4f * px))),
             )
-            if (showRivers) {
-                drawPath(layers.rivers, colors.river, style = Stroke(width = 2f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
+            drawPath(layers.rivers, colors.river, style = Stroke(width = 2f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
             drawPath(layers.lakes, colors.lake)
             if (showGreenLine) drawPath(layers.greenLine, colors.greenLine, style = Stroke(width = 1.5f * px))
 

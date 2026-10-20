@@ -46,12 +46,18 @@ data class SessionConfig(
     /** Extra practice after the daily work is done: review places early, weakest first. */
     val strengthenWeakest: Boolean = false,
     /**
-     * A Map Builder or Trace It round from home: only places of the drill's kind that the
-     * player has already met, each asked that way, weakest first. Null for a usual session.
+     * A Map Builder round from home: only regions and districts the player has already
+     * met, each asked that way, weakest first. Null for a usual session.
      */
     val drill: Drill? = null,
-    /** How often a due review of a region, a district or a line is its drill instead of Pin It. */
+    /** How often a due review of a region or a district is its drill instead of Pin It. */
     val drillShare: Double = 0.5,
+    /**
+     * Focused practice from home, run by the answer log alone ([Focus]): the cards most in
+     * need by their tally, each asked once and a miss once more. Answers are logged but
+     * leave the scheduler's cards as they were.
+     */
+    val focus: Boolean = false,
 )
 
 /**
@@ -85,6 +91,10 @@ class SessionEngine(
     private var pendingContrast: CardKey? = null
     private var current: Question? = null
 
+    /** Focused practice: the cards still to ask, in order, and those already sent back once after a miss. */
+    private val focusQueue: ArrayDeque<CardKey> by lazy { ArrayDeque(Focus.plan(cards, tallies, config.size)) }
+    private val focusRetried = mutableSetOf<CardKey>()
+
     override val answers: List<Answer> get() = _answers
     fun card(key: CardKey): StudyCard? = cards[key]
     fun card(placeId: String, facet: Facet = Facet.LOCATE) = cards[CardKey(placeId, facet)]
@@ -111,6 +121,12 @@ class SessionEngine(
         val key = question.key
         val before = cards[key]
         val grade = grade(question, response, responseMs, firstReview = before == null, stability = before?.fsrs?.stability)
+        // Focused practice feeds only the answer log: the card keeps its schedule. A miss comes back once, at the end.
+        if (config.focus && before != null) {
+            if (!grade.isCorrect && focusRetried.add(key)) focusQueue.addLast(key)
+            history += key
+            return Answer(question, response, grade, responseMs, before, before, now).also { _answers += it }
+        }
         val fsrs = scheduler.review(before?.fsrs ?: FsrsCard(due = now), grade.rating, now)
         // Anything but a clean miss counts as progress, so a hinted success turns hints off.
         val after = StudyCard(fsrs, struggles = if (grade.rating != Rating.AGAIN) 0 else (before?.struggles ?: 0) + 1)
@@ -126,13 +142,13 @@ class SessionEngine(
     private fun grade(q: Question, r: Response, ms: Long, firstReview: Boolean, stability: Double?): Grade = when (q) {
         is Question.Locate -> Grader.grade(q.place, (r as Response.Tap).at, ms, firstReview, q.hint, stability)
         is Question.Build -> (r as Response.Moved).let { Grader.gradeBuild(q.place, it.dx, it.dy, ms, firstReview, q.hint, stability) }
-        is Question.Trace -> Grader.gradeTrace(q.place, (r as Response.Drawn).path, ms, firstReview, q.hint, stability)
         is Question.NameChoice -> Grader.gradeChoice((r as Response.Choice).placeId == q.place.id, q.hint)
         is Question.NameTyped -> Grader.gradeTyped(q.place, (r as Response.Typed).text, ms)
         is Question.Relate -> Grader.gradeChoice((r as Response.Choice).placeId == q.correct.id)
     }
 
     private fun pick(now: Long, gap: Int): Question? {
+        if (config.focus) return pickFocus(now)
         config.drill?.let { return pickDrill(it, now, gap) }
         val recent = history.takeLast(gap).toSet()
         val placesByFacet = history.groupBy({ it.placeId }, { it.facet })
@@ -219,6 +235,12 @@ class SessionEngine(
             .firstNotNullOfOrNull { question(it.key, now) }
     }
 
+    /** Focused practice: the next card in its plan that makes a question (a relation needs a known city). */
+    private fun pickFocus(now: Long): Question? {
+        while (focusQueue.isNotEmpty()) question(focusQueue.removeFirst(), now)?.let { return it }
+        return null
+    }
+
     /** The facet ladder: name and relate a place once finding it has been stable for a week. */
     private fun isUnlocked(key: CardKey): Boolean {
         val locate = cards[CardKey(key.placeId, Facet.LOCATE)] ?: return false
@@ -247,19 +269,15 @@ class SessionEngine(
     }
 
     /**
-     * Finding a place: Pin It, or for a region, a district, a river or a stream sometimes
-     * its drill (Map Builder, Trace It) instead, once the place is in review. A drill round
-     * asks every place its way; a struggling player gets Pin It in the daily session.
+     * Finding a place: Pin It, or for a region or a district sometimes Map Builder instead,
+     * once the place is in review. A drill round asks every place its way; a struggling
+     * player gets Pin It in the daily session.
      */
     private fun locateQuestion(place: Place, card: StudyCard?, hint: Boolean): Question {
         val drill = Drill.of(place.type)
-        val useDrill = drill != null && card != null &&
+        val useDrill = drill != null && card != null && !config.focus &&
             (config.drill == drill || (card.isReview && !hint && random.nextDouble() < config.drillShare))
-        return when {
-            !useDrill -> Question.Locate(place, isNew = card == null, hint = hint)
-            drill == Drill.BUILD -> Question.Build(place, Drill.buildStart(content.map.home), hint)
-            else -> Question.Trace(place, Drill.traceView(place.shape as Shape.Lines, random), hint)
-        }
+        return if (useDrill) Question.Build(place, Drill.buildStart(content.map.home), hint) else Question.Locate(place, isNew = card == null, hint = hint)
     }
 
     /**

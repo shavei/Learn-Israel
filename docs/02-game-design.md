@@ -81,18 +81,19 @@ shape, so the start gives nothing away); one finger drags it, two fingers pan an
 the map, and "here" hands it in. Scored by how far it lands from its place. Satisfying
 and very tactile on a phone.
 
-### 6. Trace It (facet: `LOCATE` for lines)
-Draw the course of the Jordan River or a stream (the Yarkon, the Kishon, the Alexander,
-the Ayalon, the Sorek, the Besor, the Dan, the Hermon) with a finger; later Route 6 and
-the other highways. The map opens on the line's surroundings, never centered on it.
-Scored by the mean distance between the drawing and the true line, both ways, so
-drawing half the river or a line beside it both cost. Craters are too short to trace
-and stay Pin It only.
+Map Builder practices the same `LOCATE` card as Pin It. In the daily session, a due
+review of a region or a district is its Map Builder question half of the time; places
+still being learned, and struggling places, get Pin It. Home also offers a round of
+it, on the regions and districts the player has met.
 
-Both modes practice the same `LOCATE` card as Pin It. In the daily session, a due
-review of a region, a district or a line is its Map Builder or Trace It question half
-of the time; places still being learned, and struggling places, get Pin It. Home also
-offers a round of each, on the places of its kind the player has met.
+### 6. Focused practice (any facet)
+A round of 10 run entirely by the answer log, not by the scheduler. Every place the
+player has met can come up, the ones most in need first: missed most in their last 10
+answers, and answered least so far, even when those answers were right. Each place is
+asked one way, the skill (find, name, relate) its log shows the most need for, and a
+miss comes back once at the end of the round. Answers are logged, so the round adapts
+as the player improves, but they leave the schedule as it was. It replaced Trace It
+(drawing a river with a finger), which was removed; rivers and streams are Pin It only.
 
 ### 7. Road Trip (free play)
 A chain of stops: "You start in Ashdod. Drive on to Rehovot, then Herzliya, Netanya and

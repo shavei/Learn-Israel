@@ -27,6 +27,8 @@
 | 21 | Can a rank go down? (2026-10-20) | Yes: the rank always follows the places known today | A rank means real knowledge; a forgotten place costs a step until it is relearned |
 | 22 | Are achievements kept once earned? (2026-10-20) | Yes: stored with the date first earned | Earned moments are not taken back; the map and the rank carry the honest current state |
 | 23 | When does a pair of places become a learned confusable? (2026-10-20) | After 2 confusions, either way round, for that player | Pairs appear quickly from real mistakes; global pairs wait for the log upload (2e) |
+| 24 | Trace It, or a mode run by the answer log? (2026-10-20) | Focused practice replaces Trace It on home, and Trace It is removed everywhere | Rivers and streams are found with Pin It only; older logs keep their TRACE answers |
+| 25 | What does focused practice ask, and does it move the schedule? (2026-10-20) | Every place met, by one score of recent misses and few answers; 10 places, each the way most in need, a miss once more; answers update the tally only | The round adapts to the player without pulling reviews earlier or pushing them later |
 
 ## Still open
 

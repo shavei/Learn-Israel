@@ -38,7 +38,6 @@ import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.learning.Blitz
-import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.learning.Rank
 import com.shavei.mapa.ui.Panel
 import com.shavei.mapa.ui.formatTime
@@ -58,8 +57,10 @@ fun HomeScreen(
     onProgress: () -> Unit,
     onSettings: () -> Unit,
     onMapTest: () -> Unit,
-    /** A Map Builder or Trace It round. */
-    onDrill: (Drill) -> Unit,
+    /** A Map Builder round. */
+    onBuild: () -> Unit,
+    /** Focused practice: the places most in need by the answer log. */
+    onFocus: () -> Unit,
     onBlitz: () -> Unit,
     onRoadTrip: () -> Unit,
 ) {
@@ -153,14 +154,15 @@ fun HomeScreen(
                         ),
                     )
                 }
-                // Free choice of the hands-on modes, on places already met (the daily session mixes them in too).
-                if (state.buildPlaces + state.tracePlaces > 0) {
+                // On places already met: Map Builder (the daily session mixes it in too), and
+                // focused practice on the places the answer log says need it most.
+                if (state.learned > 0) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { onDrill(Drill.BUILD) }, Modifier.weight(1f), enabled = state.buildPlaces > 0) {
+                        OutlinedButton(onClick = onBuild, Modifier.weight(1f), enabled = state.buildPlaces > 0) {
                             Text(stringResource(R.string.home_build))
                         }
-                        OutlinedButton(onClick = { onDrill(Drill.TRACE) }, Modifier.weight(1f), enabled = state.tracePlaces > 0) {
-                            Text(stringResource(R.string.home_trace))
+                        OutlinedButton(onClick = onFocus, Modifier.weight(1f)) {
+                            Text(stringResource(R.string.home_focus))
                         }
                     }
                 }

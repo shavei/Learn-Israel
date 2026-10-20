@@ -1,7 +1,6 @@
 package com.shavei.mapa.learning
 
 import com.shavei.mapa.content.Place
-import com.shavei.mapa.geo.Bounds
 import com.shavei.mapa.geo.MapPoint
 
 /** One question in a session. Every question practices exactly one card. */
@@ -20,11 +19,6 @@ sealed interface Question {
      * its center at [start], into its place on the outline.
      */
     data class Build(override val place: Place, val start: MapPoint, val hint: Boolean) : Question {
-        override val facet get() = Facet.LOCATE
-    }
-
-    /** Trace It: draw the course of [place] (a river or a stream) on the map, which opens on [view]. */
-    data class Trace(override val place: Place, val view: Bounds, val hint: Boolean) : Question {
         override val facet get() = Facet.LOCATE
     }
 
@@ -67,9 +61,6 @@ sealed interface Response {
 
     /** Map Builder: the shape was dropped [dx] meters east and [dy] meters north of its place. */
     data class Moved(val dx: Double, val dy: Double) : Response
-
-    /** Trace It: the path the player drew, in the order drawn. */
-    data class Drawn(val path: List<MapPoint>) : Response
 }
 
 data class Answer(
