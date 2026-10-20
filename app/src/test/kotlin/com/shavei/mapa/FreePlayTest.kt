@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -68,9 +69,11 @@ class FreePlayTest {
         seed()
         SessionViewModel.blitzDurationMs = 10_000
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("עוד דרכים לתרגל")
+            compose.onNodeWithText("עוד דרכים לתרגל").performScrollTo().performClick()
             waitForText("בליץ")
             Screenshots.save(scenario, "f0-home-free-play")
-            compose.onNodeWithText("בליץ").performClick()
+            compose.onNodeWithText("בליץ").performScrollTo().performClick()
             waitForText("התחילו!")
             Screenshots.save(scenario, "f1-blitz-ready")
             compose.onNodeWithText("התחילו!").performClick()
@@ -103,8 +106,10 @@ class FreePlayTest {
     fun aRoadTripGoesFromStopToStop() {
         seed()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("עוד דרכים לתרגל")
+            compose.onNodeWithText("עוד דרכים לתרגל").performScrollTo().performClick()
             waitForText("מסע בדרכים")
-            compose.onNodeWithText("מסע בדרכים").performClick()
+            compose.onNodeWithText("מסע בדרכים").performScrollTo().performClick()
             waitForText("יוצאים לדרך")
             Screenshots.save(scenario, "f4-trip-start")
             compose.onNodeWithText("יוצאים לדרך").performClick()

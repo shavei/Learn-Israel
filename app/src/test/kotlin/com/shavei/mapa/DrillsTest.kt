@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
@@ -57,9 +58,11 @@ class DrillsTest {
     fun mapBuilderDragsARegionIntoPlace() {
         seed("region.sharon", "city.tel_aviv")
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("עוד דרכים לתרגל")
+            compose.onNodeWithText("עוד דרכים לתרגל").performScrollTo().performClick()
             waitForText("הרכבת המפה")
             Screenshots.save(scenario, "b0-home-drills")
-            compose.onNodeWithText("הרכבת המפה").performClick()
+            compose.onNodeWithText("הרכבת המפה").performScrollTo().performClick()
 
             waitForText("גררו למקום: השרון")
             Screenshots.save(scenario, "b1-build-start")
@@ -108,8 +111,10 @@ class DrillsTest {
         }
         val cardsBefore = runBlocking { dao.cards() }
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("עוד דרכים לתרגל")
+            compose.onNodeWithText("עוד דרכים לתרגל").performScrollTo().performClick()
             waitForText("אימון ממוקד")
-            compose.onNodeWithText("אימון ממוקד").performClick()
+            compose.onNodeWithText("אימון ממוקד").performScrollTo().performClick()
 
             // The most missed first, then the never answered, then the one always right.
             val asked = mutableListOf<String>()
