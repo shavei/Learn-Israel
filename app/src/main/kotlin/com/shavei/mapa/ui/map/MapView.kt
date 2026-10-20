@@ -13,7 +13,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
@@ -29,12 +31,18 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shavei.mapa.content.ContourLabel
+import com.shavei.mapa.content.Contours
 import com.shavei.mapa.content.MapData
 import com.shavei.mapa.data.MapStyle
 import com.shavei.mapa.geo.Bounds
@@ -134,6 +142,13 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         ((center.y - p.y) * scale + size.height / 2).toFloat(),
     )
 
+    /** The part of the map on screen. */
+    fun view(): Bounds {
+        val a = toMap(Offset.Zero)
+        val b = toMap(Offset(size.width.toFloat(), size.height.toFloat()))
+        return Bounds(minOf(a.x, b.x), minOf(a.y, b.y), maxOf(a.x, b.x), maxOf(a.y, b.y))
+    }
+
     fun toMap(o: Offset) = MapPoint(
         center.x + (o.x - size.width / 2) / scale,
         center.y - (o.y - size.height / 2) / scale,
@@ -168,6 +183,8 @@ fun MapView(
     /** False for a still picture of the map, such as the style previews in settings. */
     interactive: Boolean = true,
     look: MapLook = LocalMapLook.current,
+    /** Terrain to draw instead of the style's own (a small preview picture). */
+    terrainOverride: TerrainLayers? = null,
 ) {
     val colors = LocalMapPalette.current
     // Paths are built once in map meters relative to an origin near Israel, which keeps
@@ -176,8 +193,9 @@ fun MapView(
     val layers = remember(map) { BaseLayers.build(map, origin) }
     val pathCache = remember(map) { HashMap<Shape, Path>() }
     val textMeasurer = rememberTextMeasurer()
-    val terrain = rememberTerrainLayer(look, colors)
+    val terrain = rememberTerrainLayer(look, colors, terrainOverride)
     val topographic = look.style == MapStyle.TOPOGRAPHIC
+    val heightLabels = remember(colors) { HeightLabels(textMeasurer, colors) }
 
     Canvas(
         modifier = modifier
@@ -202,31 +220,16 @@ fun MapView(
             drawPath(layers.gaza, if (topographic) colors.topoNeighbor else colors.gaza)
             drawPath(layers.land, if (topographic) colors.topoLand else colors.land)
             val fade = terrain.fade
-            terrain.relief?.let { relief ->
-                clipPath(layers.ground) {
-                    withTransform({
-                        translate((relief.minX - origin.x).toFloat(), (relief.maxY - origin.y).toFloat())
-                        scale(relief.cell.toFloat(), -relief.cell.toFloat(), pivot = Offset.Zero)
-                    }) {
-                        drawImage(
-                            relief.image,
-                            dstSize = IntSize(relief.image.width, relief.image.height),
-                            alpha = fade,
-                            filterQuality = FilterQuality.Low,
-                        )
+            // Terrain over Israel only; the neighbors stay flat.
+            terrain.layers?.let { terrainLayers ->
+                clipPath(layers.land) {
+                    for (tile in terrainLayers.tiles) drawTile(tile, origin, fade)
+                    // Contour lines for what is on screen, at the screen's resolution.
+                    terrainLayers.contours?.let { contours ->
+                        contours.version // redraw as tiles arrive
+                        for (tile in contours.visible(camera.view(), Contours.levelFor(camera.scale))) drawTile(tile, origin, fade)
                     }
                 }
-            }
-            terrain.contours?.let { contours ->
-                val dp = density * px
-                clipPath(layers.ground) {
-                    drawPath(contours.lines, colors.contour, alpha = fade, style = Stroke(width = 0.7f * dp, join = StrokeJoin.Round))
-                    drawPath(contours.index, colors.indexContour, alpha = fade, style = Stroke(width = 1.3f * dp, join = StrokeJoin.Round))
-                }
-            }
-            if (terrain.relief != null || terrain.contours != null) {
-                drawPath(layers.neighbors, colors.terrainWash, alpha = fade)
-                drawPath(layers.gaza, colors.terrainWash, alpha = fade)
             }
             drawPath(layers.neighbors, colors.border, style = Stroke(width = px))
             drawPath(layers.gaza, colors.border, style = Stroke(width = px))
@@ -252,6 +255,8 @@ fun MapView(
             }
         }
 
+        terrain.layers?.labels?.let { heightLabels.draw(this, it, camera, terrain.fade) }
+
         for (d in decorations) when (d) {
             is MapDecoration.Highlight -> if (d.shape is Shape.Point) {
                 val c = camera.toScreen(d.shape.at)
@@ -273,8 +278,8 @@ fun MapView(
                 drawRoundRect(
                     colors.labelBox,
                     topLeft = topLeft - Offset(8f, 4f),
-                    size = androidx.compose.ui.geometry.Size(layout.size.width + 16f, layout.size.height + 8f),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f),
+                    size = Size(layout.size.width + 16f, layout.size.height + 8f),
+                    cornerRadius = CornerRadius(10f),
                 )
                 drawText(layout, topLeft = topLeft)
             }
@@ -282,8 +287,18 @@ fun MapView(
     }
 }
 
+/** Draws a terrain image where it lies, inside [inMapSpace]. */
+private fun DrawScope.drawTile(tile: TerrainTile, origin: MapPoint, alpha: Float) {
+    withTransform({
+        translate((tile.minX - origin.x).toFloat(), (tile.maxY - origin.y).toFloat())
+        scale(tile.cell.toFloat(), -tile.cell.toFloat(), pivot = Offset.Zero)
+    }) {
+        drawImage(tile.image, dstSize = IntSize(tile.image.width, tile.image.height), alpha = alpha, filterQuality = FilterQuality.Low)
+    }
+}
+
 /** What the current style draws over the flat ground, and how far it has faded in (0 to 1). */
-private class TerrainLayer(val relief: ReliefImage?, val contours: ContourPaths?, val fade: Float)
+private class TerrainLayer(val layers: TerrainLayers?, val fade: Float)
 
 /**
  * The terrain of [look]'s style for [palette]. Shown at once when it is already built (the
@@ -291,27 +306,65 @@ private class TerrainLayer(val relief: ReliefImage?, val contours: ContourPaths?
  * faded in over the flat map as soon as it is ready, so switching never flashes.
  */
 @Composable
-private fun rememberTerrainLayer(look: MapLook, palette: MapPalette): TerrainLayer {
+private fun rememberTerrainLayer(look: MapLook, palette: MapPalette, override: TerrainLayers?): TerrainLayer {
+    if (override != null) return TerrainLayer(override, 1f)
     val terrain = look.terrain
     val style = look.style
-    var relief by remember(terrain, style, palette) {
-        mutableStateOf(if (style == MapStyle.RELIEF) terrain?.readyRelief(palette) else null)
+    var layers by remember(terrain, style, palette) {
+        mutableStateOf(if (style == MapStyle.STANDARD) null else terrain?.ready(style, palette))
     }
-    var contours by remember(terrain, style) {
-        mutableStateOf(if (style == MapStyle.TOPOGRAPHIC) terrain?.readyContours() else null)
-    }
-    val fade = remember(terrain, style, palette) { Animatable(if (relief != null || contours != null) 1f else 0f) }
+    val fade = remember(terrain, style, palette) { Animatable(if (layers != null) 1f else 0f) }
     LaunchedEffect(terrain, style, palette) {
-        if (terrain == null) return@LaunchedEffect
-        when (style) {
-            MapStyle.STANDARD -> return@LaunchedEffect
-            MapStyle.RELIEF -> if (relief == null) relief = terrain.relief(palette)
-            MapStyle.TOPOGRAPHIC -> if (contours == null) contours = terrain.contours()
-        }
+        if (terrain == null || style == MapStyle.STANDARD) return@LaunchedEffect
+        if (layers == null) layers = terrain.layers(style, palette)
         fade.animateTo(1f, tween(TERRAIN_FADE_MS))
     }
-    return TerrainLayer(relief, contours, fade.value)
+    return TerrainLayer(layers, fade.value)
 }
+
+/**
+ * Heights written along the index contours of the topographic map, as on a printed
+ * sheet: upright, following the line, on a patch of paper that interrupts it. Labels
+ * keep a distance from each other, so the map never fills with numbers at any zoom.
+ */
+private class HeightLabels(private val measurer: TextMeasurer, private val colors: MapPalette) {
+    private val layouts = HashMap<Int, TextLayoutResult>()
+    private val style = TextStyle(
+        fontSize = 11.sp, fontWeight = FontWeight.Medium, color = colors.indexContour, textDirection = TextDirection.Ltr,
+    )
+
+    fun draw(scope: DrawScope, labels: List<ContourLabel>, camera: MapCamera, alpha: Float) = with(scope) {
+        if (labels.isEmpty()) return@with
+        // Only the darker index lines of this zoom carry heights (the labels exist every 100 m).
+        val every = maxOf(100, Contours.levels[Contours.levelFor(camera.scale)].index)
+        val spacing = 96.dp.toPx()
+        val placed = ArrayList<Offset>()
+        for (label in labels) {
+            if (label.elevation % every != 0) continue
+            val at = camera.toScreen(MapPoint(label.x, label.y))
+            if (at.x !in 0f..size.width || at.y !in 0f..size.height) continue
+            if (placed.any { (it - at).getDistanceSquared() < spacing * spacing }) continue
+            placed += at
+            val layout = layouts.getOrPut(label.elevation) { measurer.measure(label.elevation.toString(), style) }
+            // The map's y runs north, the screen's south; turn the text so it never reads upside down.
+            var angle = -label.angleDegrees
+            if (angle > 90f) angle -= 180f
+            if (angle <= -90f) angle += 180f
+            val w = layout.size.width.toFloat()
+            val h = layout.size.height.toFloat()
+            withTransform({ rotate(angle, pivot = at) }) {
+                drawRoundRect(
+                    colors.topoLand, topLeft = Offset(at.x - w / 2 - 3f, at.y - h / 2),
+                    size = Size(w + 6f, h), cornerRadius = CornerRadius(h / 2), alpha = 0.9f * alpha,
+                )
+                drawText(layout, topLeft = Offset(at.x - w / 2, at.y - h / 2), alpha = alpha)
+            }
+            if (placed.size >= MAX_HEIGHT_LABELS) break
+        }
+    }
+}
+
+private const val MAX_HEIGHT_LABELS = 40
 
 private const val TERRAIN_FADE_MS = 450
 
@@ -331,8 +384,6 @@ private class BaseLayers(
     val neighbors: Path,
     val gaza: Path,
     val land: Path,
-    /** Everything that is not sea: where the terrain styles draw. */
-    val ground: Path,
     val lakes: Path,
     val rivers: Path,
     val regions: Path,
@@ -342,10 +393,8 @@ private class BaseLayers(
         fun build(map: MapData, origin: MapPoint): BaseLayers {
             fun polys(id: String) = polygonsPath(map.layer(id)?.polygons.orEmpty(), origin)
             fun lines(id: String) = linesPath(map.layer(id)?.lines.orEmpty(), origin)
-            val ground = polygonsPath(listOf("neighbors", "gaza", "land").flatMap { map.layer(it)?.polygons.orEmpty() }, origin)
             return BaseLayers(
-                polys("neighbors"), polys("gaza"), polys("land"), ground, polys("lakes"), lines("rivers"), lines("regions"),
-                lines("green_line"),
+                polys("neighbors"), polys("gaza"), polys("land"), polys("lakes"), lines("rivers"), lines("regions"), lines("green_line"),
             )
         }
     }

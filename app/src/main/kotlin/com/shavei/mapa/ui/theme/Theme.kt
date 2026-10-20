@@ -85,14 +85,12 @@ data class MapPalette(
     val reliefTint: List<Pair<Int, Color>>,
     val reliefShade: Double,
     val reliefHighlight: Double,
-    /** Topographic style: paper, sea and the contour lines (every 100 m, index every 500 m). */
+    /** Topographic style: paper, sea and the contour lines (every 25 m, an index line every 100 m). */
     val topoLand: Color,
     val topoNeighbor: Color,
     val topoSea: Color,
     val contour: Color,
     val indexContour: Color,
-    /** Laid over the neighbors and Gaza in the terrain styles, so Israel stays in focus. */
-    val terrainWash: Color,
 )
 
 val LightMapPalette = MapPalette(
@@ -123,14 +121,14 @@ val LightMapPalette = MapPalette(
         550 to Color(0xFFE2D9AA), 800 to Color(0xFFDCC290), 1100 to Color(0xFFCDA97D), 1600 to Color(0xFFC2A78B),
         2200 to Color(0xFFDCD0C3), 2900 to Color(0xFFF2EEE9),
     ),
-    reliefShade = 0.65,
-    reliefHighlight = 0.35,
-    topoLand = Color(0xFFE6DFC8),
-    topoNeighbor = Color(0xFFDDD6C0),
-    topoSea = Color(0xFFB7CEDB),
-    contour = Color(0xB36E6352),
-    indexContour = Color(0xE64A4134),
-    terrainWash = Color(0x8CF1EEE7),
+    reliefShade = 0.6,
+    reliefHighlight = 0.3,
+    // The classic topographic sheet: brown contours on a soft green.
+    topoLand = Color(0xFFD5E6BC),
+    topoNeighbor = Color(0xFFE4E0D8),
+    topoSea = Color(0xFFB4D4E4),
+    contour = Color(0xFFB0683A),
+    indexContour = Color(0xFF8A4A22),
 )
 
 val DarkMapPalette = MapPalette(
@@ -161,14 +159,13 @@ val DarkMapPalette = MapPalette(
         550 to Color(0xFF4B4B3A), 800 to Color(0xFF4F4637), 1100 to Color(0xFF524334), 1600 to Color(0xFF4E4439),
         2200 to Color(0xFF5E5850), 2900 to Color(0xFF77736D),
     ),
-    reliefShade = 0.65,
+    reliefShade = 0.6,
     reliefHighlight = 0.12,
-    topoLand = Color(0xFF2E2C27),
-    topoNeighbor = Color(0xFF282723),
+    topoLand = Color(0xFF252D20),
+    topoNeighbor = Color(0xFF26292C),
     topoSea = Color(0xFF15283A),
-    contour = Color(0x998D8470),
-    indexContour = Color(0xD9B3A88F),
-    terrainWash = Color(0x8C1B1D20),
+    contour = Color(0xFFC4915F),
+    indexContour = Color(0xFFEDBB86),
 )
 
 val LocalMapPalette = staticCompositionLocalOf { LightMapPalette }

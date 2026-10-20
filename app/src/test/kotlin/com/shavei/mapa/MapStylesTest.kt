@@ -1,5 +1,7 @@
 package com.shavei.mapa
 
+import android.os.Looper
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -7,10 +9,13 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.pinch
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.shavei.mapa.data.MapStyle
 import com.shavei.mapa.data.ThemeChoice
+import com.shavei.mapa.geo.Bounds
 import com.shavei.mapa.ui.theme.DarkMapPalette
 import com.shavei.mapa.ui.theme.LightMapPalette
 import com.shavei.mapa.ui.theme.MapPalette
@@ -21,6 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -43,17 +49,44 @@ class MapStylesTest {
     /** Waits until the terrain is built and the fade-in has finished. */
     private fun settle(palette: MapPalette = LightMapPalette) {
         runBlocking {
-            app.terrain.relief(palette)
-            app.terrain.contours()
+            app.terrain.layers(app.settings.current.mapStyle, palette)
+            // The settings previews are made in the background too.
+            for (style in MapStyle.entries) app.terrain.preview(style, palette, Bounds(196_000.0, 585_000.0, 250_000.0, 655_000.0))
         }
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
+        waitForContours()
+    }
+
+    private var scenario: ActivityScenario<MainActivity>? = null
+
+    /** Draws the screen (which asks for the contour tiles in view) and waits until they have arrived. */
+    private fun waitForContours() {
+        scenario?.onActivity { Screenshots.draw(it) }
+        compose.waitUntil(timeoutMillis = 30_000) {
+            // Tiles arrive through the main looper, which Robolectric runs only when asked.
+            shadowOf(Looper.getMainLooper()).idle()
+            app.terrain.ready(app.settings.current.mapStyle, LightMapPalette)?.contours?.isIdle != false &&
+                app.terrain.ready(app.settings.current.mapStyle, DarkMapPalette)?.contours?.isIdle != false
+        }
+        compose.waitForIdle()
+    }
+
+    /** Pinches the map open around its middle, as a player zooming in on the hills. */
+    private fun zoomIn() {
+        compose.onNodeWithTag("map").performTouchInput {
+            val c = Offset(width * 0.62f, height * 0.5f)
+            pinch(c - Offset(20f, 0f), c - Offset(300f, 0f), c + Offset(20f, 0f), c + Offset(300f, 0f), durationMillis = 400)
+        }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        waitForContours()
     }
 
     @Test
     fun chooseEachStyleInSettings() {
         app.settings.update { it.copy(onboarded = true, reminderOffered = true) }
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+        ActivityScenario.launch(MainActivity::class.java).also { scenario = it }.use { scenario ->
             waitForText("הגדרות")
             compose.onNodeWithText("הגדרות").performClick()
             waitForStyles()
@@ -69,6 +102,8 @@ class MapStylesTest {
             waitForText("התחילו אימון יומי")
             settle()
             Screenshots.save(scenario, "s2-home-relief")
+            zoomIn()
+            Screenshots.save(scenario, "s2b-home-relief-zoomed")
 
             compose.onNodeWithText("הגדרות").performClick()
             waitForStyles()
@@ -78,16 +113,18 @@ class MapStylesTest {
             waitForText("התחילו אימון יומי")
             settle()
             Screenshots.save(scenario, "s3-home-topographic")
+            zoomIn()
+            Screenshots.save(scenario, "s3b-home-topographic-zoomed")
         }
     }
 
     @Test
     fun stylesHaveTheirOwnDarkDesign() {
         app.settings.update { it.copy(onboarded = true, reminderOffered = true, theme = ThemeChoice.DARK, mapStyle = MapStyle.RELIEF) }
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+        ActivityScenario.launch(MainActivity::class.java).also { scenario = it }.use { scenario ->
             waitForText("התחילו אימון יומי")
             settle(DarkMapPalette)
-            assertNotNull(app.terrain.readyRelief(DarkMapPalette))
+            assertNotNull(app.terrain.ready(MapStyle.RELIEF, DarkMapPalette))
             Screenshots.save(scenario, "s4-home-relief-dark")
             app.settings.update { it.copy(mapStyle = MapStyle.TOPOGRAPHIC) }
             settle(DarkMapPalette)

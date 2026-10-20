@@ -29,8 +29,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -67,6 +67,7 @@ import com.shavei.mapa.ui.map.LocalMapLook
 import com.shavei.mapa.ui.map.MapCamera
 import com.shavei.mapa.ui.map.MapLook
 import com.shavei.mapa.ui.map.MapView
+import com.shavei.mapa.ui.map.TerrainLayers
 import com.shavei.mapa.ui.theme.LocalMapPalette
 
 /** Settings apply as soon as they change; [onChange] stores them. */
@@ -201,8 +202,6 @@ fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Se
 private fun MapStyles(map: MapData, selected: MapStyle, onSelect: (MapStyle) -> Unit) {
     val terrain = LocalMapLook.current.terrain
     val palette = LocalMapPalette.current
-    // The previews need every style's terrain; it is built once and kept for the maps.
-    LaunchedEffect(terrain, palette) { for (style in MapStyle.entries) terrain?.prepare(style, palette) }
     val frame = remember(map) { Bounds(196_000.0, 585_000.0, 250_000.0, 655_000.0) }
     Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         for (style in MapStyle.entries) {
@@ -241,11 +240,16 @@ private fun MapStyles(map: MapData, selected: MapStyle, onSelect: (MapStyle) -> 
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 val camera = remember(map) { MapCamera(frame, map.window) }
+                // A small picture of just this frame, made once: the previews never build a whole style.
+                val preview by produceState<TerrainLayers?>(null, terrain, style, palette) {
+                    value = terrain?.preview(style, palette, frame.expandedBy(PREVIEW_MARGIN))
+                }
                 MapView(
                     map, camera,
                     Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(10.dp)),
                     interactive = false,
-                    look = MapLook(style, terrain),
+                    look = MapLook(style, null),
+                    terrainOverride = preview,
                 )
                 Text(name, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
                 Text(
@@ -258,6 +262,9 @@ private fun MapStyles(map: MapData, selected: MapStyle, onSelect: (MapStyle) -> 
         }
     }
 }
+
+/** Map meters around the preview frame, for previews wider than the frame's shape. */
+private const val PREVIEW_MARGIN = 15_000.0
 
 @Composable
 private fun Section(title: String) {

@@ -126,17 +126,23 @@ What 1d simplified, on purpose:
 - Practice time counts the time spent answering, not reading feedback.
 
 ### Map styles - built
-- [x] Three map styles in settings, each with a live preview: standard (flat colors),
+- [x] Three map styles in settings, each with a preview: standard (flat colors),
       relief (hypsometric tint under hillshading lit from the north-west) and
-      topographic (contour lines every 100 m, a heavier index line every 500 m)
-- [x] Both terrain styles come from the Copernicus DEM GLO-90, resampled to a 300 m
-      grid on the Israeli TM projection; the contours are traced by the content
-      pipeline, the relief is colored on the phone, so each theme has its own design
-- [x] Terrain is built once, off the main thread, as soon as a style is chosen, and
-      shared by every map; if it is not ready yet it fades in over the flat map
+      topographic (thin brown contour lines on softly shaded green paper)
+- [x] Topographic contours are drawn as tiles for what is on screen, at the screen's
+      resolution, and the interval follows the zoom as on web maps (200 m with the
+      whole country in view, down to 10 m close up), so lines never crowd into a mass.
+      Index lines are the same thin line in a darker brown, with their height written
+      along them; on cliffs only the index lines remain
+- [x] Both terrain styles come from the Copernicus DEM GLO-90 on a 100 m grid, over
+      Israel only (sharper than a phone shows it at the home zoom); the neighbors stay
+      flat, which keeps the elevation data to 2.6 MB of the APK. The phone draws the
+      relief into images once, off the main thread, so panning costs no more than the
+      standard map
+- [x] Each style has its own light and dark design; terrain that is not ready yet
+      fades in over the flat map
 - [x] Water stays vector: the sea, lakes, borders and region outlines are drawn on top,
-      so coasts are sharp at any zoom, and the neighbors are washed out so Israel
-      stays in focus
+      so coasts are sharp at any zoom
 
 **Exit test:** closed beta; retention at review between 85 and 92 percent; pre/post
 test shows large gains; D7 retention benchmark agreed in advance.
