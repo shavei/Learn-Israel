@@ -207,8 +207,21 @@ learning, not by the calendar:
   a little without distorting the schedule.
 - **Reviews keep their days.** Places in review are asked when due, however many
   sessions are played. When nothing is due and no new place may come in, "extra
-  practice" reviews the weakest places early; FSRS gives an early review a smaller
+  practice" reviews the places most in need early; FSRS gives an early review a smaller
   gain, as the spacing effect predicts.
+- **Learning steps never fill a session.** A place still in its learning steps is not
+  asked early while other places can be: when nothing else is left, other places in
+  review are asked early in between (the most in need first, each once), and the
+  learning steps come back when due or in the session's overtime. No card is asked
+  more than 4 times in a session; one that keeps being missed waits for the next.
+  Before this, a player who kept landing close (HARD, which keeps a place at its
+  learning step) got the same three or four places for a whole session.
+- **The places most in need.** Where the session is free to choose (extra practice,
+  and the places asked between learning steps), it goes round every place before any
+  comes back, then picks the ones this player has missed most in their last 10
+  answers (a close answer counts half), then the ones asked least so far, then the
+  weakest by the scheduler. Due reviews keep the scheduler's order. The progress
+  screen lists the five places missed most, with their right, close and wrong answers.
 
 ## Sibling management
 

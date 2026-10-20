@@ -94,6 +94,7 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: 
                 items(order, key = { it.key.name }) { (a, p) -> AchievementRow(a, p, motivation.earned[a]) }
             }
             if (state.mixedPairs.isNotEmpty()) item { MixedPairsCard(state.mixedPairs) }
+            if (state.hardest.isNotEmpty()) item { HardestCard(state.hardest) }
             item {
                 Text(
                     stringResource(R.string.progress_regions),
@@ -395,6 +396,22 @@ private fun MixedPairsCard(pairs: List<MixedPair>) {
             )
             Text(stringResource(R.string.confusables_note), style = MaterialTheme.typography.bodyMedium)
             for (pair in pairs) Text(stringResource(R.string.confusables_pair, pair.first, pair.second, pair.count))
+        }
+    }
+}
+
+/** The places this player misses most when finding them, with how every answer went. */
+@Composable
+private fun HardestCard(places: List<HardPlace>) {
+    Card(Modifier.fillMaxWidth().testTag("hardest")) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(R.string.hardest_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(stringResource(R.string.hardest_note), style = MaterialTheme.typography.bodyMedium)
+            for (p in places) Text(stringResource(R.string.hardest_place, p.name, p.tally.right, p.tally.close, p.tally.wrong))
         }
     }
 }

@@ -34,6 +34,11 @@ data class SessionConfig(
     /** A card is not asked again until this many other questions have passed. */
     val minGap: Int = 3,
     /**
+     * A card is asked at most this many times in one session. A place that keeps being
+     * missed waits for its next turn in a later session instead of filling this one.
+     */
+    val maxAsksPerCard: Int = 4,
+    /**
      * A place learned earlier today is asked once more in a later session, at least this
      * long after its last answer: one more spaced retrieval before the next day's review.
      */
@@ -54,8 +59,9 @@ data class SessionConfig(
  * as they like in a day: due learning steps first, then due reviews (most at risk
  * first, with confusable places as contrast pairs), then new places and new skills on
  * known places, then places learned earlier today once more, then learning steps a
- * little early. Keeps success near 85 percent by adapting how many new places it
- * introduces, and brings in a new place only while few are still being learned.
+ * little early, with other places reviewed early in between. Keeps success near 85
+ * percent by adapting how many new places it introduces, and brings in a new place only
+ * while few are still being learned. No card is asked more than a few times a session.
  */
 class SessionEngine(
     private val content: Content,
@@ -67,6 +73,8 @@ class SessionEngine(
     private val random: Random = Random.Default,
     /** Pairs learned from the player's own missed taps ([LearnedConfusables]), each place to its partners. */
     private val learnedConfusables: Map<String, Set<String>> = emptyMap(),
+    /** How each card has gone for this player so far ([AnswerTally.of] the answer log). */
+    private val tallies: Map<CardKey, AnswerTally> = emptyMap(),
 ) : QuestionSource {
     private val cards = initialCards.toMutableMap()
     private val history = mutableListOf<CardKey>()
@@ -128,9 +136,11 @@ class SessionEngine(
         config.drill?.let { return pickDrill(it, now, gap) }
         val recent = history.takeLast(gap).toSet()
         val placesByFacet = history.groupBy({ it.placeId }, { it.facet })
+        val asked = history.groupingBy { it }.eachCount()
+        fun underCap(key: CardKey) = (asked[key] ?: 0) < config.maxAsksPerCard
         // Sibling rule: one skill per place per session, so one answer never cues another.
         fun eligible(key: CardKey) =
-            key !in recent && placesByFacet[key.placeId].orEmpty().all { it == key.facet }
+            key !in recent && underCap(key) && placesByFacet[key.placeId].orEmpty().all { it == key.facet }
 
         val inMainPart = _answers.size < config.size
         val inLearning = cards.filter { (k, c) -> !c.isReview && eligible(k) }
@@ -144,16 +154,15 @@ class SessionEngine(
                 if (eligible(key)) question(key, now)?.let { return it }
             }
 
-            // Extra practice goes round every place in review before any comes back: those
-            // answered in the last few hours wait, so the weakest-first order never keeps
-            // to the same young places and leaves the older ones out.
+            // Due reviews go most at risk first, as the scheduler sees them. Extra practice
+            // picks the places this player needs most (mostInNeed).
             cards.filter { (k, c) -> c.isReview && (c.fsrs.due <= now || config.strengthenWeakest) && eligible(k) }
                 .entries.sortedWith(
-                    compareBy(
-                        { config.strengthenWeakest && practicedRecently(it.value, now) },
-                        { scheduler.retrievability(it.value.fsrs, now) },
-                        { it.value.stability },
-                    ),
+                    if (config.strengthenWeakest) {
+                        mostInNeed(now)
+                    } else {
+                        compareBy({ scheduler.retrievability(it.value.fsrs, now) }, { it.value.stability })
+                    },
                 )
                 .firstNotNullOfOrNull { e -> question(e.key, now)?.also { planContrast(e.key) } }
                 ?.let { return it }
@@ -175,6 +184,17 @@ class SessionEngine(
             // session today come back once more, weakest first, before tomorrow's review.
             cards.filter { (k, c) -> isSameDayReview(c, now) && eligible(k) }
                 .entries.sortedBy { it.value.stability }
+                .firstNotNullOfOrNull { question(it.key, now) }
+                ?.let { return it }
+        }
+
+        // Places still in their learning steps are not due yet. Rather than asking them early
+        // in turn for the rest of the session (a player who keeps landing close would get the
+        // same three places again and again), other places in review are asked early first:
+        // the most in need first, each once. The learning steps come back when due, or in the overtime.
+        if (inMainPart && cards.any { (k, c) -> !c.isReview && underCap(k) }) {
+            cards.filter { (k, c) -> c.isReview && k !in asked && eligible(k) }
+                .entries.sortedWith(mostInNeed(now))
                 .firstNotNullOfOrNull { question(it.key, now) }
                 ?.let { return it }
         }
@@ -335,6 +355,20 @@ class SessionEngine(
         }
         return newPlacesThisSession < budget
     }
+
+    /**
+     * Where the session is free to choose (extra practice, and places reviewed early between
+     * learning steps): places answered in the last few hours wait, so it goes round every
+     * place before any comes back. Then the ones this player has recently missed most, then
+     * the ones asked least so far, then the weakest by the scheduler.
+     */
+    private fun mostInNeed(now: Long): Comparator<Map.Entry<CardKey, StudyCard>> = compareBy(
+        { practicedRecently(it.value, now) },
+        { -(tallies[it.key]?.recentMissRate ?: 0.0) },
+        { tallies[it.key]?.asked ?: 0 },
+        { scheduler.retrievability(it.value.fsrs, now) },
+        { it.value.stability },
+    )
 
     /** Answered within [SessionConfig.sameDayGapMs]: in this sitting of sessions, most likely. */
     private fun practicedRecently(card: StudyCard, now: Long): Boolean =

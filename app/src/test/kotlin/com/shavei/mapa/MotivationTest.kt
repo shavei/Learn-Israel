@@ -95,6 +95,25 @@ class MotivationTest {
     }
 
     @Test
+    fun progressShowsThePlacesMissedMost() {
+        seedKnown()
+        runBlocking {
+            val dao = app.database.progressDao()
+            for ((i, rating) in listOf(1, 2, 1, 3).withIndex()) {
+                dao.insert(miss("city.haifa", "city.akko", 4 - i).copy(rating = rating, tappedNear = null))
+            }
+        }
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("התקדמות")
+            compose.onNodeWithText("התקדמות").performClick()
+            waitForText("דרגה:")
+            compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("hardest"))
+            waitForText("חיפה: 1 נכונות, 1 קרובות, 2 שגויות")
+            Screenshots.save(scenario, "d5-progress-hardest")
+        }
+    }
+
+    @Test
     fun theSummaryAnnouncesANewAchievement() {
         seedKnown()
         SessionViewModel.blitzDurationMs = 3_000
