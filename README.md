@@ -23,6 +23,8 @@ asked. Installing a newer build updates the app and keeps your progress.
 
 ![Phase 1c: welcome, placement test, home with the reminder offer, progress, settings in dark mode, and the dark map with the Green Line](docs/images/phase1c-flow.png)
 
+![Points: the running score above a question, 5,000 points for a tap inside the sea, 3 points for a miss 107 km away, and the session total](docs/images/points.png)
+
 ![Map styles: the choice in settings, the relief map, zoomed in on the Dead Sea, and in dark mode](docs/images/map-styles.png)
 
 ![Phase 1d: the map test (no feedback between questions), its summary, the post-test offer a month later, and the progress screen with map test results and learning stats](docs/images/phase1d-flow.png)

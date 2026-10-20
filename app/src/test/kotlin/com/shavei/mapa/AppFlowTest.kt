@@ -51,7 +51,7 @@ class AppFlowTest {
 
         compose.onNodeWithText("הבנתי, בואו נתרגל").performClick()
         waitForText("סמנו על המפה: הים התיכון")
-        compose.onNodeWithTag("score").assertTextEquals("0 נקודות")
+        compose.onNodeWithTag("score", useUnmergedTree = true).assertTextEquals("0 נקודות")
         screenshot("3-ask")
 
         // Tap far out at sea, on the left edge of the map, middle height: inside it, full points.
@@ -67,7 +67,7 @@ class AppFlowTest {
 
         compose.onNodeWithText("הבנתי, בואו נתרגל").performClick()
         waitForText("סמנו על המפה: מפרץ אילת")
-        compose.onNodeWithTag("score").assertTextEquals("5,000 נקודות")
+        compose.onNodeWithTag("score", useUnmergedTree = true).assertTextEquals("5,000 נקודות")
         // A deliberate miss in the middle of the country, far from the gulf: almost no points.
         compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.4f)) }
         waitForText("לא הפעם")

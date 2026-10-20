@@ -36,8 +36,9 @@ class ScoringTest {
 
     private fun has(text: String) = compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
 
+    // The score is part of the question card, which a screen reader reads as one node.
     private fun textOf(tag: String) =
-        compose.onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsProperties.Text].single().text
+        compose.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsProperties.Text].single().text
 
     /** "12,450 נקודות" as 12450. */
     private fun points(text: String) = text.substringBefore(" ").replace(",", "").toInt()
@@ -54,7 +55,7 @@ class ScoringTest {
             while (!has("סיום אימון")) {
                 compose.waitUntil(10_000) {
                     has("הבנתי, בואו נתרגל") || has("סיום אימון") ||
-                        compose.onAllNodes(hasTestTag("score")).fetchSemanticsNodes().isNotEmpty()
+                        compose.onAllNodes(hasTestTag("score"), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
                 }
                 when {
                     has("סיום אימון") -> break
