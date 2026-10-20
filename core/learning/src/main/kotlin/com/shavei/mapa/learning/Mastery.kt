@@ -28,14 +28,14 @@ data class RegionScore(val region: Place, val places: Int, val practiced: Int, v
 
 /**
  * Region scores (docs/04-learning-engine.md): the mean mastery of the region itself and
- * the cities in it (its mountains and sites count in [themeScores]), counting places not
- * yet practiced as 0. [mastery] maps place ids to their 0..1 LOCATE mastery. Regions
- * come in curriculum order.
+ * every place in it (cities, mountains, streams, sites...), counting places not yet
+ * practiced as 0, so a region reaches 100 percent only once all of them are known.
+ * [mastery] maps place ids to their 0..1 LOCATE mastery. Regions come in curriculum order.
  */
 fun regionScores(content: Content, mastery: Map<String, Double>): List<RegionScore> =
     content.places.filter { it.type == PlaceType.REGION }.map { region ->
         val key = region.id.removePrefix("region.")
-        val members = listOf(region) + content.places.filter { it.region == key && it.type == PlaceType.CITY }
+        val members = listOf(region) + content.places.filter { it.region == key }
         RegionScore(
             region = region,
             places = members.size,

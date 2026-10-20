@@ -188,9 +188,12 @@ smaller releases, in order of learning value, each playable on its own.
 - [x] A missed tap names the other stream or site the player probably meant
 - [x] Progress screen and "Share results": places practiced and known in each theme,
       so the exit test can see who continues past Tier 3
-- [x] The placement test stays on the core; region percentages count cities only
+- [x] The placement test stays on the core
+- [x] Region percentages count every place in the region: its cities, mountains,
+      streams (by the middle of their course), reserves and sites
 - Decided (doc 10): tiers 4 to 6 come after the whole core; places inside a known city
-  stay; the new Hebrew text ships without a separate review and is fixed as testers
+  stay; region percentages include nature and heritage; 49 places are enough until the
+  playtest shows players reach them; Haifa airport and Tel Dan stay out; the new Hebrew text ships without a separate review and is fixed as testers
   report problems
 - Not yet: the highways (Routes 1, 2, 4, 6, 40 and 90), left out for now and still
   wanted later

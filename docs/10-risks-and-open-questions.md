@@ -16,6 +16,8 @@
 | 10 | Highways? (2026-10-20) | Left out for now, to be added later | Routes 1, 2, 4, 6, 40 and 90 wait for a later release (with Trace It or once the OSM download works) |
 | 11 | Heritage sites inside a known city (the Old City, Yad Vashem, Old Jaffa, the Bahá'í Gardens, Old Akko)? (2026-10-20) | Kept, with Pin It and Name It like any place | Easy to find once the city is known; they still teach the name and the fact |
 | 12 | Review of the tier 4 to 6 Hebrew text? (2026-10-20) | Shipped without a separate review | Names, hints and facts are fixed as testers report problems |
+| 13 | Do nature and heritage places count in the region percentages? (2026-10-20) | Yes: a region counts every place in it | A region is 100 percent only when its cities, mountains, streams and sites are all known; percentages drop once tier 4 places exist |
+| 14 | More tier 4 to 6 places now? (2026-10-20) | No: 49 are enough until the playtest shows players reach them | More reserves, valleys and sites wait; Haifa airport and Tel Dan stay out (each sits beside another place) |
 
 ## Still open
 
