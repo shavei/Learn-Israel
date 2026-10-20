@@ -162,10 +162,14 @@ NAME, RELATE: 5000 when right (a spelling slip included), 0 when wrong
   bar on its feedback, and its total out of the most it could have been (5000 per
   answer) on the summary. The map test shows no points, as it shows no feedback.
 
-### Blitz and Daily Challenge
+### Free play (Blitz, Road Trip) and Daily Challenge
 Reviews from these modes are logged but applied with reduced weight: a success is
 applied only if the card is due within 2 days (avoids inflating stability through
-cramming); a failure always counts.
+cramming); a failure always counts. Only a place's first answer in a round is applied,
+so a blitz that comes back to a place does not review it twice. Free play asks only
+places past their learning steps, with the tolerance of each place's own stage (as in
+the daily session) and no hints. Under a blitz's clock every answer is fast, so speed
+never upgrades a blitz answer to Easy; a road trip is not timed and grades as Pin It.
 
 ## Within-session (short-term) learning
 

@@ -48,7 +48,9 @@ No signup, no permissions on first run.
   check against deuteranopia and protanopia simulations). WCAG AA contrast for text.
 - **Text size:** respect system font scale; layouts tested at 200 percent.
 - **Motor:** adjustable tolerance multiplier for Pin It; optional "tap then confirm"
-  mode to avoid accidental taps; no time pressure outside Blitz.
+  mode to avoid accidental taps; no time pressure outside Blitz, which is optional free
+  play. Its clock sits outside the question's live region, so a screen reader reads it
+  on demand instead of every second.
 - **Screen readers:** TalkBack labels on all controls. A pure map tapping game is
   inherently visual; provide an accessible mode built on Name It / Which Way questions
   with spoken descriptions ("highlighted place: coastal city between Tel Aviv and
