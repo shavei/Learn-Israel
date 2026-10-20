@@ -51,10 +51,14 @@ object Grader {
         return (MAX_POINTS * 0.5.pow(beyond / HALF_POINTS_METERS)).roundToInt()
     }
 
-    /** How close a tap must be for a place the player knows well. */
-    fun tolerance(place: Place): Double = when (place.type) {
-        PlaceType.CITY -> 4_000.0
-        PlaceType.RIVER -> 4_000.0
+    /**
+     * How close a tap must be for a place the player knows well. Sites, reserves, ports,
+     * streams and roads are smaller targets than cities and often sit next to one, so
+     * they ask for 3 km; a long ridge has its own tolerance in the content.
+     */
+    fun tolerance(place: Place): Double = place.toleranceMeters ?: when (place.type) {
+        PlaceType.CITY, PlaceType.RIVER, PlaceType.MOUNTAIN, PlaceType.CRATER -> 4_000.0
+        PlaceType.STREAM, PlaceType.ROAD, PlaceType.RESERVE, PlaceType.AIRPORT, PlaceType.PORT, PlaceType.SITE -> 3_000.0
         PlaceType.LAKE, PlaceType.SEA, PlaceType.COUNTRY, PlaceType.REGION, PlaceType.DISTRICT ->
             max(2_000.0, 0.1 * (place.shape as Shape.Area).characteristicSize())
     }

@@ -68,6 +68,7 @@ object ContentParser {
         val aliases: List<String> = emptyList(),
         val confusables: List<String> = emptyList(),
         val region: String? = null,
+        val tolerance: Double? = null,
     ) {
         fun toPlace() = Place(
             id = id,
@@ -82,6 +83,7 @@ object ContentParser {
             aliases = aliases,
             confusables = confusables,
             region = region,
+            toleranceMeters = tolerance,
         )
     }
 

@@ -10,9 +10,11 @@ import com.shavei.mapa.learning.MapTest
 import com.shavei.mapa.learning.MapTestResult
 import com.shavei.mapa.learning.RegionScore
 import com.shavei.mapa.learning.Streak
+import com.shavei.mapa.learning.ThemeScore
 import com.shavei.mapa.learning.isKnown
 import com.shavei.mapa.learning.mastery
 import com.shavei.mapa.learning.regionScores
+import com.shavei.mapa.learning.themeScores
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,6 +29,8 @@ data class ProgressState(
     val total: Int = 0,
     val streak: Streak = Streak(0, 0, false),
     val regions: List<RegionScore> = emptyList(),
+    /** Nature, infrastructure and heritage (tiers 4 to 6). */
+    val themes: List<ThemeScore> = emptyList(),
     /** Average Pin It error on cities per day played, oldest first (the last [HISTORY_DAYS] such days). */
     val errorByDay: List<Pair<LocalDate, Double>> = emptyList(),
     val stats: LearningStats? = null,
@@ -62,6 +66,7 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                 total = app.content.places.size,
                 streak = Streak.of(daysPlayed, LocalDate.now()),
                 regions = regionScores(app.content, mastery),
+                themes = themeScores(app.content, locate.keys, locate.filterValues { isKnown(it.fsrs) }.keys),
                 errorByDay = cityErrors.entries.sortedBy { it.key }.takeLast(HISTORY_DAYS).map { it.key to it.value.average() },
                 stats = LearningStats.of(app.progress.reviewRecords(), app.content, now, zone),
                 mapTests = mapTests,

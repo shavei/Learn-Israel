@@ -3,6 +3,7 @@ package com.shavei.mapa.learning
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.Place
 import com.shavei.mapa.content.PlaceType
+import com.shavei.mapa.content.Theme
 import com.shavei.mapa.learning.fsrs.FsrsCard
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
 import kotlin.math.min
@@ -27,17 +28,31 @@ data class RegionScore(val region: Place, val places: Int, val practiced: Int, v
 
 /**
  * Region scores (docs/04-learning-engine.md): the mean mastery of the region itself and
- * the cities in it, counting places not yet practiced as 0. [mastery] maps place ids to
- * their 0..1 LOCATE mastery. Regions come in curriculum order.
+ * the cities in it (its mountains and sites count in [themeScores]), counting places not
+ * yet practiced as 0. [mastery] maps place ids to their 0..1 LOCATE mastery. Regions
+ * come in curriculum order.
  */
 fun regionScores(content: Content, mastery: Map<String, Double>): List<RegionScore> =
     content.places.filter { it.type == PlaceType.REGION }.map { region ->
         val key = region.id.removePrefix("region.")
-        val members = listOf(region) + content.places.filter { it.region == key }
+        val members = listOf(region) + content.places.filter { it.region == key && it.type == PlaceType.CITY }
         RegionScore(
             region = region,
             places = members.size,
             practiced = members.count { it.id in mastery },
             score = members.sumOf { mastery[it.id] ?: 0.0 } / members.size,
         )
+    }
+
+/** A part of the curriculum beyond the core on the progress screen: how many of its places are known. */
+data class ThemeScore(val theme: Theme, val places: Int, val practiced: Int, val known: Int)
+
+/**
+ * Nature, infrastructure and heritage (tiers 4 to 6): their places, how many are being
+ * practiced ([practiced] holds the ids with a LOCATE card), and how many are known.
+ */
+fun themeScores(content: Content, practiced: Set<String>, known: Set<String>): List<ThemeScore> =
+    Theme.entries.filter { it != Theme.CORE }.map { theme ->
+        val ids = content.places.filter { it.type.theme == theme }.map { it.id }
+        ThemeScore(theme, ids.size, ids.count { it in practiced }, ids.count { it in known })
     }

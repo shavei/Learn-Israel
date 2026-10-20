@@ -170,12 +170,41 @@ test shows large gains; D7 retention benchmark agreed in advance.
 
 ## Phase 2: Depth and variety (L)
 
-- [ ] Tiers 4 to 6 (nature, infrastructure, heritage)
-- [ ] Map Builder (drag regions) and Trace It (rivers, roads)
-- [ ] Road Trip story mode
-- [ ] Blitz mode
-- [ ] Achievements and ranks
-- [ ] Learned confusable pairs
+Goal: more to learn after the cities, and more ways to practice it. Built as five
+smaller releases, in order of learning value, each playable on its own.
+
+### 2a. Tiers 4 to 6 - built
+- [x] 55 new places after the core, in 11 themed units: 22 of nature (mountains,
+      craters, streams, springs and reserves), 11 of infrastructure (six highways, two
+      airports, three ports) and 22 heritage sites (docs/03-content-curriculum.md)
+- [x] Geometry from OpenStreetMap: rivers and craters by their way or relation,
+      highways as every main road with their number (from the Overpass API), points
+      copied from the OSM object named beside each place
+- [x] Each place type belongs to a theme (core, nature, infrastructure, heritage);
+      Name It offers names of the same kind first (roads with roads, sites with
+      reserves), then of the same theme
+- [x] Tolerances: 3 km for sites, reserves, ports, airports, streams and roads (small
+      targets, often next to a city), 4 km for mountains and craters, and a tolerance
+      of its own for a long ridge (the Carmel 8 km)
+- [x] A missed tap names the other road or site the player probably meant
+- [x] Progress screen and "Share results": places practiced and known in each theme,
+      so the exit test can see who continues past Tier 3
+- [x] The placement test stays on the core; region percentages count cities only
+- [ ] Human review of the new names, hints and facts
+
+### 2b. Map Builder and Trace It
+- [ ] Map Builder: drag region and district shapes into place on the outline
+- [ ] Trace It: draw a river or a road with a finger, scored by mean distance
+
+### 2c. Free play: Blitz and Road Trip
+- [ ] Blitz: 60 seconds of Pin It on learned places, at reduced weight
+- [ ] Road Trip: a chain of stops drawn across the map
+
+### 2d. Motivation
+- [ ] Achievements and ranks tied to places at high stability
+- [ ] Learned confusable pairs (from logged missed taps)
+
+### 2e. Data
 - [ ] Opt-in anonymous log upload; first global FSRS parameter fit
 
 **Exit test:** players who finish Tier 3 continue into Tier 4+ at a healthy rate.

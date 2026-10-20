@@ -3,6 +3,7 @@ package com.shavei.mapa.learning
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.Place
 import com.shavei.mapa.content.PlaceType
+import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.learning.fsrs.FsrsCard
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
 import com.shavei.mapa.learning.fsrs.HOUR_MS
@@ -187,11 +188,17 @@ class SessionEngine(
         }
     }
 
-    /** Four names: the answer, then confusables and nearby places of the same kind. */
+    /**
+     * Four names: the answer, then confusables and nearby places of the same kind, then
+     * (for a kind with few places, such as the craters) nearby places of the same theme.
+     */
     private fun nameOptions(place: Place): List<Place> {
-        val sameKind = content.places.filter { it.id != place.id && it.type.kind == place.type.kind }
+        fun nearest(match: (Place) -> Boolean) = content.places
+            .filter { it.id != place.id && match(it) }
+            .sortedBy { it.label.distanceTo(place.label) }.take(6).shuffled(random)
         val distractors = (place.confusables.mapNotNull(content::place) +
-            sameKind.sortedBy { it.label.distanceTo(place.label) }.take(6).shuffled(random))
+            nearest { it.type.kind == place.type.kind } +
+            nearest { it.type.theme == place.type.theme })
             .distinct().take(3)
         return (distractors + place).shuffled(random)
     }
@@ -283,23 +290,37 @@ class SessionEngine(
 
     /**
      * The place the player most likely meant when a tap missed: for a region or a
-     * district, the one the tap fell in; otherwise a city within its own tolerance of the tap.
+     * district, the one the tap fell in; otherwise a city, or a place of the same kind
+     * (another road, another site), within its own tolerance of the tap.
      */
     private fun nearestOtherPlace(target: Place, tap: Response.Tap): Place? {
         val areaKind = target.type == PlaceType.REGION || target.type == PlaceType.DISTRICT
         return content.places.asSequence()
-            .filter { it.id != target.id && if (areaKind) it.type == target.type else it.type == PlaceType.CITY }
+            .filter {
+                it.id != target.id && if (areaKind) {
+                    it.type == target.type
+                } else {
+                    it.type == PlaceType.CITY || (it.type.kind == target.type.kind && it.shape !is Shape.Area)
+                }
+            }
             .map { it to it.shape.distanceTo(tap.at) }
             .filter { (p, d) -> if (areaKind) d == 0.0 else d <= Grader.tolerance(p) }
             .minByOrNull { it.second }
             ?.first
     }
 
-    /** Places of one kind stand in for each other as wrong names: cities, regions, districts, the frame. */
+    /**
+     * Places of one kind stand in for each other as wrong names: cities, regions,
+     * districts, the frame, mountains and craters, streams, reserves and sites, roads,
+     * and airports and ports.
+     */
     private val PlaceType.kind: PlaceType
         get() = when (this) {
-            PlaceType.CITY, PlaceType.REGION, PlaceType.DISTRICT -> this
-            else -> PlaceType.SEA
+            PlaceType.SEA, PlaceType.LAKE, PlaceType.RIVER, PlaceType.COUNTRY -> PlaceType.SEA
+            PlaceType.CRATER -> PlaceType.MOUNTAIN
+            PlaceType.SITE -> PlaceType.RESERVE
+            PlaceType.PORT -> PlaceType.AIRPORT
+            else -> this
         }
 
     companion object {

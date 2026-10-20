@@ -80,29 +80,39 @@ Example units (each 4 to 10 places):
 | Negev | Dimona, Arad, Yeruham, Mitzpe Ramon, Rahat |
 | Arava and Eilat | Eilat, Yotvata, Ein Yahav |
 
-## Tier 4: Nature (about 40 items)
+## Tiers 4 to 6: nature, infrastructure and heritage (55 items, built in Phase 2a)
 
-- **Mountains and ridges:** Mount Hermon, Mount Meron, Mount Tabor, Mount Carmel,
-  Mount Gilboa, Mount Arbel, Judean Mountains.
-- **Craters (makhteshim):** Ramon, Gadol, Katan.
-- **Rivers and streams:** Jordan, Yarkon, Kishon, Alexander, Dan, Banias, Hasbani,
-  Ayalon, Besor.
-- **Valleys and plains:** Hula, Jezreel, Beit She'an, Jordan Valley, Arava, Ayalon.
-- **Nature reserves and oases:** Ein Gedi, Hula Lake reserve, Ein Avdat, Timna.
+Taught after the core (tiers 0 to 3), in themed units. Each place type belongs to one
+theme, which the progress screen counts separately. Geometry: points copied from
+OpenStreetMap objects (named beside each place in `content/places.yaml`), rivers and
+craters from OSM ways and relations, highways as every main road with their number.
 
-## Tier 5: Infrastructure (about 15 items)
+**Tier 4, nature (22):**
+- *Mountains:* Hermon, Meron, the Carmel, Tabor, Gilboa, Arbel.
+- *Negev highlands:* Makhtesh Ramon, HaMakhtesh HaGadol, HaMakhtesh HaKatan, Mount Ramon.
+- *Streams:* Yarkon, Kishon, Alexander, Ayalon, Sorek, Besor.
+- *Springs and reserves:* the Dan and the Hermon stream (Banias), the Hula reserve,
+  Ein Gedi, Ein Avdat, Timna Park.
 
-- **Highways:** Route 1 (Tel Aviv to Jerusalem), Route 2 (coastal), Route 4,
-  Route 6 (Trans-Israel), Route 40, Route 90 (the long north-south road).
-- **Airports:** Ben Gurion (TLV), Ramon (ETM), Haifa.
-- **Ports:** Haifa, Ashdod, Eilat.
+**Tier 5, infrastructure (11):**
+- *Highways:* Route 1, the coastal highway (2), the Trans-Israel Highway (6), Route 4,
+  Route 90, Route 40.
+- *Gateways:* Ben Gurion and Ramon airports; the ports of Haifa, Ashdod and Eilat.
 
-## Tier 6: Heritage and tourism (about 25 items)
+**Tier 6, heritage (22):**
+- *Jerusalem and the center:* the Old City of Jerusalem, Masada, Old Jaffa, Yad Vashem,
+  Qumran, Herodium, Beit Guvrin.
+- *The coast and the valleys:* ancient Caesarea, Old Akko, the Bahá'í Gardens, Tel
+  Megiddo, Beit She'arim, Tzippori.
+- *The Galilee and the Golan:* Rosh HaNikra, Capernaum, Nimrod Fortress, Gamla, Tel
+  Hazor, Belvoir.
+- *The Negev:* Avdat, Mamshit, Shivta.
 
-Masada, Caesarea, Megiddo, Akko Old City, Jaffa, Old City of Jerusalem, Western Wall,
-Qumran, Beit She'arim, Bahá'í Gardens (Haifa), Capernaum, Nimrod Fortress, Avdat,
-Tel Dan, Rosh HaNikra, Herodion, Bet Guvrin, Mamshit, Yad Vashem, and more. Each
-gets a richer fact card.
+Left out on purpose: the Jordan (already in the frame), the Hula and Jezreel valleys,
+the Jordan Valley and the Arava (already natural regions), Haifa airport (a kilometer
+from Haifa port), Tel Dan (beside the Dan springs), the Hasbani (mostly in Lebanon).
+Still to come: more nature reserves and valleys, Mount Carmel's and the Golan's sites,
+and a richer fact card for heritage sites.
 
 ## Tier 7: Deep cuts (open ended, 300+ items)
 

@@ -6,15 +6,42 @@ import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.geo.Polygon
 import com.shavei.mapa.geo.Shape
 
-enum class PlaceType {
-    CITY, SEA, LAKE, RIVER, COUNTRY,
+enum class PlaceType(val theme: Theme) {
+    CITY(Theme.CORE), SEA(Theme.CORE), LAKE(Theme.CORE), RIVER(Theme.CORE), COUNTRY(Theme.CORE),
 
     /** A natural region (the Sharon, the Negev). Regions split the land without overlapping. */
-    REGION,
+    REGION(Theme.CORE),
 
     /** An administrative district. Districts overlap the natural regions. */
-    DISTRICT,
+    DISTRICT(Theme.CORE),
+
+    /** A mountain or a ridge, by its peak or the middle of the ridge. */
+    MOUNTAIN(Theme.NATURE),
+
+    /** A makhtesh, by the line along its floor. */
+    CRATER(Theme.NATURE),
+
+    /** A stream (nahal), by its course. The Jordan is a [RIVER] of the frame. */
+    STREAM(Theme.NATURE),
+
+    /** A nature reserve, a spring or an oasis. */
+    RESERVE(Theme.NATURE),
+
+    /** A highway, by every road that carries its number. */
+    ROAD(Theme.INFRASTRUCTURE),
+    AIRPORT(Theme.INFRASTRUCTURE),
+    PORT(Theme.INFRASTRUCTURE),
+
+    /** A heritage site: an ancient city, a fortress, a memorial. */
+    SITE(Theme.HERITAGE),
 }
+
+/**
+ * The parts of the curriculum (docs/03-content-curriculum.md): the core is the frame,
+ * the regions and the cities (tiers 0 to 3); then nature (tier 4), infrastructure (tier 5)
+ * and heritage (tier 6).
+ */
+enum class Theme { CORE, NATURE, INFRASTRUCTURE, HERITAGE }
 
 /** Something the player learns: a name, a location, and one memorable fact. */
 data class Place(
@@ -32,8 +59,10 @@ data class Place(
     val aliases: List<String> = emptyList(),
     /** Places players tend to mix up with this one; practiced side by side. */
     val confusables: List<String> = emptyList(),
-    /** For a city: the key of the natural region it lies in (`region.<key>` is that region's place). */
+    /** For a place drawn as a point: the key of the natural region it lies in (`region.<key>` is that region's place). */
     val region: String? = null,
+    /** How close a tap must be once the place is well known, when its type's default does not fit (a long ridge). */
+    val toleranceMeters: Double? = null,
 )
 
 /** A background layer of the map (land, neighbors, lakes, ...). */

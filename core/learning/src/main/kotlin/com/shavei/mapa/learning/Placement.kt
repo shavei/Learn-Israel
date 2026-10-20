@@ -2,6 +2,7 @@ package com.shavei.mapa.learning
 
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.Place
+import com.shavei.mapa.content.Theme
 import com.shavei.mapa.learning.fsrs.FsrsCard
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
 import com.shavei.mapa.learning.fsrs.Rating
@@ -11,9 +12,11 @@ import com.shavei.mapa.learning.fsrs.Rating
  * minutes of Pin It questions on a player with no progress:
  *
  * 1. The anchors: the main places of the frame and the five anchor cities.
- * 2. If most are right, the other units in curriculum order: each unit's most important
- *    place, and a second one when the first is right. Three missed units in a row mean
- *    the player has reached the edge of what they know, and the test ends.
+ * 2. If most are right, the other units of the core (the frame, regions and cities) in
+ *    curriculum order: each unit's most important place, and a second one when the first
+ *    is right. Three missed units in a row mean the player has reached the edge of what
+ *    they know, and the test ends. Nature, roads and heritage are not tested: they come
+ *    after the core either way.
  *
  * A place found within its tolerance is seeded as if reviewed once with GOOD, straight
  * into review, so it comes back in a couple of days for confirmation. Missed places
@@ -33,7 +36,9 @@ class PlacementTest(
     private val units: Map<String, List<Place>> = content.unitOrder.associateWith { unit ->
         content.places.withIndex().filter { it.value.unit == unit }
             .sortedWith(compareBy({ it.value.importance }, { it.index })).map { it.value }
-    }
+    }.filterValues { places -> places.all { it.type.theme == Theme.CORE } }
+
+    private val unitOrder: List<String> = content.unitOrder.filter { it in units }
 
     private val anchors: List<Place> = content.places.filter {
         (it.unit == FRAME_UNIT && it.importance == 1) || it.unit == ANCHOR_UNIT
@@ -72,8 +77,8 @@ class PlacementTest(
         anchors.firstOrNull { !asked(it) }?.let { return it }
         val anchorAccuracy = _answers.take(anchors.size).count { it.grade.isCorrect }.toDouble() / anchors.size
         if (anchorAccuracy < PASS_ACCURACY) return null.also { done = true }
-        while (unitIndex < content.unitOrder.size) {
-            val remaining = units.getValue(content.unitOrder[unitIndex]).filter { !asked(it) }
+        while (unitIndex < unitOrder.size) {
+            val remaining = units.getValue(unitOrder[unitIndex]).filter { !asked(it) }
             if (askedInUnit < PER_UNIT && remaining.isNotEmpty()) return remaining.first()
             nextUnit()
         }
