@@ -26,6 +26,8 @@ data class Grade(
     val spellingSlip: Boolean = false,
     /** The score shown to the player, 0 to [Grader.MAX_POINTS]. It does not affect scheduling. */
     val points: Int = 0,
+    /** A right answer rated HARD only because the hint was showing, not a near miss. */
+    val helpedByHint: Boolean = false,
 ) {
     val isCorrect: Boolean get() = rating == Rating.GOOD || rating == Rating.EASY
 }
@@ -146,12 +148,16 @@ object Grader {
             error <= tolerance * CLOSE_FACTOR -> Rating.HARD
             else -> Rating.AGAIN
         }
-        return Grade(capForHint(rating, hint), error, tolerance, points = points(error))
+        return Grade(capForHint(rating, hint), error, tolerance, points = points(error), helpedByHint = hint && rating.isRight())
     }
 
     /** Picking from options is recognition: weaker evidence than recall, so never EASY. All or no points. */
     fun gradeChoice(correct: Boolean, hint: Boolean = false): Grade =
-        Grade(capForHint(if (correct) Rating.GOOD else Rating.AGAIN, hint), points = if (correct) MAX_POINTS else 0)
+        Grade(
+            capForHint(if (correct) Rating.GOOD else Rating.AGAIN, hint),
+            points = if (correct) MAX_POINTS else 0,
+            helpedByHint = hint && correct,
+        )
 
     /** Spelling is not the point: one slip on a longer name still counts as knowing it, with full points. */
     fun gradeTyped(place: Place, typed: String, responseMs: Long): Grade =
@@ -162,6 +168,7 @@ object Grader {
             HebrewNames.Match.WRONG -> Grade(Rating.AGAIN)
         }
 
-    private fun capForHint(rating: Rating, hint: Boolean) =
-        if (hint && (rating == Rating.GOOD || rating == Rating.EASY)) Rating.HARD else rating
+    private fun Rating.isRight() = this == Rating.GOOD || this == Rating.EASY
+
+    private fun capForHint(rating: Rating, hint: Boolean) = if (hint && rating.isRight()) Rating.HARD else rating
 }

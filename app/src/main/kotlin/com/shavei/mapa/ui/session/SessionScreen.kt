@@ -445,10 +445,13 @@ private fun DiscoverCard(place: Place, onContinue: () -> Unit) {
 @Composable
 private fun FeedbackCard(answer: Answer, content: Content, onContinue: () -> Unit) {
     val colors = LocalMapPalette.current
-    val (title, color) = when (answer.grade.rating) {
-        Rating.GOOD, Rating.EASY -> stringResource(R.string.feedback_perfect) to colors.goodText
-        Rating.HARD -> stringResource(R.string.feedback_close) to colors.closeText
-        Rating.AGAIN -> stringResource(R.string.feedback_miss) to colors.missText
+    val (title, color) = when {
+        answer.grade.helpedByHint -> stringResource(R.string.feedback_with_hint) to colors.goodText
+        else -> when (answer.grade.rating) {
+            Rating.GOOD, Rating.EASY -> stringResource(R.string.feedback_perfect) to colors.goodText
+            Rating.HARD -> stringResource(R.string.feedback_close) to colors.closeText
+            Rating.AGAIN -> stringResource(R.string.feedback_miss) to colors.missText
+        }
     }
     Card(Modifier.fillMaxWidth()) {
         Column(

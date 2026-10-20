@@ -22,6 +22,7 @@
     <string name="ask_counter">שאלה %1$d</string>
     <string name="feedback_perfect">מצוין!</string>
     <string name="feedback_close">קרוב!</string>
+    <string name="feedback_with_hint">נכון, בעזרת רמז</string>
     <string name="feedback_miss">לא הפעם</string>
     <string name="feedback_inside">בדיוק במקום</string>
     <string name="feedback_distance">סטייה של %1$s ק״מ</string>

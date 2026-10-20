@@ -4,6 +4,7 @@ import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.fsrs.Rating
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GraderTest {
@@ -85,5 +86,16 @@ class GraderTest {
         assertEquals(0, Grader.gradeChoice(correct = false).points)
         assertEquals(5_000, Grader.gradeTyped(city, city.name, 6_000).points)
         assertEquals(0, Grader.gradeTyped(city, "שם אחר לגמרי", 6_000).points)
+    }
+
+    @Test
+    fun aRightAnswerWithTheHintIsMarkedAsHelpedNotClose() {
+        val tap = Grader.grade(lake, MapPoint(5_000.0, 5_000.0), 6_000, false, hint = true)
+        assertEquals(Rating.HARD, tap.rating)
+        assertTrue(tap.helpedByHint)
+        assertEquals(5_000, tap.points)
+        assertTrue(Grader.gradeChoice(correct = true, hint = true).helpedByHint)
+        assertFalse(Grader.gradeChoice(correct = false, hint = true).helpedByHint)
+        assertFalse(Grader.grade(lake, MapPoint(5_000.0, 5_000.0), 6_000, false).helpedByHint)
     }
 }
