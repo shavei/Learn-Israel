@@ -109,9 +109,9 @@ craters from OSM ways and relations.
 Left out on purpose: the Jordan (already in the frame), the Hula and Jezreel valleys,
 the Jordan Valley and the Arava (already natural regions), Haifa airport (a kilometer
 from Haifa port), Tel Dan (beside the Dan springs), the Hasbani (mostly in Lebanon).
-Still to come: the highways (Routes 1, 2, 4, 6, 40 and 90; left for later because the
-OSM servers that give a highway by its number were not answering), more nature reserves and valleys, Mount Carmel's and the Golan's sites,
-and a richer fact card for heritage sites.
+Still to come: the highways (Routes 1, 2, 4, 6, 40 and 90), left out for now and to be
+added later (the OSM servers that give a highway by its number were not answering);
+more nature reserves and valleys, and a richer fact card for heritage sites.
 
 ## Tier 7: Deep cuts (open ended, 300+ items)
 

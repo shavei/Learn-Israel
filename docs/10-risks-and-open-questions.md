@@ -1,6 +1,6 @@
 # 10. Decisions and Risks
 
-## Decisions (made 2026-10-19)
+## Decisions (made 2026-10-19 and later)
 
 | # | Question | Decision | Consequences |
 |---|----------|----------|--------------|
@@ -12,6 +12,10 @@
 | 6 | Target children under 13? | Not at launch | Google Play Families policy not required yet; revisit with a classroom mode |
 | 7 | Backend for social features? | Decide later | Phases 0 to 2 are fully offline; choose Supabase or Firebase at the start of Phase 3 |
 | 8 | Team? | One developer working with Claude Code | Tight scope per phase, heavy automated testing, each phase ships something usable |
+| 9 | When do nature, ports and heritage (tiers 4 to 6) come in? (2026-10-20) | After the whole core (frame, regions, cities), as the curriculum is ordered | Several weeks of play before the first mountain or site; revisit if the exit test shows players stop before Tier 4 |
+| 10 | Highways? (2026-10-20) | Left out for now, to be added later | Routes 1, 2, 4, 6, 40 and 90 wait for a later release (with Trace It or once the OSM download works) |
+| 11 | Heritage sites inside a known city (the Old City, Yad Vashem, Old Jaffa, the Bahá'í Gardens, Old Akko)? (2026-10-20) | Kept, with Pin It and Name It like any place | Easy to find once the city is known; they still teach the name and the fact |
+| 12 | Review of the tier 4 to 6 Hebrew text? (2026-10-20) | Shipped without a separate review | Names, hints and facts are fixed as testers report problems |
 
 ## Still open
 
