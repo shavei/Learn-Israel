@@ -29,18 +29,16 @@ while the sources keep changing. Rerun this only to refresh them, then rebuild.
                                     Meteorological Service's mean annual rainfall
                                     1991-2020 (400 m grid, published by the CBS as a
                                     public ArcGIS image service).
-  content/elevation_coarse.bin      Ground height in meters on two grids in the Israeli TM
-  content/elevation_detail.bin      projection, from the Copernicus DEM GLO-90 (90 m): a
-  content/elevation.json            coarse 300 m grid over the whole map window (box-averaged
-                                    to 270 m first) and a 100 m detail grid over Israel and its
-                                    edges. int16 meters, little endian, rows from north to
-                                    south, each row stored as differences from the cell before
-                                    it (compresses three times better); elevation.json gives
-                                    the grids. The relief and topographic map styles are drawn
-                                    from them. Copernicus DEM (c) DLR e.V. 2010-2014 and (c)
-                                    Airbus Defence and Space GmbH 2014-2018, provided under
-                                    COPERNICUS by the European Union and ESA; free to use with
-                                    attribution.
+  content/elevation_detail.bin      Ground height in meters on a 100 m grid in the Israeli TM
+  content/elevation.json            projection over Israel and its edges, from the Copernicus
+                                    DEM GLO-90 (90 m). int16 meters, little endian, rows from
+                                    north to south, each row stored as differences from the
+                                    cell before it (compresses three times better);
+                                    elevation.json gives the grid. tools/build_content.py cuts
+                                    it to Israel's land for the relief and topographic map
+                                    styles. Copernicus DEM (c) DLR e.V. 2010-2014 and (c) Airbus
+                                    Defence and Space GmbH 2014-2018, provided under COPERNICUS
+                                    by the European Union and ESA; free to use with attribution.
   content/palestine.geojson         The Gaza Strip and the West Bank from the UN OCHA common
                                     operational dataset (HDX "cod-ab-pse", CC BY-IGO). The West
                                     Bank's western edge is the 1949 armistice line (Green Line).
@@ -340,11 +338,10 @@ def region_overrides() -> None:
 
 COPERNICUS_DEM = "https://copernicus-dem-90m.s3.amazonaws.com/{name}/{name}.tif"
 # The elevation grids: name, ITM extent (minx, miny, maxx, maxy), cell size in meters, and how
-# many 90 m source cells are averaged per side before sampling. The coarse grid covers the map
-# window (as in app/src/main/assets/map.json); the detail grid covers Israel's home view
-# (map.json "home") with 12 km to spare, sharper than a phone screen shows it at that zoom.
+# many 90 m source cells are averaged per side before sampling. The detail grid covers Israel's
+# home view (map.json "home") with 12 km to spare, sharper than a phone screen shows it at that
+# zoom. The map styles show terrain over Israel only, so nothing is fetched for the neighbors.
 ELEVATION_GRIDS = [
-    ("coarse", (-35820, 258853, 415038, 903384), 300, 3),
     ("detail", (113600, 366000, 296100, 816500), 100, 1),
 ]
 

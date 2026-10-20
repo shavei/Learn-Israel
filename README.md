@@ -81,7 +81,7 @@ The design is built on the most robust findings in learning science:
 | `content/natural_regions.geojson` | Official natural regions (CBS; Ministry of Agriculture for Judea and Samaria): the land's outline, the regions and the districts |
 | `content/localities.csv` | CBS locality file: official points of the cities and towns |
 | `content/jordan_river.geojson` | The Jordan River from OpenStreetMap |
-| `content/elevation_*.bin`, `content/elevation.json` | Ground height on a 100 m grid over Israel and a 300 m grid around it (Copernicus DEM GLO-90), for the relief and topographic styles |
+| `content/elevation_detail.bin`, `content/elevation.json` | Ground height on a 100 m grid around Israel (Copernicus DEM GLO-90); the pipeline cuts it to Israel's land for the relief and topographic styles |
 | `tools/fetch_sources.py` | Refreshes the source files in `content/` |
 | `content/surroundings.geojson`, `content/palestine.geojson` | Coastlines, neighbors and the Dead Sea (OpenStreetMap); Gaza and the Green Line (UN OCHA) |
 | `tools/build_content.py` | Data pipeline: the files above + `places.yaml` into `app/src/main/assets/` |

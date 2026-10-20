@@ -22,25 +22,31 @@ class TerrainTest {
     }
 
     @Test
-    fun aCoarseGridOverTheWindowAndADetailedOneOverIsrael() {
-        assertEquals(listOf("coarse", "detail"), grids.map { it.info.name })
-        val (coarse, detail) = grids.map { it.info }
-        assertEquals(map.window.minX, coarse.minX, 1.0)
-        assertEquals(map.window.maxY, coarse.maxY, 1.0)
-        assertTrue(coarse.maxX >= map.window.maxX && coarse.minY <= map.window.minY)
-        assertEquals(100.0, detail.cell)
-        assertTrue(detail.minX < map.home.minX && detail.maxX > map.home.maxX && detail.minY < map.home.minY && detail.maxY > map.home.maxY)
+    fun oneDetailedGridOverIsraelOnly() {
+        val info = grids.single().info
+        assertEquals("israel", info.name)
+        assertEquals(100.0, info.cell)
+        // It covers Israel's land: the northern tip and Eilat are inside it.
+        assertTrue(info.minX < 190_000.0 && info.maxY > 795_000.0 && info.minY < 385_000.0)
     }
 
     @Test
     fun knownHeightsAreWhereTheyShouldBe() {
-        for (grid in grids) {
-            // ITM points: Mount Hermon, the Dead Sea, Jerusalem, the Mediterranean off Tel Aviv.
-            assertTrue(heightAt(grid, MapPoint(280_150.0, 813_540.0)) > 2_300, "Hermon on ${grid.info.name}")
-            assertTrue(heightAt(grid, MapPoint(247_540.0, 600_910.0)) < -380, "Dead Sea on ${grid.info.name}")
-            assertTrue(heightAt(grid, MapPoint(220_360.0, 631_480.0)) in 650..850, "Jerusalem on ${grid.info.name}")
-            assertEquals(0, heightAt(grid, MapPoint(162_400.0, 667_570.0)), "sea on ${grid.info.name}")
-        }
+        val grid = grids.single()
+        // ITM points: Israel's side of Mount Hermon, the Dead Sea's western shore, Jerusalem.
+        assertTrue(heightAt(grid, MapPoint(273_990.0, 800_640.0)) > 1_800, "Hermon")
+        assertTrue(heightAt(grid, MapPoint(240_900.0, 595_360.0)) < -380, "Dead Sea")
+        assertTrue(heightAt(grid, MapPoint(220_360.0, 631_480.0)) in 650..850, "Jerusalem")
+    }
+
+    @Test
+    fun theNeighborsHaveNoTerrain() {
+        val grid = grids.single()
+        // Jordan's highlands east of the river, about 800 m high, and the sea off Tel Aviv.
+        assertEquals(0, heightAt(grid, MapPoint(268_170.0, 656_440.0)), "Jordan")
+        assertEquals(0, heightAt(grid, MapPoint(162_400.0, 667_570.0)), "sea")
+        // Most of the rectangle around Israel is outside it.
+        assertTrue(grid.heights.count { it.toInt() == 0 } > grid.heights.size / 3)
     }
 
     @Test
@@ -57,7 +63,7 @@ class TerrainTest {
         val labels = ContentParser.parseContourLabels(File(dir, "contour_labels.json").readText())
         assertTrue(labels.size > 1_000)
         assertTrue(labels.all { it.elevation % 100 == 0 && it.elevation != 0 })
-        val detail = grids.last()
+        val detail = grids.single()
         for (label in labels) {
             // On the line: within 300 m of the label the ground rises above its height and falls below it.
             val around = (-3..3).flatMap { dy -> (-3..3).map { dx -> heightAt(detail, MapPoint(label.x + dx * 100, label.y + dy * 100)) } }
@@ -149,15 +155,11 @@ class TerrainTest {
     }
 
     @Test
-    fun aDetailedGridFadesInAtItsEdges() {
-        val grid = ElevationGrid(ElevationInfo("t", 0.0, 1000.0, 100.0, 10, 10), ShortArray(100) { 200 })
-        val style = ReliefStyle(listOf(0 to 0xFF808080.toInt(), 1_000 to 0xFF808080.toInt()))
-        val pixels = Terrain.render(grid, style, feather = 4)
-        assertEquals(0, pixels[0] ushr 24)
-        assertEquals(128, pixels[2 * 10 + 5] ushr 24)
-        assertEquals(255, pixels[5 * 10 + 5] ushr 24)
-        // Part of a grid is drawn the same as that part of the whole.
-        val part = Terrain.render(grid, style, rows = 2..4, cols = 3..6, feather = 4)
-        assertEquals((2..4).flatMap { r -> (3..6).map { c -> pixels[r * 10 + c] } }, part.toList())
+    fun partOfAGridIsDrawnAsInTheWhole() {
+        val grid = ElevationGrid(ElevationInfo("t", 0.0, 1000.0, 100.0, 10, 10), ShortArray(100) { (it * 7 % 50).toShort() })
+        val style = ReliefStyle(listOf(0 to 0xFF808080.toInt(), 1_000 to 0xFFC0C0C0.toInt()))
+        val whole = Terrain.render(grid, style)
+        val part = Terrain.render(grid, style, rows = 2..4, cols = 3..6)
+        assertEquals((2..4).flatMap { r -> (3..6).map { c -> whole[r * 10 + c] } }, part.toList())
     }
 }

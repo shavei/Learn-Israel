@@ -134,15 +134,15 @@ What 1d simplified, on purpose:
       whole country in view, down to 10 m close up), so lines never crowd into a mass.
       Index lines are the same thin line in a darker brown, with their height written
       along them; on cliffs only the index lines remain
-- [x] Both terrain styles come from the Copernicus DEM GLO-90: a 100 m grid over
-      Israel (sharper than a phone shows it at the home zoom) over a 300 m grid for
-      the whole window. The phone draws each style into images once, off the main
-      thread, so panning costs no more than the standard map
+- [x] Both terrain styles come from the Copernicus DEM GLO-90 on a 100 m grid, over
+      Israel only (sharper than a phone shows it at the home zoom); the neighbors stay
+      flat, which keeps the elevation data to 2.6 MB of the APK. The phone draws the
+      relief into images once, off the main thread, so panning costs no more than the
+      standard map
 - [x] Each style has its own light and dark design; terrain that is not ready yet
       fades in over the flat map
 - [x] Water stays vector: the sea, lakes, borders and region outlines are drawn on top,
-      so coasts are sharp at any zoom, and the neighbors are washed out so Israel
-      stays in focus
+      so coasts are sharp at any zoom
 
 **Exit test:** closed beta; retention at review between 85 and 92 percent; pre/post
 test shows large gains; D7 retention benchmark agreed in advance.

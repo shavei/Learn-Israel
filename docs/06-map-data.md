@@ -56,14 +56,15 @@ How the map is built:
   shared border.
 
 - **Terrain (relief and topographic styles):** the Copernicus DEM GLO-90 (90 m),
-  sampled onto two grids on the Israeli TM projection: 300 m over the map window
-  (box-averaged to 270 m first) and 100 m over Israel's home view with 12 km to spare
-  (`content/elevation_coarse.bin`, `content/elevation_detail.bin`, described by
-  `content/elevation.json`; each row stored as differences from the cell before, which
-  compresses three times better). The app draws the relief from them on the phone,
-  and the contour lines as tiles for what is on screen, with the interval set by the
-  zoom (core/content `Contours`). `tools/build_content.py` places the heights written along the
-  index contours (`contour_labels.json`), traced on the detail grid after the same
+  sampled onto a 100 m grid on the Israeli TM projection over Israel's home view
+  (`content/elevation_detail.bin`, described by `content/elevation.json`; each row stored
+  as differences from the cell before, which compresses three times better).
+  `tools/build_content.py` cuts it to Israel's land and 2 km around it, with 0 beyond
+  (`elevation_israel.bin`, 2.6 MB in the APK): the terrain styles show Israel only,
+  and the neighbors stay flat. The app draws the relief from it on the phone, and the
+  contour lines as tiles for what is on screen, with the interval set by the zoom
+  (core/content `Contours`). The pipeline places the heights written along the index
+  contours (`contour_labels.json`, on Israel's land only), traced after the same
   smoothing the app applies, so each label sits on its line.
 
 Licensing notes:

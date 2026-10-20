@@ -81,23 +81,14 @@ object Terrain {
     /** One cell's binomial blur weights; repeated passes approach a Gaussian. */
     internal val BLUR = doubleArrayOf(1 / 16.0, 4 / 16.0, 6 / 16.0, 4 / 16.0, 1 / 16.0)
 
-    /**
-     * 0xAARRGGBB pixels for [rows] x [cols] of [grid], row by row. With [feather] > 0 the
-     * image fades out over that many cells at the grid's edges, so a detailed grid laid
-     * over a coarser one blends in.
-     */
+    /** 0xAARRGGBB pixels for [rows] x [cols] of [grid], row by row. */
     fun render(
         grid: ElevationGrid,
         style: TerrainStyle,
         rows: IntRange = 0 until grid.info.height,
         cols: IntRange = 0 until grid.info.width,
-        feather: Int = 0,
-    ): IntArray {
-        val out = when (style) {
-            is ReliefStyle -> relief(grid, style, rows, cols)
-        }
-        if (feather > 0) fadeEdges(out, grid.info, rows, cols, feather)
-        return out
+    ): IntArray = when (style) {
+        is ReliefStyle -> relief(grid, style, rows, cols)
     }
 
     private fun relief(grid: ElevationGrid, style: ReliefStyle, rows: IntRange, cols: IntRange): IntArray {
@@ -133,18 +124,6 @@ object Terrain {
             var sum = 0.0
             for (k in -2..2) sum += BLUR[k + 2] * tmp[(y + k).coerceIn(0, h - 1) * w + x]
             z[y * w + x] = sum
-        }
-    }
-
-    private fun fadeEdges(out: IntArray, info: ElevationInfo, rows: IntRange, cols: IntRange, feather: Int) {
-        var i = 0
-        for (row in rows) for (col in cols) {
-            val edge = min(min(row, info.height - 1 - row), min(col, info.width - 1 - col))
-            if (edge < feather) {
-                val alpha = (255.0 * edge / feather).roundToInt()
-                out[i] = (alpha shl 24) or (out[i] and 0xFFFFFF)
-            }
-            i++
         }
     }
 

@@ -91,8 +91,6 @@ data class MapPalette(
     val topoSea: Color,
     val contour: Color,
     val indexContour: Color,
-    /** Laid over the neighbors and Gaza in the terrain styles, so Israel stays in focus. */
-    val terrainWash: Color,
 )
 
 val LightMapPalette = MapPalette(
@@ -127,11 +125,10 @@ val LightMapPalette = MapPalette(
     reliefHighlight = 0.3,
     // The classic topographic sheet: brown contours on a soft green.
     topoLand = Color(0xFFD5E6BC),
-    topoNeighbor = Color(0xFFD5E6BC),
+    topoNeighbor = Color(0xFFE4E0D8),
     topoSea = Color(0xFFB4D4E4),
     contour = Color(0xFFB0683A),
     indexContour = Color(0xFF8A4A22),
-    terrainWash = Color(0x8CF1EEE7),
 )
 
 val DarkMapPalette = MapPalette(
@@ -165,11 +162,10 @@ val DarkMapPalette = MapPalette(
     reliefShade = 0.6,
     reliefHighlight = 0.12,
     topoLand = Color(0xFF252D20),
-    topoNeighbor = Color(0xFF252D20),
+    topoNeighbor = Color(0xFF26292C),
     topoSea = Color(0xFF15283A),
     contour = Color(0xFFC4915F),
     indexContour = Color(0xFFEDBB86),
-    terrainWash = Color(0x8C1B1D20),
 )
 
 val LocalMapPalette = staticCompositionLocalOf { LightMapPalette }

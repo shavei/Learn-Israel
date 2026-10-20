@@ -357,9 +357,34 @@ def elevation_grid(meta) -> np.ndarray:
     return np.cumsum(deltas.astype(np.int32), axis=1)
 
 
-def contour_labels(meta) -> dict:
-    """Where to write heights along the index contours: [x, y, angle in degrees, meters]."""
+# The terrain styles show Israel only: the elevation the app gets stops this far outside its
+# land (enough for the smoothing of the contour lines; the app clips terrain to the land).
+TERRAIN_MARGIN = 2000
+
+
+def israel_terrain(meta, land) -> tuple[bytes, dict]:
+    """The elevation grid cut to Israel's land and margin, 0 beyond it (compresses to almost nothing)."""
+    z = elevation_grid(meta)
+    cell, minx, maxy = meta["cell"], meta["minX"], meta["maxY"]
+    area = land.simplify(200).buffer(TERRAIN_MARGIN)
+    bx0, by0, bx1, by1 = area.bounds
+    c0, c1 = max(0, int((bx0 - minx) // cell)), min(meta["width"], int(np.ceil((bx1 - minx) / cell)))
+    r0, r1 = max(0, int((maxy - by1) // cell)), min(meta["height"], int(np.ceil((maxy - by0) / cell)))
+    z = z[r0:r1, c0:c1]
+    xs = minx + (np.arange(c0, c1) + 0.5) * cell
+    ys = maxy - (np.arange(r0, r1) + 0.5) * cell
+    shapely.prepare(area)
+    z = np.where(shapely.contains_xy(area, *np.meshgrid(xs, ys)), z, 0)
+    deltas = np.diff(z, axis=1, prepend=0).astype("<i2")
+    out = {"name": "israel", "minX": minx + c0 * cell, "maxY": maxy - r0 * cell, "cell": cell,
+           "width": c1 - c0, "height": r1 - r0}
+    return deltas.tobytes(), out
+
+
+def contour_labels(meta, land) -> dict:
+    """Where to write heights along the index contours, on Israel's land: [x, y, angle in degrees, meters]."""
     z = blurred(elevation_grid(meta).astype(np.float64), LABEL_SMOOTHING)
+    shapely.prepare(land)
     cell, minx, maxy = meta["cell"], meta["minX"], meta["maxY"]
     first = int(np.ceil(z.min() / LABEL_INTERVAL)) * LABEL_INTERVAL
     labels = []
@@ -376,7 +401,7 @@ def contour_labels(meta) -> dict:
                 a1 = np.degrees(np.arctan2(here.y - before.y, here.x - before.x))
                 a2 = np.degrees(np.arctan2(after.y - here.y, after.x - here.x))
                 turn = abs((a2 - a1 + 180) % 360 - 180)
-                if turn <= LABEL_MAX_TURN:
+                if turn <= LABEL_MAX_TURN and shapely.contains_xy(land, here.x, here.y):
                     angle = np.degrees(np.arctan2(after.y - before.y, after.x - before.x))
                     labels.append([round(here.x), round(here.y), round(float(angle), 1), level])
                 at += LABEL_SPACING
@@ -563,10 +588,8 @@ def main() -> int:
     israel_view = project(ops.unary_union([land_ll, ocha["gaza"]]))
     minx, miny, maxx, maxy = israel_view.bounds
     window_itm = project(WINDOW)
-    grids = {g["name"]: g for g in json.loads((ROOT / "content" / "elevation.json").read_text())["grids"]}
-    if [grids["coarse"]["minX"], grids["coarse"]["maxY"]] != [round(window_itm.bounds[0]), round(window_itm.bounds[3])]:
-        print("content/elevation.json does not match the map window: rerun tools/fetch_sources.py", file=sys.stderr)
-        return 1
+    detail = next(g for g in json.loads((ROOT / "content" / "elevation.json").read_text())["grids"] if g["name"] == "detail")
+    terrain_bytes, terrain = israel_terrain(detail, land)
     map_json = {
         "version": 1,
         "crs": "EPSG:2039",
@@ -583,10 +606,8 @@ def main() -> int:
             {"id": "regions", "lines": encode_lines(outlines(region_geoms, land_area))},
             {"id": "green_line", "lines": encode_lines(green_line)},
         ],
-        # Ground height for the terrain styles, in elevation_<name>.bin (copied from content/).
-        "elevation": [
-            {k: g[k] for k in ("name", "minX", "maxY", "cell", "width", "height")} for g in grids.values()
-        ],
+        # Ground height over Israel for the terrain styles, in elevation_israel.bin.
+        "elevation": [terrain],
         "attribution": "Israel Central Bureau of Statistics; Ministry of Agriculture; UN OCHA; "
                        "GeoNames (CC BY 4.0); © OpenStreetMap contributors (ODbL); "
                        "Copernicus DEM © DLR e.V., © Airbus Defence and Space GmbH, "
@@ -598,11 +619,10 @@ def main() -> int:
     (ASSETS / "places.json").write_text(
         json.dumps({"version": 1, "places": places}, ensure_ascii=False, separators=(",", ":"))
     )
-    for name in grids:
-        (ASSETS / f"elevation_{name}.bin").write_bytes((ROOT / "content" / f"elevation_{name}.bin").read_bytes())
-    labels = contour_labels(grids["detail"])
+    (ASSETS / "elevation_israel.bin").write_bytes(terrain_bytes)
+    labels = contour_labels(detail, land)
     (ASSETS / "contour_labels.json").write_text(json.dumps(labels, separators=(",", ":")))
-    for f in ("map.json", "places.json", "contour_labels.json", *(f"elevation_{n}.bin" for n in grids)):
+    for f in ("map.json", "places.json", "contour_labels.json", "elevation_israel.bin"):
         print(f"{f}: {(ASSETS / f).stat().st_size // 1024} KB")
     print(f"{len(places)} places")
     return 0

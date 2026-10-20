@@ -38,18 +38,18 @@ import kotlin.random.Random
 class TerrainTile(val image: ImageBitmap, val minX: Double, val maxY: Double, val cell: Double)
 
 /**
- * What a terrain style draws: tiles from coarse to detailed, and for the topographic style
+ * What a terrain style draws: images of Israel's terrain, and for the topographic style
  * its contour lines (drawn as the map is viewed) and height labels.
  */
 class TerrainLayers(val tiles: List<TerrainTile>, val labels: List<ContourLabel>, val contours: ContourTiles? = null)
 
 /**
- * Builds the terrain of the relief and topographic styles from the elevation grids, off
+ * Builds the terrain of the relief and topographic styles from the elevation grid, off
  * the main thread, and keeps it for the whole app: every map on every screen shares it,
- * so panning and changing screens never redraw it. Each style is one set of images: a
- * coarse 300 m grid under the whole window and a 100 m grid over Israel, cut into tiles
- * that every GPU can hold. Only the current style and palette are kept, since they are
- * the largest things the app holds in memory.
+ * so panning and changing screens never redraw it. The grid is 100 m over Israel only
+ * (the neighbors stay flat, which keeps the app small); each style is one set of images
+ * cut into tiles that every GPU can hold. Only the current style and palette are kept,
+ * since they are the largest things the app holds in memory.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MapTerrain(private val assets: AssetManager, private val map: MapData) {
@@ -99,7 +99,7 @@ class MapTerrain(private val assets: AssetManager, private val map: MapData) {
         val rows = floor((info.maxY - frame.maxY) / info.cell).toInt().coerceAtLeast(0) until
             ceil((info.maxY - frame.minY) / info.cell).toInt().coerceAtMost(info.height)
         return withContext(Dispatchers.Default) {
-            val base = tile(grid, terrainStyle, rows, cols, feather = 0)
+            val base = tile(grid, terrainStyle, rows, cols)
             if (style != MapStyle.TOPOGRAPHIC) return@withContext TerrainLayers(listOf(base), emptyList())
             // The contours as the map shows them at this zoom.
             val level = PREVIEW_CONTOUR_LEVEL
@@ -126,22 +126,21 @@ class MapTerrain(private val assets: AssetManager, private val map: MapData) {
         scope.async {
             val terrainStyle = terrainStyle(style, palette) ?: return@async null
             val all = grids.await()
-            val tiles = all.mapIndexed { i, grid ->
-                val feather = if (i == 0) 0 else FEATHER_CELLS
+            val tiles = all.flatMap { grid ->
                 (0 until grid.info.height step TILE_ROWS).map { top ->
-                    async { tile(grid, terrainStyle, top until minOf(top + TILE_ROWS, grid.info.height), 0 until grid.info.width, feather) }
+                    async { tile(grid, terrainStyle, top until minOf(top + TILE_ROWS, grid.info.height), 0 until grid.info.width) }
                 }
-            }.flatten().awaitAll()
+            }.awaitAll()
             if (style == MapStyle.TOPOGRAPHIC) {
-                TerrainLayers(tiles, labels.await(), ContourTiles(map, all, contourStyle(palette), scope))
+                TerrainLayers(tiles, labels.await(), ContourTiles(map, all.last(), contourStyle(palette), scope))
             } else {
                 TerrainLayers(tiles, emptyList())
             }
         }.also { layers = it }
     }
 
-    private fun tile(grid: ElevationGrid, style: TerrainStyle, rows: IntRange, cols: IntRange, feather: Int): TerrainTile {
-        val pixels = Terrain.render(grid, style, rows, cols, feather)
+    private fun tile(grid: ElevationGrid, style: TerrainStyle, rows: IntRange, cols: IntRange): TerrainTile {
+        val pixels = Terrain.render(grid, style, rows, cols)
         val bitmap = Bitmap.createBitmap(pixels, cols.count(), rows.count(), Bitmap.Config.ARGB_8888)
         bitmap.prepareToDraw()
         val info = grid.info
@@ -168,9 +167,6 @@ class MapTerrain(private val assets: AssetManager, private val map: MapData) {
         /** Rows per tile: small enough for any GPU's texture limit and for quick parallel work. */
         const val TILE_ROWS = 512
 
-        /** The detailed grid fades in over this many cells at its edges. */
-        const val FEATHER_CELLS = 40
-
         const val LABEL_ORDER_SEED = 7
 
         /** The contour tile level of the settings previews (64 m per pixel: a line every 50 m). */
@@ -193,7 +189,7 @@ internal fun contourTile(grid: ElevationGrid, minX: Double, maxY: Double, level:
  */
 class ContourTiles(
     private val map: MapData,
-    private val grids: List<ElevationGrid>,
+    private val grid: ElevationGrid,
     private val style: ContourStyle,
     private val scope: CoroutineScope,
 ) {
@@ -215,7 +211,7 @@ class ContourTiles(
 
     /** Tiles for [view] at [level] that are ready, with coarser ones under missing pieces. */
     fun visible(view: Bounds, level: Int): List<TerrainTile> {
-        val wanted = keys(view, level)
+        val wanted = keys(view, level).filter { it.onGrid() }
         val ready = synchronized(lock) {
             for (key in wanted) if (key !in cache && pending.add(key)) launch(key)
             // While a tile is on its way, the one a level coarser stands in (stretched further
@@ -240,10 +236,6 @@ class ContourTiles(
             val span = Contours.TILE_SIZE * Contours.metersPerPixel(key.level)
             val minX = map.window.minX + key.x * span
             val maxY = map.window.maxY - key.y * span
-            // The detailed grid where it covers the whole tile, the coarse one elsewhere.
-            val grid = grids.lastOrNull { g ->
-                minX >= g.info.minX && minX + span <= g.info.maxX && maxY <= g.info.maxY && maxY - span >= g.info.minY
-            } ?: grids.first()
             val tile = contourTile(grid, minX, maxY, key.level, style)
             withContext(Dispatchers.Main) {
                 synchronized(lock) {
@@ -253,6 +245,15 @@ class ContourTiles(
                 version++
             }
         }
+    }
+
+    /** Whether the tile shows any of the grid (Israel); there is nothing to draw elsewhere. */
+    private fun Key.onGrid(): Boolean {
+        val span = Contours.TILE_SIZE * Contours.metersPerPixel(level)
+        val minX = map.window.minX + x * span
+        val maxY = map.window.maxY - y * span
+        val g = grid.info
+        return minX < g.maxX && minX + span > g.minX && maxY > g.minY && maxY - span < g.maxY
     }
 
     private fun TerrainTile.intersects(view: Bounds): Boolean {

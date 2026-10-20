@@ -220,20 +220,16 @@ fun MapView(
             drawPath(layers.gaza, if (topographic) colors.topoNeighbor else colors.gaza)
             drawPath(layers.land, if (topographic) colors.topoLand else colors.land)
             val fade = terrain.fade
+            // Terrain over Israel only; the neighbors stay flat.
             terrain.layers?.let { terrainLayers ->
-                clipPath(layers.ground) {
+                clipPath(layers.land) {
                     for (tile in terrainLayers.tiles) drawTile(tile, origin, fade)
-                }
-                // Contour lines for what is on screen, at the screen's resolution.
-                terrainLayers.contours?.let { contours ->
-                    contours.version // redraw as tiles arrive
-                    val view = camera.view()
-                    clipPath(layers.ground) {
-                        for (tile in contours.visible(view, Contours.levelFor(camera.scale))) drawTile(tile, origin, fade)
+                    // Contour lines for what is on screen, at the screen's resolution.
+                    terrainLayers.contours?.let { contours ->
+                        contours.version // redraw as tiles arrive
+                        for (tile in contours.visible(camera.view(), Contours.levelFor(camera.scale))) drawTile(tile, origin, fade)
                     }
                 }
-                drawPath(layers.neighbors, colors.terrainWash, alpha = fade)
-                drawPath(layers.gaza, colors.terrainWash, alpha = fade)
             }
             drawPath(layers.neighbors, colors.border, style = Stroke(width = px))
             drawPath(layers.gaza, colors.border, style = Stroke(width = px))
@@ -388,8 +384,6 @@ private class BaseLayers(
     val neighbors: Path,
     val gaza: Path,
     val land: Path,
-    /** Everything that is not sea: where the terrain styles draw. */
-    val ground: Path,
     val lakes: Path,
     val rivers: Path,
     val regions: Path,
@@ -399,10 +393,8 @@ private class BaseLayers(
         fun build(map: MapData, origin: MapPoint): BaseLayers {
             fun polys(id: String) = polygonsPath(map.layer(id)?.polygons.orEmpty(), origin)
             fun lines(id: String) = linesPath(map.layer(id)?.lines.orEmpty(), origin)
-            val ground = polygonsPath(listOf("neighbors", "gaza", "land").flatMap { map.layer(it)?.polygons.orEmpty() }, origin)
             return BaseLayers(
-                polys("neighbors"), polys("gaza"), polys("land"), ground, polys("lakes"), lines("rivers"), lines("regions"),
-                lines("green_line"),
+                polys("neighbors"), polys("gaza"), polys("land"), polys("lakes"), lines("rivers"), lines("regions"), lines("green_line"),
             )
         }
     }
