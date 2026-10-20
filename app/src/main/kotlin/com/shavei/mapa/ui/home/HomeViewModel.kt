@@ -32,6 +32,8 @@ data class HomeState(
     /** Offer the daily reminder: once, after the first session. */
     val offerReminder: Boolean = false,
     val reminderMinutes: Int = 0,
+    /** The player just said yes to the reminder: confirm the time it is set for. */
+    val reminderJustSet: Boolean = false,
     /** Offer the map test: a month after the first practice, then monthly (never with the reminder offer). */
     val offerMapTest: Boolean = false,
 )
@@ -75,11 +77,11 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
         }
     }
 
-    /** The player answered the reminder offer; [on] only if the system lets the app notify. */
+    /** The player answered the reminder offer; [on] only once the system lets the app notify. */
     fun answerReminderOffer(on: Boolean) {
         app.settings.update { it.copy(reminderOffered = true, reminderOn = on) }
         Reminders.apply(app, app.settings.current)
-        _state.value = _state.value.copy(offerReminder = false)
+        _state.value = _state.value.copy(offerReminder = false, reminderJustSet = on)
     }
 
     /** "Later" on the map test offer: ask again in a few days. */

@@ -1,9 +1,5 @@
 package com.shavei.mapa.ui.home
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,26 +17,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.PlaceType
-import com.shavei.mapa.reminder.Reminders
 import com.shavei.mapa.ui.Panel
 import com.shavei.mapa.ui.formatTime
+import com.shavei.mapa.ui.rememberNotificationAccess
 import com.shavei.mapa.ui.map.MapDecoration
 import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
@@ -113,6 +111,13 @@ fun HomeScreen(
         ) {
             if (state.loaded) {
                 if (state.offerReminder) ReminderOffer(state.reminderMinutes, viewModel::answerReminderOffer)
+                if (state.reminderJustSet) {
+                    Text(
+                        stringResource(R.string.reminder_set, formatTime(state.reminderMinutes)),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
                 if (state.offerMapTest) MapTestOffer(onMapTest, viewModel::snoozeMapTest)
                 val hasWork = state.dueNow + state.newAvailable > 0
                 Text(
@@ -154,25 +159,32 @@ private fun MapTestOffer(onTake: () -> Unit, onLater: () -> Unit) {
     }
 }
 
-/** Asked once, after the first session (docs/07): never a permission prompt on first run. */
+/**
+ * Asked once, after the first session (docs/07): never a permission prompt on first run.
+ * When Android will not ask (notifications turned off for the app), the card says so and
+ * opens the phone's settings instead of quietly giving up.
+ */
 @Composable
 private fun ReminderOffer(minutes: Int, onAnswer: (Boolean) -> Unit) {
-    val context = LocalContext.current
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        onAnswer(granted && Reminders.canNotify(context))
-    }
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    var blocked by remember { mutableStateOf(false) }
+    val access = rememberNotificationAccess { allowed -> if (allowed) onAnswer(true) else blocked = true }
+    OutlinedCard(Modifier.fillMaxWidth().testTag("reminder-offer")) {
+        Column(
+            Modifier.padding(12.dp).semantics { liveRegion = LiveRegionMode.Polite },
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             Text(stringResource(R.string.reminder_offer_title), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.reminder_offer_body, formatTime(minutes)))
+            if (blocked) {
+                Text(stringResource(R.string.reminder_blocked_explain), color = MaterialTheme.colorScheme.secondary)
+            } else {
+                Text(stringResource(R.string.reminder_offer_body, formatTime(minutes)))
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Reminders.canNotify(context)) {
-                        permission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        onAnswer(Reminders.canNotify(context))
-                    }
-                }) { Text(stringResource(R.string.reminder_offer_yes)) }
+                if (blocked) {
+                    Button(onClick = access.openSettings) { Text(stringResource(R.string.reminder_open_settings)) }
+                } else {
+                    Button(onClick = access.request) { Text(stringResource(R.string.reminder_offer_yes)) }
+                }
                 TextButton(onClick = { onAnswer(false) }) { Text(stringResource(R.string.reminder_offer_no)) }
             }
         }

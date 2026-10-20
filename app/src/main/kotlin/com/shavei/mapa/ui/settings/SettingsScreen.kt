@@ -1,9 +1,5 @@
 package com.shavei.mapa.ui.settings
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +17,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -44,15 +41,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.shavei.mapa.R
 import com.shavei.mapa.content.MapData
 import com.shavei.mapa.data.MapStyle
@@ -62,6 +62,7 @@ import com.shavei.mapa.data.ThemeChoice
 import com.shavei.mapa.geo.Bounds
 import com.shavei.mapa.reminder.Reminders
 import com.shavei.mapa.ui.formatTime
+import com.shavei.mapa.ui.rememberNotificationAccess
 import com.shavei.mapa.ui.map.LocalMapLook
 import com.shavei.mapa.ui.map.MapCamera
 import com.shavei.mapa.ui.map.MapLook
@@ -72,12 +73,20 @@ import com.shavei.mapa.ui.theme.LocalMapPalette
 @Composable
 fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Settings) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
-    var blocked by remember { mutableStateOf(false) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        val on = granted && Reminders.canNotify(context)
-        blocked = !on
-        onChange { it.copy(reminderOn = on, reminderOffered = true) }
+    // Whether Android lets the app notify, checked again whenever the screen comes back
+    // (the player may have changed it in the phone's settings meanwhile).
+    var allowed by remember { mutableStateOf(Reminders.canNotify(context)) }
+    LifecycleResumeEffect(Unit) {
+        allowed = Reminders.canNotify(context)
+        onPauseOrDispose { }
+    }
+    var refused by remember { mutableStateOf(false) }
+    var testSent by remember { mutableStateOf(false) }
+    val access = rememberNotificationAccess { ok ->
+        allowed = ok
+        refused = !ok
+        if (ok) onChange { it.copy(reminderOn = true, reminderOffered = true) }
     }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -117,16 +126,35 @@ fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Se
                 note = stringResource(R.string.settings_reminder_note),
                 checked = settings.reminderOn,
             ) { on ->
-                when {
-                    !on -> onChange { it.copy(reminderOn = false, reminderOffered = true) }
-                    Reminders.canNotify(context) -> onChange { it.copy(reminderOn = true, reminderOffered = true) }
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> permission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    else -> blocked = true
+                if (on) {
+                    access.request()
+                } else {
+                    refused = false
+                    onChange { it.copy(reminderOn = false, reminderOffered = true) }
                 }
             }
-            if (blocked) Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.secondary)
+            // On, or wanted, but Android does not let the app notify: say so and offer the way.
+            if (!allowed && (settings.reminderOn || refused)) {
+                Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.secondary)
+                Button(onClick = access.openSettings) { Text(stringResource(R.string.reminder_open_settings)) }
+            }
             OutlinedButton(onClick = { pickingTime = true }, enabled = settings.reminderOn) {
                 Text(stringResource(R.string.settings_reminder_time, formatTime(settings.reminderMinutes)))
+            }
+            OutlinedButton(
+                onClick = {
+                    Reminders.sendTest(context)
+                    testSent = true
+                },
+                enabled = settings.reminderOn && allowed,
+            ) { Text(stringResource(R.string.settings_reminder_test)) }
+            if (testSent) {
+                Text(
+                    stringResource(R.string.settings_reminder_test_sent),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
             }
 
             HorizontalDivider()
