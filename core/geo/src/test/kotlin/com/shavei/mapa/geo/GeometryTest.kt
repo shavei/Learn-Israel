@@ -56,4 +56,28 @@ class GeometryTest {
         assertEquals(Bounds(-2.0, 5.0, 3.0, 7.0), b)
         assertEquals(MapPoint(0.5, 6.0), b.center)
     }
+
+    @Test
+    fun samplesAreEvenlySpacedAlongEveryPiece() {
+        // Two pieces, 10 km and 20 km: a sample every 5 km, ends included.
+        val lines = listOf(Line(doubleArrayOf(0.0, 0.0, 10_000.0, 0.0)), Line(doubleArrayOf(10_000.0, 0.0, 10_000.0, 20_000.0)))
+        val points = samplePoints(lines, 7)
+        assertEquals(30_000.0, lines.sumOf { it.length }, 1e-9)
+        assertEquals(MapPoint(0.0, 0.0), points.first())
+        assertEquals(MapPoint(5_000.0, 0.0), points[1])
+        assertEquals(MapPoint(10_000.0, 5_000.0), points[3])
+        assertEquals(MapPoint(10_000.0, 20_000.0), points.last())
+    }
+
+    @Test
+    fun meanDistanceCountsBothWays() {
+        val river = listOf(Line(doubleArrayOf(0.0, 0.0, 40_000.0, 0.0)))
+        assertEquals(0.0, meanDistance(river, river), 1e-6)
+        // A path 2 km beside the whole river is 2 km off.
+        assertEquals(2_000.0, meanDistance(listOf(Line(doubleArrayOf(0.0, 2_000.0, 40_000.0, 2_000.0))), river), 1e-6)
+        // Half of the river, drawn exactly, still misses the other half: 5 km on average from
+        // the river to the drawing, 0 the other way.
+        val half = meanDistance(listOf(Line(doubleArrayOf(0.0, 0.0, 20_000.0, 0.0))), river)
+        assertEquals(2_500.0, half, 150.0)
+    }
 }

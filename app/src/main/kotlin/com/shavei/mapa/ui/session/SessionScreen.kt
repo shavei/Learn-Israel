@@ -53,16 +53,19 @@ import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.Place
 import com.shavei.mapa.geo.MapPoint
+import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.learning.Answer
 import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.Relation
+import com.shavei.mapa.learning.center
 import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.fsrs.Rating
 import com.shavei.mapa.ui.formatKm
 import com.shavei.mapa.ui.formatPoints
 import com.shavei.mapa.ui.map.MapDecoration
+import com.shavei.mapa.ui.map.MapDrag
 import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
 import com.shavei.mapa.ui.theme.LocalMapPalette
@@ -81,10 +84,21 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
     // Elsewhere the camera only pans when a place (or the tap) would hide under a card.
     LaunchedEffect(ui, topPx, bottomPx) {
         when (val s = ui) {
-            is SessionUi.Ask -> {
-                camera.setFramePadding(topPx, 0f)
-                camera.reset()
-                askedPoints(s.question).takeIf { it.isNotEmpty() }?.let { camera.ensureVisible(it, topPx, bottomPx) }
+            // Map Builder and Trace It have buttons below the map: the whole board fits above them.
+            is SessionUi.Ask -> when (val q = s.question) {
+                is Question.Build -> {
+                    camera.setFramePadding(topPx, bottomPx)
+                    camera.reset()
+                }
+                is Question.Trace -> {
+                    camera.setFramePadding(topPx, bottomPx)
+                    camera.show(q.view)
+                }
+                else -> {
+                    camera.setFramePadding(topPx, 0f)
+                    camera.reset()
+                    askedPoints(q).takeIf { it.isNotEmpty() }?.let { camera.ensureVisible(it, topPx, bottomPx) }
+                }
             }
             is SessionUi.Discover -> camera.ensureVisible(listOf(s.question.place.label), topPx, bottomPx)
             is SessionUi.Feedback -> camera.ensureVisible(feedbackPoints(s.answer), topPx, bottomPx)
@@ -100,11 +114,65 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
     }
     val asking = (ui as? SessionUi.Ask)?.question
 
+    // The open Map Builder shape (how far it is from its place) and Trace It drawing.
+    val build = asking as? Question.Build
+    val trace = asking as? Question.Trace
+    var offset by remember(build) {
+        mutableStateOf(build?.let { b -> b.place.shape.center.let { MapPoint(b.start.x - it.x, b.start.y - it.y) } } ?: MapPoint(0.0, 0.0))
+    }
+    var drawn by remember(trace) { mutableStateOf(emptyList<MapPoint>()) }
+    val drag: MapDrag? = remember(build, trace) {
+        when {
+            build != null -> object : MapDrag {
+                private var from = MapPoint(0.0, 0.0)
+                private var before = offset
+                override fun start(at: MapPoint) {
+                    from = at
+                    before = offset
+                }
+                override fun move(to: MapPoint) {
+                    offset = MapPoint(before.x + to.x - from.x, before.y + to.y - from.y)
+                }
+                override fun end() = Unit
+                override fun cancel() {
+                    offset = before
+                }
+            }
+            trace != null -> object : MapDrag {
+                private var before = emptyList<MapPoint>()
+                // A stroke that starts where the last one ended continues it; any other starts over.
+                override fun start(at: MapPoint) {
+                    before = drawn
+                    val last = drawn.lastOrNull()
+                    if (last == null || last.distanceTo(at) * camera.scale > CONTINUE_PX) drawn = listOf(at)
+                }
+                override fun move(to: MapPoint) {
+                    val last = drawn.lastOrNull()
+                    if (last == null || last.distanceTo(to) * camera.scale >= STEP_PX) drawn = drawn + to
+                }
+                override fun end() {
+                    if (drawn.size < 2) drawn = before
+                }
+                override fun cancel() {
+                    drawn = before
+                }
+            }
+            else -> null
+        }
+    }
+    val drillDecorations = when {
+        build != null -> listOf(MapDecoration.Moved(build.place.shape as Shape.Area, offset.x, offset.y, colors.target))
+        trace != null -> listOf(MapDecoration.Drawing(drawn, colors.tap))
+        else -> emptyList()
+    }
+
     Box(Modifier.fillMaxSize()) {
         MapView(
-            content.map, camera, Modifier.fillMaxSize().testTag("map"), decorations, showGreenLine,
+            content.map, camera, Modifier.fillMaxSize().testTag("map"), decorations + drillDecorations, showGreenLine,
             description = stringResource(R.string.session_map_description),
             onTap = if (asking is Question.Locate) viewModel::onTap else null,
+            onDrag = drag,
+            showRivers = trace == null,
         )
         Column(
             Modifier.safeDrawingPadding().padding(12.dp).fillMaxWidth().align(Alignment.TopCenter)
@@ -118,6 +186,8 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 val counter = when (viewModel.kind) {
                     SessionKind.PLACEMENT -> stringResource(R.string.placement_counter, ask.number)
                     SessionKind.MAP_TEST -> stringResource(R.string.map_test_counter, ask.number, viewModel.mapTestSize ?: 0)
+                    SessionKind.BUILD -> stringResource(R.string.build_counter, ask.number)
+                    SessionKind.TRACE -> stringResource(R.string.trace_counter, ask.number)
                     else -> stringResource(R.string.ask_counter, ask.number)
                 }
                 // The map test measures without feedback, so it shows no score.
@@ -139,6 +209,8 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                     is Question.NameChoice -> OptionsCard(q.options, viewModel::onChoose)
                     is Question.Relate -> OptionsCard(q.options, viewModel::onChoose)
                     is Question.NameTyped -> TypingCard(s.number, viewModel::onType)
+                    is Question.Build -> BuildCard { viewModel.onMoved(offset.x, offset.y) }
+                    is Question.Trace -> TraceCard(drawn.size >= 2, onClear = { drawn = emptyList() }, onDone = { viewModel.onDrawn(drawn) })
                     is Question.Locate -> Unit
                 }
                 is SessionUi.Feedback -> FeedbackCard(s.answer, content, viewModel::onContinue)
@@ -165,7 +237,13 @@ private fun PromptCard(question: Question, counter: String, score: Int?) {
                 }
             }
             Text(promptText(question), style = MaterialTheme.typography.headlineSmall)
-            val hint = (question as? Question.Locate)?.hint == true || (question as? Question.NameChoice)?.hint == true
+            val hint = when (question) {
+                is Question.Locate -> question.hint
+                is Question.NameChoice -> question.hint
+                is Question.Build -> question.hint
+                is Question.Trace -> question.hint
+                else -> false
+            }
             if (hint) {
                 Text(
                     stringResource(R.string.hint, question.place.hint),
@@ -180,6 +258,8 @@ private fun PromptCard(question: Question, counter: String, score: Int?) {
 @Composable
 private fun promptText(q: Question): String = when (q) {
     is Question.Locate -> stringResource(R.string.ask_prompt, q.place.name)
+    is Question.Build -> stringResource(R.string.build_prompt, q.place.name)
+    is Question.Trace -> stringResource(R.string.trace_prompt, q.place.name)
     is Question.NameChoice -> stringResource(R.string.ask_name_choice)
     is Question.NameTyped -> stringResource(R.string.ask_name_typed)
     is Question.Relate -> when (val r = q.relation) {
@@ -226,6 +306,31 @@ private fun TypingCard(number: Int, onSubmit: (String) -> Unit) {
             )
             Button(onClick = { onSubmit(text) }, enabled = text.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.name_check))
+            }
+        }
+    }
+}
+
+/** Map Builder: the shape is dragged on the map; this confirms where it is. */
+@Composable
+private fun BuildCard(onPlace: () -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.build_help), style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = onPlace, Modifier.fillMaxWidth()) { Text(stringResource(R.string.build_place)) }
+        }
+    }
+}
+
+/** Trace It: the course is drawn on the map; this clears it or hands it in. */
+@Composable
+private fun TraceCard(canFinish: Boolean, onClear: () -> Unit, onDone: () -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.trace_help), style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onClear, enabled = canFinish) { Text(stringResource(R.string.trace_clear)) }
+                Button(onClick = onDone, enabled = canFinish, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.trace_done)) }
             }
         }
     }
@@ -291,6 +396,14 @@ private fun feedbackLines(answer: Answer, content: Content): List<String> {
     val q = answer.question
     val correct = answer.grade.isCorrect
     return when (val r = answer.response) {
+        is Response.Moved -> {
+            val error = answer.grade.errorMeters ?: 0.0
+            val distance = if (error < 50) stringResource(R.string.feedback_inside)
+            else stringResource(R.string.feedback_distance, formatKm(error))
+            listOf("${q.place.name}: $distance")
+        }
+        is Response.Drawn ->
+            listOf("${q.place.name}: ${stringResource(R.string.feedback_mean_distance, formatKm(answer.grade.errorMeters ?: 0.0))}")
         is Response.Tap -> {
             val error = answer.grade.errorMeters ?: 0.0
             val distance = if (error < 50) stringResource(R.string.feedback_inside)
@@ -380,7 +493,8 @@ private fun placeDecorations(place: Place, colors: MapPalette): List<MapDecorati
 
 /** What is shown while a question is open. Never the answer itself. */
 private fun askDecorations(q: Question, colors: MapPalette): List<MapDecoration> = when (q) {
-    is Question.Locate -> emptyList()
+    // The Map Builder shape and the Trace It drawing follow the player's finger, in SessionScreen.
+    is Question.Locate, is Question.Build, is Question.Trace -> emptyList()
     // Naming: the place is marked, its name is what the player must recall.
     is Question.NameChoice -> listOf(MapDecoration.Highlight(q.place.shape, colors.target))
     is Question.NameTyped -> listOf(MapDecoration.Highlight(q.place.shape, colors.target))
@@ -398,6 +512,8 @@ private fun askedPoints(q: Question): List<MapPoint> = when (q) {
 
 private fun feedbackPoints(answer: Answer): List<MapPoint> = when (val r = answer.response) {
     is Response.Tap -> listOf(r.at, answer.place.shape.nearestAnchor(r.at), answer.place.label)
+    is Response.Moved -> answer.place.shape.center.let { listOf(it, MapPoint(it.x + r.dx, it.y + r.dy), answer.place.label) }
+    is Response.Drawn -> answer.place.shape.bounds.let { b -> r.path + MapPoint(b.minX, b.minY) + MapPoint(b.maxX, b.maxY) }
     else -> (answer.question as? Question.Relate)?.options?.map { it.label } ?: listOf(answer.place.label)
 }
 
@@ -405,6 +521,22 @@ private fun feedbackDecorations(answer: Answer, colors: MapPalette): List<MapDec
     val ok: Color = if (answer.grade.isCorrect) colors.good else colors.target
     val q = answer.question
     return when (val r = answer.response) {
+        // Map Builder: the shape where it belongs, and where it was dropped.
+        is Response.Moved -> buildList {
+            val center = q.place.shape.center
+            add(MapDecoration.Highlight(q.place.shape, ok))
+            add(MapDecoration.Moved(q.place.shape as Shape.Area, r.dx, r.dy, colors.tap, alpha = 0.2f))
+            if ((answer.grade.errorMeters ?: 0.0) > 0) {
+                add(MapDecoration.Connector(MapPoint(center.x + r.dx, center.y + r.dy), center, colors.tap))
+            }
+            add(MapDecoration.Label(q.place.label, q.place.name))
+        }
+        // Trace It: the true course, and the drawing over it.
+        is Response.Drawn -> listOf(
+            MapDecoration.Highlight(q.place.shape, ok),
+            MapDecoration.Drawing(r.path, colors.tap),
+            MapDecoration.Label(q.place.label, q.place.name),
+        )
         is Response.Tap -> buildList {
             val nearest = q.place.shape.nearestAnchor(r.at)
             add(MapDecoration.Highlight(q.place.shape, ok))
@@ -423,3 +555,9 @@ private fun feedbackDecorations(answer: Answer, colors: MapPalette): List<MapDec
         }
     }
 }
+
+/** A Trace It stroke that starts this close to the end of the last one (screen pixels) continues it. */
+private const val CONTINUE_PX = 60.0
+
+/** A drawn path keeps a point every this many screen pixels. */
+private const val STEP_PX = 4.0

@@ -13,6 +13,8 @@ people actually remember.
 > learning stats you can share. Two map styles: standard and shaded relief.
 > GeoGuessr-style points: up to 5,000 for each answer, more the closer you tap.
 > As many sessions a day as you like, at the pace of new places you choose.
+> Map Builder (drag a region into place) and Trace It (draw the Jordan or a stream),
+> mixed into the session and as rounds of their own.
 > See the [roadmap](docs/09-roadmap.md).
 
 ## Install on your phone
@@ -26,6 +28,8 @@ asked. Installing a newer build updates the app and keeps your progress.
 ![Phase 1c: welcome, placement test, home with the reminder offer, progress, settings in dark mode, and the dark map with the Green Line](docs/images/phase1c-flow.png)
 
 ![Points: the running score above a question, 5,000 points for a tap inside the sea, 3 points for a miss 107 km away, and the session total](docs/images/points.png)
+
+![Map Builder and Trace It: the Sharon dragged from the sea, its feedback with the true place, the Jordan drawn with a finger, and its feedback with the mean distance](docs/images/drills.png)
 
 ![Map styles: the choice in settings, the relief map, zoomed in on the Dead Sea, and in dark mode](docs/images/map-styles.png)
 

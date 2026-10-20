@@ -1,5 +1,6 @@
 package com.shavei.mapa.data
 
+import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
 import com.shavei.mapa.learning.CardKey
 import com.shavei.mapa.learning.Facet
@@ -9,6 +10,7 @@ import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.ReviewRecord
 import com.shavei.mapa.learning.StudyCard
+import com.shavei.mapa.learning.center
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
 import com.shavei.mapa.learning.fsrs.FsrsCard
@@ -17,6 +19,7 @@ import com.shavei.mapa.learning.fsrs.Rating
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.roundToLong
 
 /** Where an answer was given. Only practice answers make a day of practice. */
 enum class AnswerSource {
@@ -105,7 +108,12 @@ class ProgressRepository(
                 ),
             )
         }
-        val tap = (answer.response as? Response.Tap)?.at
+        // Map Builder logs where the shape's center was dropped, like the point of a tap.
+        val tap = when (val r = answer.response) {
+            is Response.Tap -> r.at
+            is Response.Moved -> answer.place.shape.center.let { MapPoint(it.x + r.dx, it.y + r.dy) }
+            else -> null
+        }
         val before = answer.before?.fsrs?.takeIf { !it.isNew }
         dao.insert(
             ReviewEntity(
@@ -125,7 +133,8 @@ class ProgressRepository(
                 answer = when (val r = answer.response) {
                     is Response.Choice -> r.placeId
                     is Response.Typed -> r.text
-                    is Response.Tap -> null
+                    is Response.Drawn -> encodePath(r.path)
+                    is Response.Tap, is Response.Moved -> null
                 },
                 responseMs = answer.responseMs,
                 appVersion = appVersion,
@@ -136,6 +145,8 @@ class ProgressRepository(
                 hint = when (val q = answer.question) {
                     is Question.Locate -> q.hint
                     is Question.NameChoice -> q.hint
+                    is Question.Build -> q.hint
+                    is Question.Trace -> q.hint
                     else -> false
                 },
                 tappedNear = answer.tappedNear?.id,
@@ -148,10 +159,20 @@ class ProgressRepository(
         is Question.NameChoice -> "NAME_CHOICE"
         is Question.NameTyped -> "NAME_TYPED"
         is Question.Relate -> "RELATE"
+        is Question.Build -> "BUILD"
+        is Question.Trace -> "TRACE"
+    }
+
+    /** A drawn path as "x,y;x,y;..." in whole meters, at most [MAX_PATH_POINTS] points. */
+    private fun encodePath(path: List<MapPoint>): String {
+        val step = maxOf(1, (path.size + MAX_PATH_POINTS - 1) / MAX_PATH_POINTS)
+        val kept = path.filterIndexed { i, _ -> i % step == 0 || i == path.lastIndex }
+        return kept.joinToString(";") { "${it.x.roundToLong()},${it.y.roundToLong()}" }
     }
 
     private companion object {
         const val PLACEMENT = "PLACEMENT"
         const val MAP_TEST = "MAP_TEST"
+        const val MAX_PATH_POINTS = 200
     }
 }

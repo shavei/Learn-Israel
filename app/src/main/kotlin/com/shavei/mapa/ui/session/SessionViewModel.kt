@@ -7,6 +7,7 @@ import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.data.AnswerSource
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
+import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.MapTest
 import com.shavei.mapa.learning.MapTestKind
@@ -57,6 +58,12 @@ enum class SessionKind {
 
     /** The pre/post map test: 20 fixed places, no feedback, no card changes. */
     MAP_TEST,
+
+    /** A Map Builder round from home: regions and districts the player has met. */
+    BUILD,
+
+    /** A Trace It round from home: the Jordan and the streams the player has met. */
+    TRACE,
 }
 
 class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) : ViewModel() {
@@ -96,6 +103,11 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                         size = app.settings.current.sessionLength.questions,
                         maxNewPerDay = app.settings.current.pace.newPerDay,
                         strengthenWeakest = kind == SessionKind.EXTRA,
+                        drill = when (kind) {
+                            SessionKind.BUILD -> Drill.BUILD
+                            SessionKind.TRACE -> Drill.TRACE
+                            else -> null
+                        },
                     ),
                 )
             }
@@ -113,6 +125,13 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     fun onChoose(placeId: String) = answer(Response.Choice(placeId)) { it is Question.NameChoice || it is Question.Relate }
 
     fun onType(text: String) = answer(Response.Typed(text)) { it is Question.NameTyped }
+
+    /** Map Builder: the shape was dropped [dx], [dy] meters from its place. */
+    fun onMoved(dx: Double, dy: Double) = answer(Response.Moved(dx, dy)) { it is Question.Build }
+
+    fun onDrawn(path: List<MapPoint>) {
+        if (path.size >= 2) answer(Response.Drawn(path)) { it is Question.Trace }
+    }
 
     fun onContinue() {
         if (_ui.value is SessionUi.Feedback) advance()

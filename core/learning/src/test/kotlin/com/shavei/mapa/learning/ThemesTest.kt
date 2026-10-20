@@ -57,9 +57,9 @@ class ThemesTest {
         FsrsCard(CardState.REVIEW, null, stability, 5.0, due = now + dueInDays * DAY_MS, lastReview = now - 30 * DAY_MS),
     )
 
-    /** A session with no new places, so only reviews and new skills are asked. */
+    /** A session with no new places, so only reviews and new skills are asked, and lines by Pin It. */
     private fun engine(cards: Map<CardKey, StudyCard>) =
-        SessionEngine(content, scheduler, cards, 0, SessionConfig(maxNewPerDay = 0), { now }, Random(3))
+        SessionEngine(content, scheduler, cards, 0, SessionConfig(maxNewPerDay = 0, drillShare = 0.0), { now }, Random(3))
 
     @Test
     fun everyPlaceTypeBelongsToOneTheme() {

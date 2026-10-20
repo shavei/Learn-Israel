@@ -40,6 +40,13 @@ data class SessionConfig(
     val sameDayGapMs: Long = 2 * HOUR_MS,
     /** Extra practice after the daily work is done: review places early, weakest first. */
     val strengthenWeakest: Boolean = false,
+    /**
+     * A Map Builder or Trace It round from home: only places of the drill's kind that the
+     * player has already met, each asked that way, weakest first. Null for a usual session.
+     */
+    val drill: Drill? = null,
+    /** How often a due review of a region, a district or a line is its drill instead of Pin It. */
+    val drillShare: Double = 0.5,
 )
 
 /**
@@ -84,7 +91,8 @@ class SessionEngine(
         current?.let { return it }
         val now = clock()
         if (_answers.size >= config.size + config.overtime) return null
-        return (pick(now, config.minGap) ?: pick(now, 1)).also { current = it }
+        // A drill round may hold a single place: a miss on it comes straight back.
+        return (pick(now, config.minGap) ?: pick(now, 1) ?: config.drill?.let { pick(now, 0) }).also { current = it }
     }
 
     override fun submit(question: Question, response: Response, responseMs: Long): Answer {
@@ -107,12 +115,15 @@ class SessionEngine(
 
     private fun grade(q: Question, r: Response, ms: Long, firstReview: Boolean, stability: Double?): Grade = when (q) {
         is Question.Locate -> Grader.grade(q.place, (r as Response.Tap).at, ms, firstReview, q.hint, stability)
+        is Question.Build -> (r as Response.Moved).let { Grader.gradeBuild(q.place, it.dx, it.dy, ms, firstReview, q.hint, stability) }
+        is Question.Trace -> Grader.gradeTrace(q.place, (r as Response.Drawn).path, ms, firstReview, q.hint, stability)
         is Question.NameChoice -> Grader.gradeChoice((r as Response.Choice).placeId == q.place.id, q.hint)
         is Question.NameTyped -> Grader.gradeTyped(q.place, (r as Response.Typed).text, ms)
         is Question.Relate -> Grader.gradeChoice((r as Response.Choice).placeId == q.correct.id)
     }
 
     private fun pick(now: Long, gap: Int): Question? {
+        config.drill?.let { return pickDrill(it, now, gap) }
         val recent = history.takeLast(gap).toSet()
         val placesByFacet = history.groupBy({ it.placeId }, { it.facet })
         // Sibling rule: one skill per place per session, so one answer never cues another.
@@ -161,6 +172,22 @@ class SessionEngine(
             .firstNotNullOfOrNull { question(it.key, now) }
     }
 
+    /**
+     * A round of one drill: the places of its kind the player has met, each once, weakest
+     * first; a miss comes back once, after a few questions when there are others. No new places.
+     */
+    private fun pickDrill(drill: Drill, now: Long, gap: Int): Question? {
+        val recent = history.takeLast(gap).toSet()
+        val asked = history.groupingBy { it }.eachCount()
+        val mine = cards.filter { (k, _) -> k.facet == Facet.LOCATE && content.place(k.placeId)?.type?.let(Drill::of) == drill }
+        mine.filter { (k, c) -> asked[k] == 1 && k !in recent && !c.isReview && c.fsrs.due <= now + config.learnAheadMs }
+            .entries.minByOrNull { it.value.fsrs.due }
+            ?.let { return question(it.key, now) }
+        return mine.filterKeys { it !in asked }.entries
+            .sortedWith(compareBy({ scheduler.retrievability(it.value.fsrs, now) }, { it.value.stability }))
+            .firstNotNullOfOrNull { question(it.key, now) }
+    }
+
     /** The facet ladder: name and relate a place once finding it has been stable for a week. */
     private fun isUnlocked(key: CardKey): Boolean {
         val locate = cards[CardKey(key.placeId, Facet.LOCATE)] ?: return false
@@ -177,7 +204,7 @@ class SessionEngine(
         val card = cards[key]
         val hint = (card?.struggles ?: 0) >= HINT_AFTER_MISSES
         return when (key.facet) {
-            Facet.LOCATE -> Question.Locate(place, isNew = card == null, hint = hint)
+            Facet.LOCATE -> locateQuestion(place, card, hint)
             // Recognition first; typed recall once the name is stable. A struggling player gets choices back.
             Facet.NAME -> if (card != null && card.stability >= TYPED_NAME_DAYS && !hint) {
                 Question.NameTyped(place)
@@ -185,6 +212,22 @@ class SessionEngine(
                 Question.NameChoice(place, nameOptions(place), hint)
             }
             Facet.RELATE -> relateQuestion(place)
+        }
+    }
+
+    /**
+     * Finding a place: Pin It, or for a region, a district, a river or a stream sometimes
+     * its drill (Map Builder, Trace It) instead, once the place is in review. A drill round
+     * asks every place its way; a struggling player gets Pin It in the daily session.
+     */
+    private fun locateQuestion(place: Place, card: StudyCard?, hint: Boolean): Question {
+        val drill = Drill.of(place.type)
+        val useDrill = drill != null && card != null &&
+            (config.drill == drill || (card.isReview && !hint && random.nextDouble() < config.drillShare))
+        return when {
+            !useDrill -> Question.Locate(place, isNew = card == null, hint = hint)
+            drill == Drill.BUILD -> Question.Build(place, Drill.buildStart(content.map.home), hint)
+            else -> Question.Trace(place, Drill.traceView(place.shape as Shape.Lines, random), hint)
         }
     }
 
