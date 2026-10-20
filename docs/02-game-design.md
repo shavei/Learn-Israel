@@ -142,13 +142,26 @@ cities"), which seeds the scheduler with the results.
   review?"
 
 ### Ranks
-Tourist, Hiker, Guide, Navigator, Cartographer, Sabra-level (names tunable). Tied to
-the number of places at high stability, so a rank means real knowledge.
+Tourist, Hiker, Guide, Navigator, Cartographer, Sabra (in Hebrew with both genders,
+"מטייל/ת"). Tied to the number of known places (LOCATE stable for 21 days): 0, 10, 30,
+60, 100 and 150, the last being nearly the whole core. The rank is always the current
+one, so a forgotten place can take it down a step until it is relearned. Home shows the
+rank; the progress screen shows it with how many more known places the next one needs.
 
 ### Achievements (competence focused)
-"Know all 6 districts", "Pin every city over 100k residents within 3 km",
-"Kinneret circle: all towns around the Sea of Galilee", "No-miss session",
-"30 days in a row" (with streak freezes).
+Fifteen, each a piece of real knowledge, never time spent or answers given:
+the first known place; the frame (seas, lakes, the Jordan, the neighbors and the five
+anchor cities); all 19 natural regions; all 7 districts; every main city (importance 1
+and 2) found within 3 km in its latest Pin It answer; around the Kinneret (the lake
+and every place within 5 km of its shore); one whole natural region; all 118 cities;
+all of nature, all ports and airports, all heritage sites; a no-miss session (10
+answers or more, all remembered); a place remembered after 30+ days without review;
+7 and 30 days in a row (with streak freezes).
+
+An achievement is stored when first earned and kept, even if a place in it later
+fades: the rank and the map stay honest instead. The progress screen lists the earned
+ones with their date, then the rest with how far along they are ("5 of 14"); the
+session summary names any earned in that session, and a new rank.
 
 ### Social (opt in)
 Friends list, weekly league of ~20 players with promotion/demotion, daily challenge

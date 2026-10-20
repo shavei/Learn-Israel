@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shavei.mapa.R
 import com.shavei.mapa.content.Theme
+import com.shavei.mapa.learning.Achievement
+import com.shavei.mapa.learning.AchievementProgress
 import com.shavei.mapa.learning.LearningStats
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.RegionScore
@@ -73,6 +75,25 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: 
             item { ErrorHistory(state.errorByDay) }
             item { MapTestCard(state, onMapTest) }
             item { StatsCard(state) }
+            state.motivation?.let { motivation ->
+                item {
+                    Text(
+                        stringResource(R.string.achievements_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(stringResource(R.string.achievements_note), style = MaterialTheme.typography.bodyMedium)
+                }
+                // Earned first, in the order they were earned; then the rest, closest first.
+                val order = motivation.progress.entries.sortedWith(
+                    compareBy<Map.Entry<Achievement, AchievementProgress>>(
+                        { motivation.earned[it.key] ?: Long.MAX_VALUE },
+                        { -it.value.done.toDouble() / it.value.total.coerceAtLeast(1) },
+                    ),
+                )
+                items(order, key = { it.key.name }) { (a, p) -> AchievementRow(a, p, motivation.earned[a]) }
+            }
+            if (state.mixedPairs.isNotEmpty()) item { MixedPairsCard(state.mixedPairs) }
             item {
                 Text(
                     stringResource(R.string.progress_regions),
@@ -101,6 +122,15 @@ private fun Summary(state: ProgressState) {
             Text(stringResource(R.string.home_known, state.known), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.progress_known_explained), style = MaterialTheme.typography.bodyMedium)
             Text(stringResource(R.string.home_learned, state.learned, state.total))
+            state.motivation?.let { m ->
+                Text(stringResource(R.string.rank_line, rankName(m.rank)), style = MaterialTheme.typography.titleMedium)
+                val next = m.rank.next
+                Text(
+                    if (next == null) stringResource(R.string.rank_top)
+                    else stringResource(R.string.rank_next, next.knownPlaces - m.known, rankName(next)),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             val streak = state.streak
             Text(
                 if (streak.days == 0) stringResource(R.string.home_streak_none)
@@ -217,8 +247,11 @@ private fun StatsCard(state: ProgressState) {
     val themeLines = state.themes.map {
         stringResource(R.string.stats_theme, themeName(it.theme), it.practiced, it.known, it.places)
     }
+    val motivationLines = state.motivation?.let { m ->
+        listOf(stringResource(R.string.stats_motivation, rankName(m.rank), m.earned.size, m.progress.size, state.mixedPairs.size))
+    }.orEmpty()
     val shareText = (
-        listOf(stringResource(R.string.stats_share_header, state.appVersion), title) + lines + themeLines +
+        listOf(stringResource(R.string.stats_share_header, state.appVersion), title) + lines + themeLines + motivationLines +
             listOf(stringResource(R.string.map_test_title)) + mapTestLines(state)
         ).joinToString("\n")
     val chooserTitle = stringResource(R.string.stats_share)
@@ -315,5 +348,53 @@ private fun ThemeRow(score: ThemeScore) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** One achievement: earned (and when), or how far along it is. */
+@Composable
+private fun AchievementRow(achievement: Achievement, progress: AchievementProgress, earnedAt: Long?) {
+    val title = achievementTitle(achievement)
+    val text = achievementText(achievement, progress.total)
+    val status = if (earnedAt != null) {
+        stringResource(R.string.achievement_earned, formatDate(Instant.ofEpochMilli(earnedAt).atZone(ZoneId.systemDefault()).toLocalDate()))
+    } else {
+        stringResource(R.string.achievement_progress, progress.done, progress.total)
+    }
+    val description = stringResource(R.string.achievement_description, title, text, status)
+    Column(
+        Modifier.fillMaxWidth().testTag("achievement-${achievement.name}").clearAndSetSemantics { contentDescription = description },
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (earnedAt != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                status,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (earnedAt != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** The pairs learned from this player's missed taps, which the session now practices side by side. */
+@Composable
+private fun MixedPairsCard(pairs: List<MixedPair>) {
+    Card(Modifier.fillMaxWidth().testTag("mixed-pairs")) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(R.string.confusables_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(stringResource(R.string.confusables_note), style = MaterialTheme.typography.bodyMedium)
+            for (pair in pairs) Text(stringResource(R.string.confusables_pair, pair.first, pair.second, pair.count))
+        }
     }
 }

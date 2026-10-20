@@ -281,10 +281,15 @@ today's essential work is done.
 
 - Seeded by hand in content data (`confusables`).
 - Learned automatically: when a player taps place B while asked for A (tap lands
-  inside or nearest to B), record a confusion `A -> B`. Pairs crossing a threshold
-  (personal or global) become confusables.
-- Once both are individually stable, the composer sometimes asks them back to back
-  or as a direct contrast ("Tap Kiryat Gat, then Kiryat Malakhi").
+  inside or nearest to B), the answer logs `tappedNear = B`. A pair mixed up twice or
+  more, either way round, becomes a confusable for that player (personal only for now;
+  a global threshold waits for the log upload in Phase 2e).
+- Learned pairs join the seeded ones everywhere: asked back to back in review once
+  both are stable for 3 days, offered first as each other's wrong names in Name It,
+  and as partners in Which Way. As a wrong name, only a partner of the same kind (a
+  stream mixed up with a town stays out of Name It). The progress screen lists them.
+- The confusion rate in the learning stats still counts only the seeded pairs, since
+  learned pairs are made of confusions and would inflate it.
 
 ## Placement test
 

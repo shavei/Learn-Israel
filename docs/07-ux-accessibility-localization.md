@@ -20,8 +20,8 @@ No signup, no permissions on first run.
   average error km, new places); single "Done" button.
 - **Explore:** pick a region, see its units, browse learned places (study view with
   labels on, which is allowed but does not count as practice).
-- **Progress:** region percentages, known places count, ranks, achievements, a
-  history chart of average error over time.
+- **Progress:** region percentages, known places count, the rank, achievements,
+  learned confusable pairs, a history chart of average error over time.
 - **Settings:** session length, daily new cap, reminders, map layers,
   sounds/haptics, confidence buttons on/off, data and privacy.
 

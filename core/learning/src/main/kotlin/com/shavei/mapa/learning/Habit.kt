@@ -6,9 +6,9 @@ import java.time.temporal.ChronoUnit
 /**
  * The daily streak. [days] counts days played in a row; a freeze covers one missed day
  * without breaking it. [freezes] are earned one per [Streak.DAYS_PER_FREEZE] days of
- * streak, at most [Streak.MAX_FREEZES] saved.
+ * streak, at most [Streak.MAX_FREEZES] saved. [best] is the longest streak so far.
  */
-data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean) {
+data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean, val best: Int = days) {
     companion object {
         const val DAYS_PER_FREEZE = 7
         const val MAX_FREEZES = 2
@@ -22,6 +22,7 @@ data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean) {
             val first = daysPlayed.minOrNull() ?: return Streak(0, 0, false)
             var days = 0
             var freezes = 0
+            var best = 0
             var day = first
             while (day < today) {
                 if (day in daysPlayed) {
@@ -32,6 +33,7 @@ data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean) {
                 } else {
                     days = 0
                 }
+                best = maxOf(best, days)
                 day = day.plusDays(1)
             }
             val playedToday = today in daysPlayed
@@ -39,7 +41,7 @@ data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean) {
                 days++
                 if (days % DAYS_PER_FREEZE == 0) freezes = minOf(MAX_FREEZES, freezes + 1)
             }
-            return Streak(days, freezes, playedToday)
+            return Streak(days, freezes, playedToday, maxOf(best, days))
         }
     }
 }

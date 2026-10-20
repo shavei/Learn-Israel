@@ -1,0 +1,113 @@
+package com.shavei.mapa
+
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
+import androidx.test.core.app.ActivityScenario
+import androidx.test.core.app.ApplicationProvider
+import com.shavei.mapa.data.CardEntity
+import com.shavei.mapa.data.ReviewEntity
+import com.shavei.mapa.learning.fsrs.CardState
+import com.shavei.mapa.learning.fsrs.DAY_MS
+import com.shavei.mapa.ui.session.SessionViewModel
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/** Phase 2d: the rank, achievements kept once earned, and pairs learned from missed taps. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w400dp-h860dp-xxhdpi")
+class MotivationTest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
+    private val app get() = ApplicationProvider.getApplicationContext<MapaApplication>()
+
+    private fun has(text: String) = compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()
+
+    private fun waitForText(text: String) = compose.waitUntil(10_000) { has(text) }
+
+    /** Twelve cities known for a while (stable for 30 days), none due for 5 days. */
+    private fun seedKnown() {
+        val now = System.currentTimeMillis()
+        app.settings.update { it.copy(onboarded = true, reminderOffered = true) }
+        runBlocking {
+            app.content.places.filter { it.id.startsWith("city.") }.take(12).forEach {
+                app.database.progressDao().upsert(
+                    CardEntity(it.id, "LOCATE", CardState.REVIEW.value, null, 30.0, 5.0, now + 5 * DAY_MS, now - 10 * DAY_MS, 0),
+                )
+            }
+        }
+    }
+
+    private fun miss(asked: String, tapped: String, daysAgo: Int) = ReviewEntity(
+        placeId = asked, facet = "LOCATE", mode = "LOCATE", sessionId = "s$daysAgo",
+        timestamp = System.currentTimeMillis() - daysAgo * DAY_MS, rating = 1, errorMeters = 9_000.0, tapX = 0.0, tapY = 0.0,
+        answer = null, responseMs = 3000, appVersion = "test", tappedNear = tapped,
+    )
+
+    @After
+    fun resetClock() {
+        SessionViewModel.blitzDurationMs = 60_000
+    }
+
+    @Test
+    fun progressShowsTheRankAchievementsAndMixedPairs() {
+        seedKnown()
+        runBlocking {
+            val dao = app.database.progressDao()
+            // Mixed up once each way: a pair. A single slip is not.
+            dao.insert(miss("city.kiryat_gat", "city.kiryat_malakhi", 3))
+            dao.insert(miss("city.kiryat_malakhi", "city.kiryat_gat", 1))
+            dao.insert(miss("city.ashdod", "city.ashkelon", 1))
+        }
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("דרגה: מטייל/ת")
+            Screenshots.save(scenario, "d0-home-rank")
+            compose.onNodeWithText("התקדמות").performClick()
+            waitForText("עוד 18 מקומות ידועים לדרגת מדריך/ת טיולים")
+            Screenshots.save(scenario, "d1-progress-rank")
+
+            compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("achievement-FIRST_KNOWN"))
+            Screenshots.save(scenario, "d2-progress-achievements")
+            compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("mixed-pairs"))
+            waitForText("קריית גת וקריית מלאכי: 2 פעמים")
+            assertTrue(!has("אשדוד ואשקלון"))
+            Screenshots.save(scenario, "d3-progress-mixed-pairs")
+        }
+        // Earned achievements are stored, so they stay.
+        val stored = runBlocking { app.database.progressDao().achievements() }.map { it.id }
+        assertEquals(listOf("FIRST_KNOWN"), stored)
+    }
+
+    @Test
+    fun theSummaryAnnouncesANewAchievement() {
+        seedKnown()
+        SessionViewModel.blitzDurationMs = 3_000
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("בליץ")
+            compose.onNodeWithText("בליץ").performClick()
+            waitForText("התחילו!")
+            compose.onNodeWithText("התחילו!").performClick()
+            waitForText("נותרו")
+            Thread.sleep(3_500)
+            if (!has("נגמר הזמן!")) compose.onNodeWithTag("map").performTouchInput { click(center) }
+            waitForText("הישג חדש: מקום ראשון")
+            Screenshots.save(scenario, "d4-summary-achievement")
+        }
+    }
+}
