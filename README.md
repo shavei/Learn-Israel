@@ -14,7 +14,7 @@ people actually remember.
 
 ## Install on your phone
 
-**[Download the latest Mapa APK](https://github.com/shavei/Learn-Israel/releases/download/latest-build/mapa.apk)**
+**[Download the latest Mapa APK](https://github.com/shavei/Learn-Israel/releases/latest/download/mapa.apk)**
 
 This link always points to the newest build of `main`; CI republishes it on every merge.
 Open it on an Android phone (8.0 or newer) and allow installing from your browser when
