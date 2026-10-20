@@ -46,6 +46,8 @@ data class MapData(
     val home: Bounds,
     val layers: List<MapLayer>,
     val attribution: String,
+    /** The grid of elevation.bin, for the relief style; null in content built without it. */
+    val elevation: ElevationInfo? = null,
 ) {
     fun layer(id: String): MapLayer? = layers.firstOrNull { it.id == id }
 }

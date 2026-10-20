@@ -37,6 +37,7 @@ import sys
 from pathlib import Path
 
 import geonamescache
+import numpy as np
 import shapely
 import yaml
 from pyproj import Transformer
@@ -270,6 +271,117 @@ def outlines(pieces: dict, land_area) -> list:
     return ops.linemerge(lines(inner)) if not inner.is_empty else inner
 
 
+# Contour lines: every CONTOUR_INTERVAL meters, every CONTOUR_INDEX meters an index contour.
+CONTOUR_INTERVAL = 100
+CONTOUR_INDEX = 500
+CONTOUR_MIN_LENGTH = 1500  # meters; shorter loops are noise at this grid size
+CONTOUR_SIMPLIFY = 30
+
+
+def blurred(z):
+    """A light binomial blur, so contours on a 300 m grid read as smooth cartographic lines."""
+
+    k = np.array([1, 4, 6, 4, 1], float) / 16
+    p = np.pad(z, ((2, 2), (0, 0)), mode="edge")
+    z = sum(k[i] * p[i:i + z.shape[0]] for i in range(5))
+    p = np.pad(z, ((0, 0), (2, 2)), mode="edge")
+    return sum(k[i] * p[:, i:i + z.shape[1]] for i in range(5))
+
+
+# Marching squares: corner bits are top-left 8, top-right 4, bottom-right 2, bottom-left 1.
+# Cell edges: 0 top, 1 bottom, 2 left, 3 right. Saddles (5, 10) are resolved by the cell's mean.
+_SEGMENTS = {
+    1: [(2, 1)], 2: [(1, 3)], 3: [(2, 3)], 4: [(0, 3)], 6: [(0, 1)], 7: [(2, 0)],
+    8: [(2, 0)], 9: [(0, 1)], 11: [(0, 3)], 12: [(2, 3)], 13: [(1, 3)], 14: [(2, 1)],
+}
+
+
+def contour_lines(z, level) -> list[list[tuple[float, float]]]:
+    """Lines where grid z crosses level, in grid coordinates (column, row)."""
+
+    above = z > level
+    case = above[:-1, :-1] * 8 + above[:-1, 1:] * 4 + above[1:, 1:] * 2 + above[1:, :-1] * 1
+    rows, cols = np.nonzero((case != 0) & (case != 15))
+    segments = []
+    for r, c, kind in zip(rows.tolist(), cols.tolist(), case[rows, cols].tolist()):
+        pairs = _SEGMENTS.get(kind)
+        if pairs is None:
+            high = (z[r, c] + z[r, c + 1] + z[r + 1, c] + z[r + 1, c + 1]) / 4 > level
+            if kind == 5:
+                pairs = [(2, 1), (0, 3)] if high else [(2, 0), (1, 3)]
+            else:
+                pairs = [(2, 0), (1, 3)] if high else [(0, 3), (2, 1)]
+        edges = (("h", r, c), ("h", r + 1, c), ("v", r, c), ("v", r, c + 1))
+        segments += [(edges[a], edges[b]) for a, b in pairs]
+
+    at_edge: dict = {}
+    for i, (a, b) in enumerate(segments):
+        at_edge.setdefault(a, []).append(i)
+        at_edge.setdefault(b, []).append(i)
+    used = [False] * len(segments)
+    chains = []
+    for i, (a, b) in enumerate(segments):
+        if used[i]:
+            continue
+        used[i] = True
+        chain = [a, b]
+        for _ in range(2):  # grow from one end, then turn around and grow from the other
+            while True:
+                nxt = [j for j in at_edge[chain[-1]] if not used[j]]
+                if not nxt:
+                    break
+                used[nxt[0]] = True
+                p, q = segments[nxt[0]]
+                chain.append(q if p == chain[-1] else p)
+            chain.reverse()
+        chains.append(chain)
+
+    def point(edge):
+        kind, r, c = edge
+        if kind == "h":
+            z0, z1 = z[r, c], z[r, c + 1]
+            return c + (level - z0) / (z1 - z0), r
+        z0, z1 = z[r, c], z[r + 1, c]
+        return c, r + (level - z0) / (z1 - z0)
+
+    return [[point(e) for e in chain] for chain in chains]
+
+
+def chaikin(coords, closed):
+    """One round of corner cutting: rounds the marching squares' corners."""
+    out = [coords[0]] if not closed else []
+    pairs = list(zip(coords, coords[1:]))
+    for (x0, y0), (x1, y1) in pairs:
+        out += [(0.75 * x0 + 0.25 * x1, 0.75 * y0 + 0.25 * y1), (0.25 * x0 + 0.75 * x1, 0.25 * y0 + 0.75 * y1)]
+    out += [out[0]] if closed else [coords[-1]]
+    return out
+
+
+def contours(meta) -> dict:
+    """Contour lines from the elevation grid, in ITM meters, for the topographic map style."""
+
+    z = np.fromfile(ROOT / "content" / "elevation.bin", "<i2").astype(np.float64)
+    z = blurred(z.reshape(meta["height"], meta["width"]))
+    cell, minx, maxy = meta["cell"], meta["minX"], meta["maxY"]
+    first = int(np.ceil(z.min() / CONTOUR_INTERVAL)) * CONTOUR_INTERVAL
+    levels = []
+    for level in range(first, int(z.max()) + 1, CONTOUR_INTERVAL):
+        if level == 0:
+            continue  # the coastline is drawn from the land outline
+        lines = []
+        for line in contour_lines(z, level):
+            closed = line[0] == line[-1]
+            coords = [(minx + (x + 0.5) * cell, maxy - (y + 0.5) * cell) for x, y in line]
+            geom = LineString(coords)
+            if geom.length < CONTOUR_MIN_LENGTH:
+                continue
+            for _ in range(2):
+                coords = chaikin(coords, closed)
+            lines.append(flat(LineString(coords).simplify(CONTOUR_SIMPLIFY).coords))
+        levels.append({"elevation": level, "lines": lines})
+    return {"version": 1, "interval": CONTOUR_INTERVAL, "index": CONTOUR_INDEX, "levels": levels}
+
+
 def main() -> int:
     official = official_regions()
     around = json.loads((ROOT / "content" / "surroundings.geojson").read_text())["features"]
@@ -450,6 +562,10 @@ def main() -> int:
     israel_view = project(ops.unary_union([land_ll, ocha["gaza"]]))
     minx, miny, maxx, maxy = israel_view.bounds
     window_itm = project(WINDOW)
+    elevation = json.loads((ROOT / "content" / "elevation.json").read_text())
+    if [elevation["minX"], elevation["maxY"]] != [round(window_itm.bounds[0]), round(window_itm.bounds[3])]:
+        print("content/elevation.json does not match the map window: rerun tools/fetch_sources.py", file=sys.stderr)
+        return 1
     map_json = {
         "version": 1,
         "crs": "EPSG:2039",
@@ -466,8 +582,12 @@ def main() -> int:
             {"id": "regions", "lines": encode_lines(outlines(region_geoms, land_area))},
             {"id": "green_line", "lines": encode_lines(green_line)},
         ],
+        # Ground height for the relief style, in elevation.bin (copied from content/).
+        "elevation": {k: elevation[k] for k in ("minX", "maxY", "cell", "width", "height")},
         "attribution": "Israel Central Bureau of Statistics; Ministry of Agriculture; UN OCHA; "
-                       "GeoNames (CC BY 4.0); © OpenStreetMap contributors (ODbL)",
+                       "GeoNames (CC BY 4.0); © OpenStreetMap contributors (ODbL); "
+                       "Copernicus DEM © DLR e.V., © Airbus Defence and Space GmbH, "
+                       "provided under COPERNICUS by the European Union and ESA",
     }
 
     ASSETS.mkdir(parents=True, exist_ok=True)
@@ -475,7 +595,9 @@ def main() -> int:
     (ASSETS / "places.json").write_text(
         json.dumps({"version": 1, "places": places}, ensure_ascii=False, separators=(",", ":"))
     )
-    for f in ("map.json", "places.json"):
+    (ASSETS / "elevation.bin").write_bytes((ROOT / "content" / "elevation.bin").read_bytes())
+    (ASSETS / "contours.json").write_text(json.dumps(contours(elevation), separators=(",", ":")))
+    for f in ("map.json", "places.json", "elevation.bin", "contours.json"):
         print(f"{f}: {(ASSETS / f).stat().st_size // 1024} KB")
     print(f"{len(places)} places")
     return 0

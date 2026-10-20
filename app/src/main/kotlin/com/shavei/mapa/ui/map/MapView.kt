@@ -1,9 +1,12 @@
 package com.shavei.mapa.ui.map
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PathFillType
@@ -19,6 +23,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -31,12 +36,14 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import com.shavei.mapa.content.MapData
+import com.shavei.mapa.data.MapStyle
 import com.shavei.mapa.geo.Bounds
 import com.shavei.mapa.geo.Line
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.geo.Polygon
 import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.ui.theme.LocalMapPalette
+import com.shavei.mapa.ui.theme.MapPalette
 import kotlin.math.min
 
 /** Something drawn on top of the base map: a highlighted place, a tap, a line, a label. */
@@ -158,6 +165,9 @@ fun MapView(
     /** What a screen reader says about the map. */
     description: String? = null,
     onTap: ((MapPoint) -> Unit)? = null,
+    /** False for a still picture of the map, such as the style previews in settings. */
+    interactive: Boolean = true,
+    look: MapLook = LocalMapLook.current,
 ) {
     val colors = LocalMapPalette.current
     // Paths are built once in map meters relative to an origin near Israel, which keeps
@@ -166,27 +176,60 @@ fun MapView(
     val layers = remember(map) { BaseLayers.build(map, origin) }
     val pathCache = remember(map) { HashMap<Shape, Path>() }
     val textMeasurer = rememberTextMeasurer()
+    val terrain = rememberTerrainLayer(look, colors)
+    val topographic = look.style == MapStyle.TOPOGRAPHIC
 
     Canvas(
         modifier = modifier
             .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier)
             .onSizeChanged { camera.onSize(it) }
-            .pointerInput(camera) {
-                detectTransformGestures { centroid, pan, zoom, _ -> camera.transform(centroid, pan, zoom) }
-            }
+            .then(
+                if (!interactive) Modifier
+                else Modifier.pointerInput(camera) {
+                    detectTransformGestures { centroid, pan, zoom, _ -> camera.transform(centroid, pan, zoom) }
+                },
+            )
             .pointerInput(camera, onTap) {
                 if (onTap != null) detectTapGestures { onTap(camera.toMap(it)) }
             },
     ) {
         if (camera.scale == 0.0) return@Canvas
-        drawRect(colors.sea)
+        drawRect(if (topographic) colors.topoSea else colors.sea)
 
         inMapSpace(camera, origin) { px ->
-            drawPath(layers.neighbors, colors.neighbor)
+            // The ground: flat colors, then the style's terrain over it, fading in when it first loads.
+            drawPath(layers.neighbors, if (topographic) colors.topoNeighbor else colors.neighbor)
+            drawPath(layers.gaza, if (topographic) colors.topoNeighbor else colors.gaza)
+            drawPath(layers.land, if (topographic) colors.topoLand else colors.land)
+            val fade = terrain.fade
+            terrain.relief?.let { relief ->
+                clipPath(layers.ground) {
+                    withTransform({
+                        translate((relief.minX - origin.x).toFloat(), (relief.maxY - origin.y).toFloat())
+                        scale(relief.cell.toFloat(), -relief.cell.toFloat(), pivot = Offset.Zero)
+                    }) {
+                        drawImage(
+                            relief.image,
+                            dstSize = IntSize(relief.image.width, relief.image.height),
+                            alpha = fade,
+                            filterQuality = FilterQuality.Low,
+                        )
+                    }
+                }
+            }
+            terrain.contours?.let { contours ->
+                val dp = density * px
+                clipPath(layers.ground) {
+                    drawPath(contours.lines, colors.contour, alpha = fade, style = Stroke(width = 0.7f * dp, join = StrokeJoin.Round))
+                    drawPath(contours.index, colors.indexContour, alpha = fade, style = Stroke(width = 1.3f * dp, join = StrokeJoin.Round))
+                }
+            }
+            if (terrain.relief != null || terrain.contours != null) {
+                drawPath(layers.neighbors, colors.terrainWash, alpha = fade)
+                drawPath(layers.gaza, colors.terrainWash, alpha = fade)
+            }
             drawPath(layers.neighbors, colors.border, style = Stroke(width = px))
-            drawPath(layers.gaza, colors.gaza)
             drawPath(layers.gaza, colors.border, style = Stroke(width = px))
-            drawPath(layers.land, colors.land)
             drawPath(layers.land, colors.border, style = Stroke(width = 1.5f * px))
             drawPath(
                 layers.regions, colors.regionOutline,
@@ -239,6 +282,39 @@ fun MapView(
     }
 }
 
+/** What the current style draws over the flat ground, and how far it has faded in (0 to 1). */
+private class TerrainLayer(val relief: ReliefImage?, val contours: ContourPaths?, val fade: Float)
+
+/**
+ * The terrain of [look]'s style for [palette]. Shown at once when it is already built (the
+ * usual case: it is prepared when the style is chosen and shared by every map), otherwise
+ * faded in over the flat map as soon as it is ready, so switching never flashes.
+ */
+@Composable
+private fun rememberTerrainLayer(look: MapLook, palette: MapPalette): TerrainLayer {
+    val terrain = look.terrain
+    val style = look.style
+    var relief by remember(terrain, style, palette) {
+        mutableStateOf(if (style == MapStyle.RELIEF) terrain?.readyRelief(palette) else null)
+    }
+    var contours by remember(terrain, style) {
+        mutableStateOf(if (style == MapStyle.TOPOGRAPHIC) terrain?.readyContours() else null)
+    }
+    val fade = remember(terrain, style, palette) { Animatable(if (relief != null || contours != null) 1f else 0f) }
+    LaunchedEffect(terrain, style, palette) {
+        if (terrain == null) return@LaunchedEffect
+        when (style) {
+            MapStyle.STANDARD -> return@LaunchedEffect
+            MapStyle.RELIEF -> if (relief == null) relief = terrain.relief(palette)
+            MapStyle.TOPOGRAPHIC -> if (contours == null) contours = terrain.contours()
+        }
+        fade.animateTo(1f, tween(TERRAIN_FADE_MS))
+    }
+    return TerrainLayer(relief, contours, fade.value)
+}
+
+private const val TERRAIN_FADE_MS = 450
+
 /** Runs [block] with the canvas in map meters (relative to [origin]); px is one screen pixel in map units. */
 private inline fun DrawScope.inMapSpace(camera: MapCamera, origin: MapPoint, block: DrawScope.(px: Float) -> Unit) {
     val s = camera.scale.toFloat()
@@ -255,6 +331,8 @@ private class BaseLayers(
     val neighbors: Path,
     val gaza: Path,
     val land: Path,
+    /** Everything that is not sea: where the terrain styles draw. */
+    val ground: Path,
     val lakes: Path,
     val rivers: Path,
     val regions: Path,
@@ -264,8 +342,10 @@ private class BaseLayers(
         fun build(map: MapData, origin: MapPoint): BaseLayers {
             fun polys(id: String) = polygonsPath(map.layer(id)?.polygons.orEmpty(), origin)
             fun lines(id: String) = linesPath(map.layer(id)?.lines.orEmpty(), origin)
+            val ground = polygonsPath(listOf("neighbors", "gaza", "land").flatMap { map.layer(it)?.polygons.orEmpty() }, origin)
             return BaseLayers(
-                polys("neighbors"), polys("gaza"), polys("land"), polys("lakes"), lines("rivers"), lines("regions"), lines("green_line"),
+                polys("neighbors"), polys("gaza"), polys("land"), ground, polys("lakes"), lines("rivers"), lines("regions"),
+                lines("green_line"),
             )
         }
     }

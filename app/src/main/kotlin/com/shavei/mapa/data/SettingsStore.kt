@@ -8,10 +8,14 @@ enum class SessionLength(val questions: Int) { SHORT(10), NORMAL(15), LONG(25) }
 
 enum class ThemeChoice { SYSTEM, LIGHT, DARK }
 
+/** How the land is drawn: flat colors, shaded relief, or contour lines. */
+enum class MapStyle { STANDARD, RELIEF, TOPOGRAPHIC }
+
 data class Settings(
     val sessionLength: SessionLength = SessionLength.NORMAL,
     /** The 1949 armistice line, off by default (docs/10-risks-and-open-questions.md, decision 1). */
     val showGreenLine: Boolean = false,
+    val mapStyle: MapStyle = MapStyle.STANDARD,
     val theme: ThemeChoice = ThemeChoice.SYSTEM,
     val reminderOn: Boolean = false,
     /** Minutes after midnight, local time. */
@@ -37,6 +41,7 @@ class SettingsStore(context: Context) {
         prefs.edit()
             .putString(SESSION_LENGTH, next.sessionLength.name)
             .putBoolean(GREEN_LINE, next.showGreenLine)
+            .putString(MAP_STYLE, next.mapStyle.name)
             .putString(THEME, next.theme.name)
             .putBoolean(REMINDER_ON, next.reminderOn)
             .putInt(REMINDER_MINUTES, next.reminderMinutes)
@@ -52,6 +57,7 @@ class SettingsStore(context: Context) {
         return Settings(
             sessionLength = enumOr(prefs.getString(SESSION_LENGTH, null), d.sessionLength),
             showGreenLine = prefs.getBoolean(GREEN_LINE, d.showGreenLine),
+            mapStyle = enumOr(prefs.getString(MAP_STYLE, null), d.mapStyle),
             theme = enumOr(prefs.getString(THEME, null), d.theme),
             reminderOn = prefs.getBoolean(REMINDER_ON, d.reminderOn),
             reminderMinutes = prefs.getInt(REMINDER_MINUTES, d.reminderMinutes),
@@ -67,6 +73,7 @@ class SettingsStore(context: Context) {
     private companion object {
         const val SESSION_LENGTH = "sessionLength"
         const val GREEN_LINE = "showGreenLine"
+        const val MAP_STYLE = "mapStyle"
         const val THEME = "theme"
         const val REMINDER_ON = "reminderOn"
         const val REMINDER_MINUTES = "reminderMinutes"

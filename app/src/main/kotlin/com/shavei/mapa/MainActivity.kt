@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -32,6 +33,8 @@ import com.shavei.mapa.data.Settings
 import com.shavei.mapa.data.ThemeChoice
 import com.shavei.mapa.reminder.Reminders
 import com.shavei.mapa.ui.home.HomeScreen
+import com.shavei.mapa.ui.map.LocalMapLook
+import com.shavei.mapa.ui.map.MapLook
 import com.shavei.mapa.ui.home.HomeViewModel
 import com.shavei.mapa.ui.onboarding.OnboardingScreen
 import com.shavei.mapa.ui.progress.ProgressScreen
@@ -40,6 +43,7 @@ import com.shavei.mapa.ui.session.SessionKind
 import com.shavei.mapa.ui.session.SessionScreen
 import com.shavei.mapa.ui.session.SessionViewModel
 import com.shavei.mapa.ui.settings.SettingsScreen
+import com.shavei.mapa.ui.theme.LocalMapPalette
 import com.shavei.mapa.ui.theme.MapaTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -79,8 +83,13 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
             }
             MapaTheme(dark) {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    App(app, settings)
+                // Build the chosen style's terrain now, so maps show it without waiting.
+                val palette = LocalMapPalette.current
+                LaunchedEffect(settings.mapStyle, palette) { app.terrain.prepare(settings.mapStyle, palette) }
+                CompositionLocalProvider(LocalMapLook provides MapLook(settings.mapStyle, app.terrain)) {
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        App(app, settings)
+                    }
                 }
             }
         }
@@ -158,6 +167,7 @@ private fun App(app: MapaApplication, settings: Settings) {
         }
         Screen.SETTINGS -> SettingsScreen(
             settings,
+            app.content.map,
             onChange = { change ->
                 app.settings.update(change)
                 Reminders.apply(app, app.settings.current)

@@ -4,7 +4,11 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,22 +40,37 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.shavei.mapa.R
+import com.shavei.mapa.content.MapData
+import com.shavei.mapa.data.MapStyle
 import com.shavei.mapa.data.SessionLength
 import com.shavei.mapa.data.Settings
 import com.shavei.mapa.data.ThemeChoice
+import com.shavei.mapa.geo.Bounds
 import com.shavei.mapa.reminder.Reminders
 import com.shavei.mapa.ui.formatTime
+import com.shavei.mapa.ui.map.LocalMapLook
+import com.shavei.mapa.ui.map.MapCamera
+import com.shavei.mapa.ui.map.MapLook
+import com.shavei.mapa.ui.map.MapView
+import com.shavei.mapa.ui.theme.LocalMapPalette
 
 /** Settings apply as soon as they change; [onChange] stores them. */
 @Composable
-fun SettingsScreen(settings: Settings, onChange: ((Settings) -> Settings) -> Unit, onBack: () -> Unit) {
+fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Settings) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
     var blocked by remember { mutableStateOf(false) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
@@ -60,11 +80,9 @@ fun SettingsScreen(settings: Settings, onChange: ((Settings) -> Settings) -> Uni
         onChange { it.copy(reminderOn = on, reminderOffered = true) }
     }
 
-    Column(
-        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        // The title and the way back stay in place while the settings scroll.
+        Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.settings_title),
                 style = MaterialTheme.typography.headlineMedium,
@@ -72,72 +90,143 @@ fun SettingsScreen(settings: Settings, onChange: ((Settings) -> Settings) -> Uni
             )
             TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
         }
+        Column(
+            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Section(stringResource(R.string.settings_session_length))
+            Choices(
+                options = SessionLength.entries,
+                selected = settings.sessionLength,
+                label = {
+                    stringResource(
+                        when (it) {
+                            SessionLength.SHORT -> R.string.length_short
+                            SessionLength.NORMAL -> R.string.length_normal
+                            SessionLength.LONG -> R.string.length_long
+                        },
+                    )
+                },
+                onSelect = { length -> onChange { it.copy(sessionLength = length) } },
+            )
 
-        Section(stringResource(R.string.settings_session_length))
-        Choices(
-            options = SessionLength.entries,
-            selected = settings.sessionLength,
-            label = {
-                stringResource(
-                    when (it) {
-                        SessionLength.SHORT -> R.string.length_short
-                        SessionLength.NORMAL -> R.string.length_normal
-                        SessionLength.LONG -> R.string.length_long
-                    },
-                )
-            },
-            onSelect = { length -> onChange { it.copy(sessionLength = length) } },
-        )
-
-        HorizontalDivider()
-        Section(stringResource(R.string.settings_reminder))
-        Toggle(
-            title = stringResource(R.string.settings_reminder),
-            note = stringResource(R.string.settings_reminder_note),
-            checked = settings.reminderOn,
-        ) { on ->
-            when {
-                !on -> onChange { it.copy(reminderOn = false, reminderOffered = true) }
-                Reminders.canNotify(context) -> onChange { it.copy(reminderOn = true, reminderOffered = true) }
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> permission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                else -> blocked = true
+            HorizontalDivider()
+            Section(stringResource(R.string.settings_reminder))
+            Toggle(
+                title = stringResource(R.string.settings_reminder),
+                note = stringResource(R.string.settings_reminder_note),
+                checked = settings.reminderOn,
+            ) { on ->
+                when {
+                    !on -> onChange { it.copy(reminderOn = false, reminderOffered = true) }
+                    Reminders.canNotify(context) -> onChange { it.copy(reminderOn = true, reminderOffered = true) }
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    else -> blocked = true
+                }
             }
-        }
-        if (blocked) Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.secondary)
-        OutlinedButton(onClick = { pickingTime = true }, enabled = settings.reminderOn) {
-            Text(stringResource(R.string.settings_reminder_time, formatTime(settings.reminderMinutes)))
-        }
+            if (blocked) Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.secondary)
+            OutlinedButton(onClick = { pickingTime = true }, enabled = settings.reminderOn) {
+                Text(stringResource(R.string.settings_reminder_time, formatTime(settings.reminderMinutes)))
+            }
 
-        HorizontalDivider()
-        Section(stringResource(R.string.settings_map))
-        Toggle(
-            title = stringResource(R.string.settings_green_line),
-            note = stringResource(R.string.settings_green_line_note),
-            checked = settings.showGreenLine,
-        ) { on -> onChange { it.copy(showGreenLine = on) } }
+            HorizontalDivider()
+            Section(stringResource(R.string.settings_map))
+            MapStyles(map, settings.mapStyle) { style -> onChange { it.copy(mapStyle = style) } }
+            Toggle(
+                title = stringResource(R.string.settings_green_line),
+                note = stringResource(R.string.settings_green_line_note),
+                checked = settings.showGreenLine,
+            ) { on -> onChange { it.copy(showGreenLine = on) } }
 
-        HorizontalDivider()
-        Section(stringResource(R.string.settings_theme))
-        Choices(
-            options = ThemeChoice.entries,
-            selected = settings.theme,
-            label = {
-                stringResource(
-                    when (it) {
-                        ThemeChoice.SYSTEM -> R.string.theme_system
-                        ThemeChoice.LIGHT -> R.string.theme_light
-                        ThemeChoice.DARK -> R.string.theme_dark
-                    },
-                )
-            },
-            onSelect = { theme -> onChange { it.copy(theme = theme) } },
-        )
+            HorizontalDivider()
+            Section(stringResource(R.string.settings_theme))
+            Choices(
+                options = ThemeChoice.entries,
+                selected = settings.theme,
+                label = {
+                    stringResource(
+                        when (it) {
+                            ThemeChoice.SYSTEM -> R.string.theme_system
+                            ThemeChoice.LIGHT -> R.string.theme_light
+                            ThemeChoice.DARK -> R.string.theme_dark
+                        },
+                    )
+                },
+                onSelect = { theme -> onChange { it.copy(theme = theme) } },
+            )
+        }
     }
 
     if (pickingTime) {
         TimeDialog(settings.reminderMinutes, onDismiss = { pickingTime = false }) { minutes ->
             pickingTime = false
             onChange { it.copy(reminderMinutes = minutes) }
+        }
+    }
+}
+
+/**
+ * The three map styles side by side, each a live, still picture of the same piece of the
+ * country (the Judean hills down to the Dead Sea), so the choice shows what it does.
+ */
+@Composable
+private fun MapStyles(map: MapData, selected: MapStyle, onSelect: (MapStyle) -> Unit) {
+    val terrain = LocalMapLook.current.terrain
+    val palette = LocalMapPalette.current
+    // The previews need every style's terrain; it is built once and kept for the maps.
+    LaunchedEffect(terrain, palette) { for (style in MapStyle.entries) terrain?.prepare(style, palette) }
+    val frame = remember(map) { Bounds(196_000.0, 585_000.0, 250_000.0, 655_000.0) }
+    Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        for (style in MapStyle.entries) {
+            val isSelected = style == selected
+            val name = stringResource(
+                when (style) {
+                    MapStyle.STANDARD -> R.string.map_style_standard
+                    MapStyle.RELIEF -> R.string.map_style_relief
+                    MapStyle.TOPOGRAPHIC -> R.string.map_style_topographic
+                },
+            )
+            val note = stringResource(
+                when (style) {
+                    MapStyle.STANDARD -> R.string.map_style_standard_note
+                    MapStyle.RELIEF -> R.string.map_style_relief_note
+                    MapStyle.TOPOGRAPHIC -> R.string.map_style_topographic_note
+                },
+            )
+            val border by animateColorAsState(
+                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                label = "style-border",
+            )
+            Column(
+                Modifier.weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(style) })
+                    .border(if (isSelected) 3.dp else 1.dp, border, RoundedCornerShape(14.dp))
+                    .padding(6.dp)
+                    .testTag("map-style-${style.name.lowercase()}")
+                    .clearAndSetSemantics {
+                        contentDescription = "$name. $note"
+                        this.selected = isSelected
+                        role = Role.RadioButton
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                val camera = remember(map) { MapCamera(frame, map.window) }
+                MapView(
+                    map, camera,
+                    Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(10.dp)),
+                    interactive = false,
+                    look = MapLook(style, terrain),
+                )
+                Text(name, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }

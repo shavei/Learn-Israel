@@ -23,12 +23,29 @@ object ContentParser {
                 home = map.home.toBounds(),
                 layers = map.layers.map { MapLayer(it.id, it.polygons.toPolygons(), it.lines.toLines()) },
                 attribution = map.attribution,
+                elevation = map.elevation?.let { ElevationInfo(it.minX, it.maxY, it.cell, it.width, it.height) },
             ),
             places = places.places.map { it.toPlace() },
         )
     }
 
+    /** contours.json, read only when the topographic style is on. */
+    fun parseContours(contoursJson: String): Contours {
+        val file = json.decodeFromString<ContoursFile>(contoursJson)
+        require(file.version == SUPPORTED_VERSION) { "unsupported contours.json version ${file.version}" }
+        return Contours(file.interval, file.index, file.levels.map { ContourLevel(it.elevation, it.lines.toLines()) })
+    }
+
     private const val SUPPORTED_VERSION = 1
+
+    @Serializable
+    private class ContoursFile(val version: Int, val interval: Int, val index: Int, val levels: List<ContourLevelJson>)
+
+    @Serializable
+    private class ContourLevelJson(val elevation: Int, val lines: List<List<Double>>)
+
+    @Serializable
+    private class ElevationJson(val minX: Double, val maxY: Double, val cell: Double, val width: Int, val height: Int)
 
     @Serializable
     private class MapFile(
@@ -37,6 +54,7 @@ object ContentParser {
         val home: List<Double>,
         val layers: List<LayerJson>,
         val attribution: String = "",
+        val elevation: ElevationJson? = null,
     )
 
     @Serializable
