@@ -344,10 +344,14 @@ OVERPASS = [
     "https://overpass-api.de/api/interpreter",
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
-# Israel and its edges, south, west, north, east (the Overpass order).
-ISRAEL_BBOX = "29.4,34.2,33.4,35.95"
+# Israel and its edges in four bands, south to north (south, west, north, east, the
+# Overpass order): small queries are answered when one big one times out.
+ISRAEL_BANDS = ["29.4,34.2,30.6,35.95", "30.6,34.2,31.6,35.95", "31.6,34.2,32.5,35.95", "32.5,34.2,33.4,35.95"]
 # Road classes that carry a highway's number; ramps and side roads are left out.
 ROAD_CLASSES = "motorway|trunk|primary|secondary"
+# Road queries are kept here once answered, so a rerun after a failure fetches only the rest.
+# Delete the folder to fetch the roads again.
+OSM_CACHE = ROOT / "tools" / "raw" / "osm_places"
 
 
 def overpass(query: str) -> dict:
@@ -400,8 +404,15 @@ def osm_places() -> None:
             name = tags.get("name")
         elif kind == "road":
             print(f"fetching road {arg}")
-            found = overpass(f'[out:json][timeout:200];way["highway"~"^({ROAD_CLASSES})$"]["ref"="{arg}"]'
-                             f'({ISRAEL_BBOX});out geom;')["elements"]
+            found = []
+            for band in ISRAEL_BANDS:
+                cached = OSM_CACHE / f"road_{arg}_{band}.json"
+                if not cached.exists():
+                    result = overpass(f'[out:json][timeout:200];way["highway"~"^({ROAD_CLASSES})$"]["ref"="{arg}"]'
+                                      f'({band});out geom;')
+                    cached.parent.mkdir(parents=True, exist_ok=True)
+                    cached.write_text(json.dumps(result["elements"]))
+                found += [w for w in json.loads(cached.read_text()) if w["id"] not in {f["id"] for f in found}]
             if not found:
                 sys.exit(f"no ways with ref {arg}")
             # Both carriageways of a divided road merge into one line once simplified.
