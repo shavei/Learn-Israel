@@ -177,7 +177,9 @@ test shows large gains; D7 retention benchmark agreed in advance.
    for the newest screens). Ask testers to take the map test on day one.
 2. Review the 1b content: region borders, Hebrew names, hints and facts.
 3. Tune tolerances, session size and the placement test from the playtest.
-4. Check the reminder on Android 13+ phones (notification permission) and after a
-   reboot.
+4. Check the reminder on real phones: Android 13+ (the permission question, and the
+   way to the phone's notification settings when Android refuses without asking),
+   after a reboot, after an app update, and on phones that stop apps to save battery.
+   Settings has "send a test reminder" for this.
 5. Agree the D7 retention benchmark before the closed beta, and collect results
    through "Share results" (Phase 1 exit test).

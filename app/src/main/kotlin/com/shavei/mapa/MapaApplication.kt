@@ -10,10 +10,18 @@ import com.shavei.mapa.data.MapaDatabase
 import com.shavei.mapa.data.ProgressRepository
 import com.shavei.mapa.data.SettingsStore
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
+import com.shavei.mapa.reminder.Reminders
 import com.shavei.mapa.ui.map.MapTerrain
 
 /** Manual dependency container. Small enough for Phase 0 that Hilt is not needed yet. */
 class MapaApplication : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        // Alarms are lost when the app is force-stopped (some phones do that to save
+        // battery), so the reminder is set again whenever the app starts.
+        Reminders.apply(this, settings.current)
+    }
 
     val content: Content by lazy {
         fun read(name: String) = assets.open(name).bufferedReader().use { it.readText() }

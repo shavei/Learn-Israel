@@ -69,6 +69,10 @@
     <string name="reminder_offer_body">הודעה אחת ביום ב־%1$s, רק כשיש מה לתרגל. אפשר לשנות בהגדרות.</string>
     <string name="reminder_offer_yes">כן, הזכירו לי</string>
     <string name="reminder_offer_no">לא עכשיו</string>
+    <string name="reminder_blocked_explain">הטלפון חוסם את ההתראות של מפה, ולכן לא מופיעה בקשת הרשאה. אפשר להפעיל אותן בהגדרות ההתראות של האפליקציה, ואז לחזור לכאן.</string>
+    <string name="reminder_open_settings">פתיחת הגדרות ההתראות</string>
+    <string name="reminder_set">התזכורת נקבעה ל־%1$s. אפשר לשנות בהגדרות.</string>
+    <string name="reminder_test">כך תיראה התזכורת היומית</string>
 
     <string name="progress_title">התקדמות</string>
     <string name="progress_regions">אזורים</string>
@@ -139,7 +143,9 @@
     <string name="settings_reminder">תזכורת יומית</string>
     <string name="settings_reminder_note">רק בימים שיש מה לתרגל ועוד לא התאמנתם</string>
     <string name="settings_reminder_time">שעת התזכורת: %1$s</string>
-    <string name="settings_reminder_blocked">ההתראות של האפליקציה כבויות בהגדרות המכשיר.</string>
+    <string name="settings_reminder_blocked">ההתראות של מפה כבויות בהגדרות הטלפון, ולכן התזכורת לא תגיע.</string>
+    <string name="settings_reminder_test">שליחת תזכורת לדוגמה</string>
+    <string name="settings_reminder_test_sent">נשלחה תזכורת לדוגמה. אם היא לא הופיעה, בדקו את הגדרות ההתראות של הטלפון.</string>
     <string name="time_ok">אישור</string>
     <string name="time_cancel">ביטול</string>
 

@@ -27,21 +27,37 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
- * The optional daily reminder: an inexact daily alarm at the time the player chose.
- * No exact-alarm permission is needed, and the system may shift it a little to save
- * battery. Alarms do not survive a reboot, so [BootReceiver] sets it again.
+ * The optional daily reminder: an alarm at the time the player chose, set one day at a
+ * time. It is inexact (no exact-alarm permission needed; the system may shift it a little
+ * to save battery) but allowed while idle, so Doze does not hold it back for hours.
+ * Alarms are lost on a reboot and when the app is force-stopped, so the alarm is set
+ * again when the phone starts, when the app is updated, and every time the app starts.
  */
 object Reminders {
     private const val CHANNEL = "daily"
     private const val NOTIFICATION_ID = 1
 
-    /** Sets or clears the alarm to match [settings]. */
+    /** Sets or clears the next alarm to match [settings]. */
     fun apply(context: Context, settings: Settings) {
         val alarms = context.getSystemService(AlarmManager::class.java)
         val pending = alarmIntent(context)
         alarms.cancel(pending)
         if (!settings.reminderOn) return
-        alarms.setInexactRepeating(AlarmManager.RTC_WAKEUP, nextTime(settings.reminderMinutes), AlarmManager.INTERVAL_DAY, pending)
+        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextTime(settings.reminderMinutes), pending)
+    }
+
+    /** The system screen where the player turns this app's notifications on. */
+    fun openSettings(context: Context) {
+        val intent = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
+
+    /** Posts a sample reminder now, so the player can see that reminders get through. */
+    fun sendTest(context: Context) {
+        if (!canNotify(context)) return
+        post(context, context.getString(R.string.reminder_test))
     }
 
     /** Whether the system lets the app post the reminder (Android 13 asks the player). */
@@ -72,29 +88,34 @@ object Reminders {
         val hasNew = startedPlaces < app.content.places.size
         if (!ReminderPolicy.shouldRemind(LocalDate.now(), app.progress.lastDayPlayed(), hasWork = due > 0 || hasNew)) return
 
-        val manager = app.getSystemService(NotificationManager::class.java)
+        val text = if (due > 0) app.resources.getQuantityString(R.plurals.reminder_due, due, due) else app.getString(R.string.reminder_new)
+        post(app, text)
+    }
+
+    private fun post(context: Context, text: String) {
+        val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL, app.getString(R.string.reminder_channel), NotificationManager.IMPORTANCE_DEFAULT),
+            NotificationChannel(CHANNEL, context.getString(R.string.reminder_channel), NotificationManager.IMPORTANCE_DEFAULT),
         )
         val open = PendingIntent.getActivity(
-            app, 0, Intent(app, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE,
+            context, 0, Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE,
         )
-        val text = if (due > 0) app.resources.getQuantityString(R.plurals.reminder_due, due, due) else app.getString(R.string.reminder_new)
-        val notification = NotificationCompat.Builder(app, CHANNEL)
+        val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(app.getString(R.string.app_name))
+            .setContentTitle(context.getString(R.string.app_name))
             .setContentText(text)
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()
-        NotificationManagerCompat.from(app).notify(NOTIFICATION_ID, notification)
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
     }
 }
 
-/** Fires once a day at the reminder time. */
+/** Fires once a day at the reminder time, and sets the alarm for the next day. */
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val app = context.applicationContext as MapaApplication
+        Reminders.apply(app, app.settings.current)
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -106,10 +127,10 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 }
 
-/** Sets the alarm again after the phone restarts. */
+/** Sets the alarm again after the phone restarts or the app is updated. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
         val app = context.applicationContext as MapaApplication
         Reminders.apply(app, app.settings.current)
     }
