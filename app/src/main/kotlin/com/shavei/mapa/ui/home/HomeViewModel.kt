@@ -26,6 +26,9 @@ data class HomeState(
     val knownPlaces: Set<String> = emptySet(),
     val dueNow: Int = 0,
     val newAvailable: Int = 0,
+    /** New places remain, but today's are used up at the chosen pace. */
+    val newCapReached: Boolean = false,
+    val newPerDay: Int? = null,
     /** placeId to 0..1 strength shown on the mastery map. */
     val mastery: Map<String, Double> = emptyMap(),
     val streak: Streak = Streak(0, 0, false),
@@ -46,14 +49,15 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val cards = app.progress.cards()
-            val config = SessionConfig()
+            val settings = app.settings.current
+            val config = SessionConfig(size = settings.sessionLength.questions, maxNewPerDay = settings.pace.newPerDay)
             val places = app.content.places
             // The map shows LOCATE: knowing where a place is comes first.
             val locate = cards.filterKeys { it.facet == Facet.LOCATE }.mapKeys { it.key.placeId }
             val notStarted = places.count { it.id !in locate }
-            val newLeftToday = (config.maxNewPerDay - app.progress.newIntroducedToday(now)).coerceAtLeast(0)
+            val introducedToday = app.progress.newIntroducedToday(now)
+            val newLeftToday = config.maxNewPerDay?.let { (it - introducedToday).coerceAtLeast(0) } ?: notStarted
             val daysPlayed = app.progress.daysPlayed()
-            val settings = app.settings.current
             val today = LocalDate.now()
             val offerReminder = !settings.reminderOffered && daysPlayed.isNotEmpty()
             val lastTest = app.progress.mapTests().lastOrNull()?.let {
@@ -67,6 +71,8 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
                 knownPlaces = locate.filterValues { isKnown(it.fsrs) }.keys,
                 dueNow = cards.values.count { it.fsrs.due <= now },
                 newAvailable = minOf(notStarted, newLeftToday, config.maxNewPerSession),
+                newCapReached = notStarted > 0 && newLeftToday == 0,
+                newPerDay = config.maxNewPerDay,
                 mastery = locate.mapValues { (_, c) -> app.scheduler.mastery(c.fsrs, now) },
                 streak = Streak.of(daysPlayed, today),
                 offerReminder = offerReminder,

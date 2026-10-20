@@ -36,7 +36,7 @@ class MapaApplication : Application() {
 
     val settings: SettingsStore by lazy { SettingsStore(this) }
 
-    /** Relief and contour layers for the map styles, built once and shared by every map. */
+    /** The relief map style's terrain, built once and shared by every map. */
     val terrain: MapTerrain by lazy { MapTerrain(assets, content.map) }
 
     val progress: ProgressRepository by lazy {

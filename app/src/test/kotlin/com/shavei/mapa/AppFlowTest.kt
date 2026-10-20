@@ -1,6 +1,8 @@
 package com.shavei.mapa
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -8,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,11 +51,13 @@ class AppFlowTest {
 
         compose.onNodeWithText("הבנתי, בואו נתרגל").performClick()
         waitForText("סמנו על המפה: הים התיכון")
+        compose.onNodeWithTag("score", useUnmergedTree = true).assertTextEquals("0 נקודות")
         screenshot("3-ask")
 
-        // Tap far out at sea, on the left edge of the map, middle height.
+        // Tap far out at sea, on the left edge of the map, middle height: inside it, full points.
         compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
         waitForText("מצוין!")
+        compose.onNodeWithTag("answer-points").assertTextEquals("5,000 נקודות")
         screenshot("4-feedback")
 
         compose.onNodeWithText("המשך").performClick()
@@ -62,9 +67,13 @@ class AppFlowTest {
 
         compose.onNodeWithText("הבנתי, בואו נתרגל").performClick()
         waitForText("סמנו על המפה: מפרץ אילת")
-        // A deliberate miss in the middle of the country.
+        compose.onNodeWithTag("score", useUnmergedTree = true).assertTextEquals("5,000 נקודות")
+        // A deliberate miss in the middle of the country, far from the gulf: almost no points.
         compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.4f)) }
         waitForText("לא הפעם")
+        val missPoints = compose.onNodeWithTag("answer-points").fetchSemanticsNode()
+            .config[SemanticsProperties.Text].single().text.substringBefore(" ").replace(",", "").toInt()
+        assertTrue("$missPoints points", missPoints < 100)
         screenshot("6-miss")
 
         compose.onNodeWithText("יציאה").performClick()

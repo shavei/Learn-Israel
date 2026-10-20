@@ -35,8 +35,8 @@ while the sources keep changing. Rerun this only to refresh them, then rebuild.
                                     north to south, each row stored as differences from the
                                     cell before it (compresses three times better);
                                     elevation.json gives the grid. tools/build_content.py cuts
-                                    it to Israel's land for the relief and topographic map
-                                    styles. Copernicus DEM (c) DLR e.V. 2010-2014 and (c) Airbus
+                                    it to Israel's land for the relief map
+                                    style. Copernicus DEM (c) DLR e.V. 2010-2014 and (c) Airbus
                                     Defence and Space GmbH 2014-2018, provided under COPERNICUS
                                     by the European Union and ESA; free to use with attribution.
   content/palestine.geojson         The Gaza Strip and the West Bank from the UN OCHA common

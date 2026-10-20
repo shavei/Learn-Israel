@@ -7,6 +7,8 @@ import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.geo.characteristicSize
 import com.shavei.mapa.learning.fsrs.Rating
 import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 data class Grade(
     val rating: Rating,
@@ -15,6 +17,8 @@ data class Grade(
     val toleranceMeters: Double? = null,
     /** A typed name accepted with one wrong letter; feedback shows the exact spelling. */
     val spellingSlip: Boolean = false,
+    /** The score shown to the player, 0 to [Grader.MAX_POINTS]. It does not affect scheduling. */
+    val points: Int = 0,
 ) {
     val isCorrect: Boolean get() = rating == Rating.GOOD || rating == Rating.EASY
 }
@@ -26,6 +30,26 @@ object Grader {
 
     /** Error bands, as multiples of the tolerance: within 1x is right, within 3x is close. */
     private const val CLOSE_FACTOR = 3.0
+
+    /** The most points one answer can earn, as in GeoGuessr. */
+    const val MAX_POINTS = 5_000
+
+    /** A tap this close to the place (or inside it) earns full points. */
+    const val FULL_POINTS_METERS = 1_000.0
+
+    /** Every this many meters further off halves the points. */
+    const val HALF_POINTS_METERS = 10_000.0
+
+    /**
+     * Points for a tap [errorMeters] from the place, GeoGuessr style: full points within
+     * [FULL_POINTS_METERS], then halving every [HALF_POINTS_METERS] (3 km off earns 4,353,
+     * 5 km 3,789, 10 km 2,679, 20 km 1,340, 50 km 167). The same for every place and every
+     * stage of learning, so scores can be compared from day to day.
+     */
+    fun points(errorMeters: Double): Int {
+        val beyond = (errorMeters - FULL_POINTS_METERS).coerceAtLeast(0.0)
+        return (MAX_POINTS * 0.5.pow(beyond / HALF_POINTS_METERS)).roundToInt()
+    }
 
     /** How close a tap must be for a place the player knows well. */
     fun tolerance(place: Place): Double = when (place.type) {
@@ -66,18 +90,19 @@ object Grader {
             error <= tolerance * CLOSE_FACTOR -> Rating.HARD
             else -> Rating.AGAIN
         }
-        return Grade(capForHint(rating, hint), error, tolerance)
+        return Grade(capForHint(rating, hint), error, tolerance, points = points(error))
     }
 
-    /** Picking from options is recognition: weaker evidence than recall, so never EASY. */
+    /** Picking from options is recognition: weaker evidence than recall, so never EASY. All or no points. */
     fun gradeChoice(correct: Boolean, hint: Boolean = false): Grade =
-        Grade(capForHint(if (correct) Rating.GOOD else Rating.AGAIN, hint))
+        Grade(capForHint(if (correct) Rating.GOOD else Rating.AGAIN, hint), points = if (correct) MAX_POINTS else 0)
 
-    /** Spelling is not the point: one slip on a longer name still counts as knowing it. */
+    /** Spelling is not the point: one slip on a longer name still counts as knowing it, with full points. */
     fun gradeTyped(place: Place, typed: String, responseMs: Long): Grade =
         when (HebrewNames.match(typed, listOf(place.name) + place.aliases)) {
-            HebrewNames.Match.EXACT -> Grade(if (responseMs < FLUENT_RESPONSE_MS * 2) Rating.EASY else Rating.GOOD)
-            HebrewNames.Match.CLOSE -> Grade(Rating.GOOD, spellingSlip = true)
+            HebrewNames.Match.EXACT ->
+                Grade(if (responseMs < FLUENT_RESPONSE_MS * 2) Rating.EASY else Rating.GOOD, points = MAX_POINTS)
+            HebrewNames.Match.CLOSE -> Grade(Rating.GOOD, spellingSlip = true, points = MAX_POINTS)
             HebrewNames.Match.WRONG -> Grade(Rating.AGAIN)
         }
 

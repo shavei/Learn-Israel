@@ -91,6 +91,37 @@ grade by log error ratio.
 Used only to upgrade Good to Easy (fluent recall). Never used to downgrade a correct
 answer, because tapping speed varies by device and person.
 
+### Points
+Separately from the grade, every answer earns points, as in GeoGuessr, so the player
+sees how close they came on a scale they know:
+
+```
+d       = distance from tap to the place (km), 0 inside an area
+points  = 5000                          if d <= 1
+          5000 x 0.5 ^ ((d - 1) / 10)   otherwise (every 10 km further halves them)
+
+          d:      1     3     5    10    20    50   100
+          points: 5000  4353  3789 2679  1340  167   5
+
+NAME, RELATE: 5000 when right (a spelling slip included), 0 when wrong
+```
+
+- **Points never change the schedule.** The grade above decides what FSRS learns; points
+  are feedback and a score. Keeping them apart lets the grade stay forgiving for new
+  places (a wide tolerance) while points stay strict and the same for every place and
+  every stage, so a player can compare today's score with last week's.
+- **One scale for every place.** A fixed 10 km half distance, not one per place type:
+  a tap inside a region is already worth 5000, and being 10 km off means the same for
+  a city or a lake. 10 km is about the gap between neighboring towns, so a tap in the
+  wrong town loses about half, and one in the wrong part of the country (50 km and
+  more) earns almost nothing.
+- **Hints cost no points.** Hints appear on their own after two misses, so taking points
+  for them would punish struggling, not choices; the grade already caps hinted
+  answers at Hard.
+- A session shows its running score above each question, each answer's points with a
+  bar on its feedback, and its total out of the most it could have been (5000 per
+  answer) on the summary. The map test shows no points, as it shows no feedback.
+
 ### Blitz and Daily Challenge
 Reviews from these modes are logged but applied with reduced weight: a success is
 applied only if the card is due within 2 days (avoids inflating stability through
@@ -104,6 +135,36 @@ FSRS schedules in days. Inside a session we also need minutes-level steps:
   about 5 to 8 questions later. Graduates to FSRS after one success at the spaced step.
 - **Lapsed card (Again):** feedback, then re-asked 3 to 6 questions later until
   answered correctly once. Only the *first* answer of the day updates FSRS.
+
+## Pace: as many sessions as the player likes
+
+The daily session is the minimum; after it, home offers another session for as long
+as the player wants to go on. How fast new places come in is set by the player's own
+learning, not by the calendar:
+
+- **Few places in learning at once.** A new place comes in only while fewer than 4
+  places are still in their short-term learning steps. Each new place must stick
+  (answered right at its 10-minute step) before more are added: small batches,
+  consolidated before the next, as working memory and interference research suggest
+  (doc 01, rule 6). A struggling player gets new places slowly; a fluent one gets them
+  as fast as they can learn them.
+- **Accuracy near 85 percent.** Over the last 8 answers: below 60 percent no new
+  places, below 75 percent one, below 85 percent half the session's share.
+- **A share of each session.** At most a third of a session's questions bring new
+  places (each needs about two questions to learn), so reviews always have room.
+- **A daily limit the player chooses.** 20 a day (normal, the default), 40 (fast), or
+  none. Each new place adds a few reviews over the next weeks,
+  so the limit protects tomorrow's workload; a player who wants to go faster can lift
+  it, and the gates above still apply.
+- **Expanding retrieval within the day.** A place first learned in an earlier session
+  today comes back once more in a later one, at least 2 hours after its last answer
+  and before its first review in days: minutes, hours, then days. FSRS-6 counts these
+  same-day answers with its short-term stability model, so they strengthen the memory
+  a little without distorting the schedule.
+- **Reviews keep their days.** Places in review are asked when due, however many
+  sessions are played. When nothing is due and no new place may come in, "extra
+  practice" reviews the weakest places early; FSRS gives an early review a smaller
+  gain, as the spacing effect predicts.
 
 ## Sibling management
 

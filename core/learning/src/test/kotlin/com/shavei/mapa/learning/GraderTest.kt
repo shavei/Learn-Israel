@@ -4,6 +4,7 @@ import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.fsrs.Rating
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class GraderTest {
     private val content = testContent()
@@ -47,5 +48,42 @@ class GraderTest {
         // Small lake: tolerance falls back to the 2 km minimum.
         assertEquals(2_000.0, inside.toleranceMeters)
         assertEquals(Rating.HARD, Grader.grade(lake, MapPoint(14_000.0, 5_000.0), 6_000, false, stabilityDays = 30.0).rating)
+    }
+
+    private fun points(tapX: Double, stability: Double? = 30.0) =
+        Grader.grade(city, MapPoint(tapX, 0.0), 6_000, false, stabilityDays = stability).points
+
+    @Test
+    fun pointsFallWithDistanceAsInGeoGuessr() {
+        assertEquals(5_000, points(0.0))
+        assertEquals(5_000, points(1_000.0))
+        assertEquals(3_789, points(5_000.0))
+        assertEquals(2_500, points(11_000.0))
+        assertEquals(1_250, points(21_000.0))
+        assertEquals(167, points(50_000.0))
+        // Always falling, never below zero.
+        val far = (0..300).map { points(it * 1_000.0) }
+        assertEquals(far, far.sortedDescending())
+        assertTrue(far.last() >= 0)
+    }
+
+    @Test
+    fun pointsDoNotDependOnHowWellThePlaceIsKnown() {
+        // The tolerance for a right answer widens for new places; the score does not.
+        assertEquals(points(7_000.0, stability = 30.0), points(7_000.0, stability = null))
+    }
+
+    @Test
+    fun aTapInsideAnAreaEarnsFullPoints() {
+        assertEquals(5_000, Grader.grade(lake, MapPoint(5_000.0, 5_000.0), 6_000, false).points)
+    }
+
+    @Test
+    fun namesAndRelationsAreAllOrNothing() {
+        assertEquals(5_000, Grader.gradeChoice(correct = true).points)
+        assertEquals(5_000, Grader.gradeChoice(correct = true, hint = true).points)
+        assertEquals(0, Grader.gradeChoice(correct = false).points)
+        assertEquals(5_000, Grader.gradeTyped(city, city.name, 6_000).points)
+        assertEquals(0, Grader.gradeTyped(city, "שם אחר לגמרי", 6_000).points)
     }
 }

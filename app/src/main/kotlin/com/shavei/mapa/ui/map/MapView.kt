@@ -31,18 +31,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.shavei.mapa.content.ContourLabel
-import com.shavei.mapa.content.Contours
 import com.shavei.mapa.content.MapData
 import com.shavei.mapa.data.MapStyle
 import com.shavei.mapa.geo.Bounds
@@ -142,13 +136,6 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         ((center.y - p.y) * scale + size.height / 2).toFloat(),
     )
 
-    /** The part of the map on screen. */
-    fun view(): Bounds {
-        val a = toMap(Offset.Zero)
-        val b = toMap(Offset(size.width.toFloat(), size.height.toFloat()))
-        return Bounds(minOf(a.x, b.x), minOf(a.y, b.y), maxOf(a.x, b.x), maxOf(a.y, b.y))
-    }
-
     fun toMap(o: Offset) = MapPoint(
         center.x + (o.x - size.width / 2) / scale,
         center.y - (o.y - size.height / 2) / scale,
@@ -194,8 +181,6 @@ fun MapView(
     val pathCache = remember(map) { HashMap<Shape, Path>() }
     val textMeasurer = rememberTextMeasurer()
     val terrain = rememberTerrainLayer(look, colors, terrainOverride)
-    val topographic = look.style == MapStyle.TOPOGRAPHIC
-    val heightLabels = remember(colors) { HeightLabels(textMeasurer, colors) }
 
     Canvas(
         modifier = modifier
@@ -212,23 +197,17 @@ fun MapView(
             },
     ) {
         if (camera.scale == 0.0) return@Canvas
-        drawRect(if (topographic) colors.topoSea else colors.sea)
+        drawRect(colors.sea)
 
         inMapSpace(camera, origin) { px ->
             // The ground: flat colors, then the style's terrain over it, fading in when it first loads.
-            drawPath(layers.neighbors, if (topographic) colors.topoNeighbor else colors.neighbor)
-            drawPath(layers.gaza, if (topographic) colors.topoNeighbor else colors.gaza)
-            drawPath(layers.land, if (topographic) colors.topoLand else colors.land)
-            val fade = terrain.fade
+            drawPath(layers.neighbors, colors.neighbor)
+            drawPath(layers.gaza, colors.gaza)
+            drawPath(layers.land, colors.land)
             // Terrain over Israel only; the neighbors stay flat.
             terrain.layers?.let { terrainLayers ->
                 clipPath(layers.land) {
-                    for (tile in terrainLayers.tiles) drawTile(tile, origin, fade)
-                    // Contour lines for what is on screen, at the screen's resolution.
-                    terrainLayers.contours?.let { contours ->
-                        contours.version // redraw as tiles arrive
-                        for (tile in contours.visible(camera.view(), Contours.levelFor(camera.scale))) drawTile(tile, origin, fade)
-                    }
+                    for (tile in terrainLayers.tiles) drawTile(tile, origin, terrain.fade)
                 }
             }
             drawPath(layers.neighbors, colors.border, style = Stroke(width = px))
@@ -254,8 +233,6 @@ fun MapView(
                 }
             }
         }
-
-        terrain.layers?.labels?.let { heightLabels.draw(this, it, camera, terrain.fade) }
 
         for (d in decorations) when (d) {
             is MapDecoration.Highlight -> if (d.shape is Shape.Point) {
@@ -321,50 +298,6 @@ private fun rememberTerrainLayer(look: MapLook, palette: MapPalette, override: T
     }
     return TerrainLayer(layers, fade.value)
 }
-
-/**
- * Heights written along the index contours of the topographic map, as on a printed
- * sheet: upright, following the line, on a patch of paper that interrupts it. Labels
- * keep a distance from each other, so the map never fills with numbers at any zoom.
- */
-private class HeightLabels(private val measurer: TextMeasurer, private val colors: MapPalette) {
-    private val layouts = HashMap<Int, TextLayoutResult>()
-    private val style = TextStyle(
-        fontSize = 11.sp, fontWeight = FontWeight.Medium, color = colors.indexContour, textDirection = TextDirection.Ltr,
-    )
-
-    fun draw(scope: DrawScope, labels: List<ContourLabel>, camera: MapCamera, alpha: Float) = with(scope) {
-        if (labels.isEmpty()) return@with
-        // Only the darker index lines of this zoom carry heights (the labels exist every 100 m).
-        val every = maxOf(100, Contours.levels[Contours.levelFor(camera.scale)].index)
-        val spacing = 96.dp.toPx()
-        val placed = ArrayList<Offset>()
-        for (label in labels) {
-            if (label.elevation % every != 0) continue
-            val at = camera.toScreen(MapPoint(label.x, label.y))
-            if (at.x !in 0f..size.width || at.y !in 0f..size.height) continue
-            if (placed.any { (it - at).getDistanceSquared() < spacing * spacing }) continue
-            placed += at
-            val layout = layouts.getOrPut(label.elevation) { measurer.measure(label.elevation.toString(), style) }
-            // The map's y runs north, the screen's south; turn the text so it never reads upside down.
-            var angle = -label.angleDegrees
-            if (angle > 90f) angle -= 180f
-            if (angle <= -90f) angle += 180f
-            val w = layout.size.width.toFloat()
-            val h = layout.size.height.toFloat()
-            withTransform({ rotate(angle, pivot = at) }) {
-                drawRoundRect(
-                    colors.topoLand, topLeft = Offset(at.x - w / 2 - 3f, at.y - h / 2),
-                    size = Size(w + 6f, h), cornerRadius = CornerRadius(h / 2), alpha = 0.9f * alpha,
-                )
-                drawText(layout, topLeft = Offset(at.x - w / 2, at.y - h / 2), alpha = alpha)
-            }
-            if (placed.size >= MAX_HEIGHT_LABELS) break
-        }
-    }
-}
-
-private const val MAX_HEIGHT_LABELS = 40
 
 private const val TERRAIN_FADE_MS = 450
 

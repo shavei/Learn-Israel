@@ -37,6 +37,7 @@ data class FsrsCard(
 }
 
 const val MINUTE_MS = 60_000L
+const val HOUR_MS = 3_600_000L
 const val DAY_MS = 86_400_000L
 
 val DEFAULT_PARAMETERS = doubleArrayOf(

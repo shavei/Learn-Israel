@@ -126,23 +126,44 @@ What 1d simplified, on purpose:
 - Practice time counts the time spent answering, not reading feedback.
 
 ### Map styles - built
-- [x] Three map styles in settings, each with a preview: standard (flat colors),
-      relief (hypsometric tint under hillshading lit from the north-west) and
-      topographic (thin brown contour lines on softly shaded green paper)
-- [x] Topographic contours are drawn as tiles for what is on screen, at the screen's
-      resolution, and the interval follows the zoom as on web maps (200 m with the
-      whole country in view, down to 10 m close up), so lines never crowd into a mass.
-      Index lines are the same thin line in a darker brown, with their height written
-      along them; on cliffs only the index lines remain
-- [x] Both terrain styles come from the Copernicus DEM GLO-90 on a 100 m grid, over
+- [x] Two map styles in settings, each with a preview: standard (flat colors) and
+      relief (hypsometric tint, green lowlands to tan hills, under hillshading lit from
+      the north-west). A topographic style with contour lines was built and then
+      removed: the relief shows height more clearly at the zooms the game is played
+      at; whoever had chosen it gets the relief
+- [x] The relief comes from the Copernicus DEM GLO-90 on a 100 m grid, over
       Israel only (sharper than a phone shows it at the home zoom); the neighbors stay
       flat, which keeps the elevation data to 2.6 MB of the APK. The phone draws the
       relief into images once, off the main thread, so panning costs no more than the
       standard map
-- [x] Each style has its own light and dark design; terrain that is not ready yet
+- [x] Each style has its own light and dark design; a relief that is not ready yet
       fades in over the flat map
 - [x] Water stays vector: the sea, lakes, borders and region outlines are drawn on top,
       so coasts are sharp at any zoom
+
+### Points - built
+- [x] GeoGuessr-style points: every answer earns 0 to 5,000. A tap within 1 km of the
+      place (or inside it) earns all 5,000, and every further 10 km halves them; a
+      name or a relation earns 5,000 when right and 0 when wrong
+      (docs/04-learning-engine.md, "Points")
+- [x] The running score shows above each question, each answer's points with a bar
+      on its feedback, and the session's total out of the most it could have been on
+      the summary (daily sessions, extra practice and the placement test; the map
+      test stays without feedback)
+- [x] Points are a score only: the scheduler still grades each answer by its own
+      tolerance, which widens for new places
+- Not yet: points are not stored, so there is no best score or history of scores
+
+### Pace - built
+- [x] As many sessions a day as the player likes: once today's is done, home says so
+      and offers another session
+- [x] A pace setting for new places: 20 a day (normal, the default), 40 (fast) or no
+      limit; at the limit, home says so and points to the setting
+- [x] At every pace, a new place comes in only while fewer than 4 places are still in
+      their learning steps and recent accuracy is high; at most a third of a session
+      is new places (5 of 15, 8 of 25)
+- [x] Places learned in an earlier session today come back once more, 2 or more hours
+      later (minutes, hours, then days)
 
 **Exit test:** closed beta; retention at review between 85 and 92 percent; pre/post
 test shows large gains; D7 retention benchmark agreed in advance.

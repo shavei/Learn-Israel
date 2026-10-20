@@ -139,7 +139,11 @@ beginners can compete.
 
 - Session length 15 to 25 questions, adjustable (short / normal / long).
 - First and last question are likely successes (start confident, end positive).
-- No more than 5 new places per session and a daily cap (default 10 new per day).
+- Once a day is the minimum, not the limit: the player may play as many sessions as
+  they like. New places per session are at most a third of its questions (5 of 15, 8
+  of 25), and per day as the player sets the pace: 20 (normal), 40 (fast) or no limit.
+  At every pace a new place comes in only while few places are still being learned
+  and most recent answers are right (docs/04-learning-engine.md, "Pace").
 - An item answered wrong is retried later in the same session (3 to 6 questions later)
   after its feedback, until answered right once.
 - Mode mix per session is chosen by the engine, not the player, in the daily session.
@@ -150,6 +154,9 @@ beginners can compete.
 - Haptic tick on tap, gentle success sound, a different softer sound on miss (never
   harsh).
 - Distance feedback is visual first: a line and a number, color coded.
+- Points as in GeoGuessr: up to 5,000 for each answer, falling with the distance (half
+  for every 10 km off), with a running score and a session total. Points are a score
+  for the player and never change the schedule (docs/04-learning-engine.md, "Points").
 - The fact card appears for 2 to 3 seconds and can be tapped to expand ("Learn more"),
   never blocking flow.
 - Optional confidence buttons (sure / think so / guess) before revealing, unlocked

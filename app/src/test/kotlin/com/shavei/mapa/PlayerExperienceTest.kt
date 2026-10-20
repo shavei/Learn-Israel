@@ -107,7 +107,8 @@ class PlayerExperienceTest {
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("גוש דן", substring = true))
             Screenshots.save(scenario, "c4-progress-regions")
             compose.onNodeWithText("חזרה").performClick()
-            waitForText("התחילו אימון יומי")
+            // Practiced today already: home offers another session.
+            waitForText("אימון נוסף")
         }
     }
 

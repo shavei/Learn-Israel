@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.shavei.mapa.R
 import com.shavei.mapa.content.MapData
+import com.shavei.mapa.data.LearningPace
 import com.shavei.mapa.data.MapStyle
 import com.shavei.mapa.data.SessionLength
 import com.shavei.mapa.data.Settings
@@ -118,6 +119,28 @@ fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Se
                     )
                 },
                 onSelect = { length -> onChange { it.copy(sessionLength = length) } },
+            )
+
+            HorizontalDivider()
+            Section(stringResource(R.string.settings_pace))
+            Choices(
+                options = LearningPace.entries,
+                selected = settings.pace,
+                label = {
+                    stringResource(
+                        when (it) {
+                            LearningPace.NORMAL -> R.string.pace_normal
+                            LearningPace.FAST -> R.string.pace_fast
+                            LearningPace.UNLIMITED -> R.string.pace_unlimited
+                        },
+                    )
+                },
+                onSelect = { pace -> onChange { it.copy(pace = pace) } },
+            )
+            Text(
+                stringResource(R.string.settings_pace_note),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             HorizontalDivider()
@@ -195,7 +218,7 @@ fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Se
 }
 
 /**
- * The three map styles side by side, each a live, still picture of the same piece of the
+ * The two map styles side by side, each a live, still picture of the same piece of the
  * country (the Judean hills down to the Dead Sea), so the choice shows what it does.
  */
 @Composable
@@ -210,14 +233,12 @@ private fun MapStyles(map: MapData, selected: MapStyle, onSelect: (MapStyle) -> 
                 when (style) {
                     MapStyle.STANDARD -> R.string.map_style_standard
                     MapStyle.RELIEF -> R.string.map_style_relief
-                    MapStyle.TOPOGRAPHIC -> R.string.map_style_topographic
                 },
             )
             val note = stringResource(
                 when (style) {
                     MapStyle.STANDARD -> R.string.map_style_standard_note
                     MapStyle.RELIEF -> R.string.map_style_relief_note
-                    MapStyle.TOPOGRAPHIC -> R.string.map_style_topographic_note
                 },
             )
             val border by animateColorAsState(

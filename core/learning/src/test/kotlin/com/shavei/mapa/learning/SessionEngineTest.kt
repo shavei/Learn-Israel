@@ -70,8 +70,62 @@ class SessionEngineTest {
 
     @Test
     fun dailyNewCapIsRespected() {
-        val asked = play(engine(newToday = 9))
+        val asked = play(engine(newToday = 19))
         assertEquals(1, asked.count { it is Question.Locate && it.isNew })
+    }
+
+    @Test
+    fun withNoDailyLimitNewPlacesKeepComing() {
+        val asked = play(engine(newToday = 500, config = SessionConfig(maxNewPerDay = null)))
+        assertEquals(SessionConfig().maxNewPerSession, asked.count { it is Question.Locate && it.isNew })
+    }
+
+    @Test
+    fun longerSessionsTeachMorePlaces() {
+        assertEquals(5, SessionConfig(size = 15).maxNewPerSession)
+        assertEquals(8, SessionConfig(size = 25).maxNewPerSession)
+        val asked = play(engine(config = SessionConfig(size = 25)))
+        assertEquals(8, asked.count { it is Question.Locate && it.isNew })
+    }
+
+    @Test
+    fun aNewPlaceComesOnlyOnceEarlierOnesHaveStuck() {
+        // Four places in their learning steps, not due for an hour: nothing new is added.
+        val learning = (0 until 4).associate { i ->
+            key(i) to StudyCard(FsrsCard(CardState.LEARNING, 1, 2.3, 5.0, due = now + 60 * 60_000L, lastReview = now))
+        }
+        assertNull(engine(learning).next())
+        // With three, there is room for one more.
+        val q = engine(learning - key(0)).next()
+        assertTrue(q is Question.Locate && q.isNew, "$q")
+    }
+
+    @Test
+    fun throughoutASessionFewPlacesAreBeingLearnedAtOnce() {
+        val e = engine(config = SessionConfig(size = 25))
+        while (true) {
+            val q = e.next() ?: break
+            e.submit(q, respond(q, true), responseMs = 6_000)
+            now += 10_000
+            val inLearning = content.places.count { p -> e.card(p.id)?.isReview == false }
+            assertTrue(inLearning <= SessionConfig().maxInLearning, "$inLearning places in learning")
+        }
+    }
+
+    /** A place graduated [hoursAgo] hours ago, due in two days. */
+    private fun learnedToday(hoursAgo: Double) = StudyCard(
+        FsrsCard(CardState.REVIEW, null, 2.3, 5.0, due = now + 2 * DAY_MS, lastReview = now - (hoursAgo * 3_600_000).toLong()),
+    )
+
+    @Test
+    fun placesLearnedEarlierTodayComeBackOnceMoreInALaterSession() {
+        assertEquals(key(3), engine(mapOf(key(3) to learnedToday(3.0)), newToday = 20).next()?.key)
+        // Not minutes after the last session, and not yesterday's places (they have their own review).
+        assertNull(engine(mapOf(key(3) to learnedToday(1.0)), newToday = 20).next())
+        assertNull(engine(mapOf(key(3) to learnedToday(20.0)), newToday = 20).next())
+        // Nor well-known places (the session may ask a new skill on it instead, never finding it again).
+        val known = StudyCard(FsrsCard(CardState.REVIEW, null, 30.0, 5.0, due = now + 20 * DAY_MS, lastReview = now - 3 * 3_600_000L))
+        assertNotEquals(key(3), engine(mapOf(key(3) to known), newToday = 20).next()?.key)
     }
 
     @Test
@@ -115,8 +169,8 @@ class SessionEngineTest {
 
     @Test
     fun namingUnlocksAfterAWeekOfStableLocatingAndStartsAsMultipleChoice() {
-        assertNull(engine(mapOf(key(0) to reviewed(6.5, 4.0)), newToday = 10).next(), "not yet at 6.5 days")
-        val e = engine(mapOf(key(0) to reviewed(7.5, 4.0)), newToday = 10)
+        assertNull(engine(mapOf(key(0) to reviewed(6.5, 4.0)), newToday = 20).next(), "not yet at 6.5 days")
+        val e = engine(mapOf(key(0) to reviewed(7.5, 4.0)), newToday = 20)
         val q = assertIs<Question.NameChoice>(e.next())
         assertEquals("city.c0", q.place.id)
         assertEquals(4, q.options.size)
@@ -126,18 +180,18 @@ class SessionEngineTest {
 
     @Test
     fun aStableNameIsTypedAndHintsBringBackChoices() {
-        val typed = engine(mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0)), newToday = 10)
+        val typed = engine(mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0)), newToday = 20)
         assertIs<Question.NameTyped>(typed.next())
 
         val struggling = engine(
-            mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0, struggles = 2)), newToday = 10,
+            mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0, struggles = 2)), newToday = 20,
         )
         assertTrue(assertIs<Question.NameChoice>(struggling.next()).hint)
     }
 
     @Test
     fun hintCapsTheRatingAndASuccessClearsIt() {
-        val e = engine(mapOf(key(0) to reviewed(4.0, -1.0, struggles = 2)), newToday = 10)
+        val e = engine(mapOf(key(0) to reviewed(4.0, -1.0, struggles = 2)), newToday = 20)
         val q = assertIs<Question.Locate>(e.next())
         assertTrue(q.hint)
         val a = e.submit(q, respond(q, true), 2_000)
@@ -149,7 +203,7 @@ class SessionEngineTest {
     fun relateAsksAboutTwoKnownCitiesWithTheRightAnswer() {
         // c0 at (0, 0) and c1 at (20 km east, 25 km north); both located and named.
         val cards = listOf(0, 1).flatMap { i -> listOf(key(i) to reviewed(9.0, 4.0), key(i, Facet.NAME) to reviewed(9.0, 4.0)) }.toMap()
-        val e = engine(cards, newToday = 10)
+        val e = engine(cards, newToday = 20)
         val q = assertIs<Question.Relate>(e.next())
         assertEquals(setOf("city.c0", "city.c1"), q.options.map { it.id }.toSet())
         val c0 = content.place("city.c0")!!
@@ -170,7 +224,7 @@ class SessionEngineTest {
         val cards = (0 until 8).flatMap { i ->
             listOf(key(i) to reviewed(9.0, -1.0), key(i, Facet.NAME) to reviewed(9.0, -1.0), key(i, Facet.RELATE) to reviewed(9.0, -1.0))
         }.toMap()
-        val asked = play(engine(cards, newToday = 10))
+        val asked = play(engine(cards, newToday = 20))
         assertTrue(asked.isNotEmpty())
         for ((placeId, qs) in asked.groupBy { it.place.id }) {
             assertEquals(1, qs.map { it.facet }.toSet().size, "$placeId was asked with more than one skill")
@@ -179,7 +233,7 @@ class SessionEngineTest {
 
     @Test
     fun confusablePlacesAreAskedBackToBack() {
-        val e = engine(mapOf(key(4) to reviewed(6.0, -1.0), key(5) to reviewed(6.0, 3.0)), newToday = 10)
+        val e = engine(mapOf(key(4) to reviewed(6.0, -1.0), key(5) to reviewed(6.0, 3.0)), newToday = 20)
         assertEquals(key(4), e.next()!!.key)
         e.submit(e.next()!!, respond(e.next()!!, true), 3_000)
         assertEquals(key(5), e.next()!!.key, "the partner follows even though it is not due")
@@ -187,7 +241,7 @@ class SessionEngineTest {
 
     @Test
     fun oneTypoInATypedNameStillCounts() {
-        val e = engine(mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0)), newToday = 10)
+        val e = engine(mapOf(key(0) to reviewed(9.0, 4.0), key(0, Facet.NAME) to reviewed(5.0, -1.0)), newToday = 20)
         val q = assertIs<Question.NameTyped>(e.next())
         val a = e.submit(q, Response.Typed("עיר"), 6_000)
         assertEquals(Rating.AGAIN, a.grade.rating, "too short to forgive")
@@ -211,7 +265,7 @@ class SessionEngineTest {
 
     @Test
     fun aMissNamesTheCityThePlayerTapped() {
-        val e = engine(mapOf(key(0) to reviewed(6.0, -1.0)), newToday = 10)
+        val e = engine(mapOf(key(0) to reviewed(6.0, -1.0)), newToday = 20)
         val q = e.next()!!
         val a = e.submit(q, Response.Tap(pointOf(content.place("city.c3")!!)), 3_000)
         assertEquals(Rating.AGAIN, a.grade.rating)
