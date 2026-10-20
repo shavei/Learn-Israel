@@ -124,7 +124,7 @@ class PlayerExperienceTest {
             compose.onNodeWithText("הגדרות").performClick()
             waitForText("אורך אימון")
             // The settings scroll: bring each row on screen before tapping it.
-            compose.onNodeWithText("קצר, 10 שאלות").performScrollTo().performClick()
+            compose.onNodeWithText("קצר, 10 עד 18 שאלות").performScrollTo().performClick()
             compose.onNodeWithText("הקו הירוק").performScrollTo().performClick()
             compose.onNodeWithText("כהה").performScrollTo().performClick()
             compose.waitForIdle()
