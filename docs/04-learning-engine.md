@@ -136,6 +136,36 @@ FSRS schedules in days. Inside a session we also need minutes-level steps:
 - **Lapsed card (Again):** feedback, then re-asked 3 to 6 questions later until
   answered correctly once. Only the *first* answer of the day updates FSRS.
 
+## Pace: as many sessions as the player likes
+
+The daily session is the minimum; after it, home offers another session for as long
+as the player wants to go on. How fast new places come in is set by the player's own
+learning, not by the calendar:
+
+- **Few places in learning at once.** A new place comes in only while fewer than 4
+  places are still in their short-term learning steps. Each new place must stick
+  (answered right at its 10-minute step) before more are added: small batches,
+  consolidated before the next, as working memory and interference research suggest
+  (doc 01, rule 6). A struggling player gets new places slowly; a fluent one gets them
+  as fast as they can learn them.
+- **Accuracy near 85 percent.** Over the last 8 answers: below 60 percent no new
+  places, below 75 percent one, below 85 percent half the session's share.
+- **A share of each session.** At most a third of a session's questions bring new
+  places (each needs about two questions to learn), so reviews always have room.
+- **A daily limit the player chooses.** 20 a day (normal, the default), 40 (fast), or
+  none. Each new place adds a few reviews over the next weeks,
+  so the limit protects tomorrow's workload; a player who wants to go faster can lift
+  it, and the gates above still apply.
+- **Expanding retrieval within the day.** A place first learned in an earlier session
+  today comes back once more in a later one, at least 2 hours after its last answer
+  and before its first review in days: minutes, hours, then days. FSRS-6 counts these
+  same-day answers with its short-term stability model, so they strengthen the memory
+  a little without distorting the schedule.
+- **Reviews keep their days.** Places in review are asked when due, however many
+  sessions are played. When nothing is due and no new place may come in, "extra
+  practice" reviews the weakest places early; FSRS gives an early review a smaller
+  gain, as the spacing effect predicts.
+
 ## Sibling management
 
 Facets of the same place are siblings. Show at most one sibling per session (except

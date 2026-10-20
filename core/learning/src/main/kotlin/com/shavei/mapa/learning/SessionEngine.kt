@@ -5,6 +5,7 @@ import com.shavei.mapa.content.Place
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.learning.fsrs.FsrsCard
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
+import com.shavei.mapa.learning.fsrs.HOUR_MS
 import com.shavei.mapa.learning.fsrs.MINUTE_MS
 import com.shavei.mapa.learning.fsrs.Rating
 import kotlin.random.Random
@@ -14,8 +15,15 @@ data class SessionConfig(
     val size: Int = 15,
     /** Extra questions allowed to finish learning steps of cards already in progress. */
     val overtime: Int = 8,
-    val maxNewPerSession: Int = 5,
-    val maxNewPerDay: Int = 10,
+    /** A third of a session at most: each new place takes about two questions to learn. */
+    val maxNewPerSession: Int = maxOf(3, size / 3),
+    /** New places per day across all sessions; null for no daily limit (the gates below still apply). */
+    val maxNewPerDay: Int? = 20,
+    /**
+     * Places still in their short-term learning steps at one time. A new place comes in
+     * only once an earlier one has stuck, so the pace follows the player's own learning.
+     */
+    val maxInLearning: Int = 4,
     /** New skills (NAME, RELATE) on places the player already knows. */
     val maxNewFacetsPerSession: Int = 4,
     /** Back-to-back practice of two confusable places. */
@@ -24,16 +32,22 @@ data class SessionConfig(
     val learnAheadMs: Long = 20 * MINUTE_MS,
     /** A card is not asked again until this many other questions have passed. */
     val minGap: Int = 3,
+    /**
+     * A place learned earlier today is asked once more in a later session, at least this
+     * long after its last answer: one more spaced retrieval before the next day's review.
+     */
+    val sameDayGapMs: Long = 2 * HOUR_MS,
     /** Extra practice after the daily work is done: review places early, weakest first. */
     val strengthenWeakest: Boolean = false,
 )
 
 /**
- * Composes and runs one daily session (docs/04-learning-engine.md):
- * due learning steps first, then due reviews (most at risk first, with confusable
- * places as contrast pairs), then new places and new skills on known places, then
- * learning steps a little early. Keeps success near 85 percent by adapting how many
- * new places it introduces.
+ * Composes and runs one session (docs/04-learning-engine.md). A player may play as many
+ * as they like in a day: due learning steps first, then due reviews (most at risk
+ * first, with confusable places as contrast pairs), then new places and new skills on
+ * known places, then places learned earlier today once more, then learning steps a
+ * little early. Keeps success near 85 percent by adapting how many new places it
+ * introduces, and brings in a new place only while few are still being learned.
  */
 class SessionEngine(
     private val content: Content,
@@ -133,6 +147,13 @@ class SessionEngine(
                     .firstNotNullOfOrNull { question(it, now) }
                     ?.let { return it }
             }
+
+            // Expanding retrieval: minutes, then hours, then days. Places learned in an earlier
+            // session today come back once more, weakest first, before tomorrow's review.
+            cards.filter { (k, c) -> isSameDayReview(c, now) && eligible(k) }
+                .entries.sortedBy { it.value.stability }
+                .firstNotNullOfOrNull { question(it.key, now) }
+                ?.let { return it }
         }
 
         return inLearning.filterValues { it.fsrs.due <= now + config.learnAheadMs }.entries.sortedBy { it.value.fsrs.due }
@@ -224,9 +245,15 @@ class SessionEngine(
         contrastPairs++
     }
 
-    /** New places per session shrink when recent accuracy drops, keeping success near 85%. */
+    /**
+     * Three gates on a new place: the daily limit, if the player keeps one; few places
+     * still in their learning steps (consolidate before adding more); and recent
+     * accuracy, so new places per session shrink when it drops, keeping success near 85%.
+     */
     private fun canIntroduceNewPlace(): Boolean {
-        if (newIntroducedToday + newPlacesThisSession >= config.maxNewPerDay) return false
+        config.maxNewPerDay?.let { if (newIntroducedToday + newPlacesThisSession >= it) return false }
+        val inLearning = cards.count { (k, c) -> k.facet == Facet.LOCATE && !c.isReview }
+        if (inLearning >= config.maxInLearning) return false
         val recent = _answers.takeLast(8)
         val budget = if (recent.size < 4) {
             config.maxNewPerSession
@@ -235,11 +262,23 @@ class SessionEngine(
             when {
                 accuracy < 0.6 -> 0
                 accuracy < 0.75 -> 1
-                accuracy < 0.85 -> 3
+                accuracy < 0.85 -> (config.maxNewPerSession + 1) / 2
                 else -> config.maxNewPerSession
             }
         }
-        return newPlacesThisSession < minOf(budget, config.maxNewPerSession)
+        return newPlacesThisSession < budget
+    }
+
+    /**
+     * A young place (stability under [SAME_DAY_MAX_STABILITY] days) last answered in an
+     * earlier session today, at least [SessionConfig.sameDayGapMs] ago and not yet due:
+     * worth one more retrieval (FSRS counts same-day reviews with its short-term model).
+     */
+    private fun isSameDayReview(card: StudyCard, now: Long): Boolean {
+        val last = card.fsrs.lastReview ?: return false
+        val elapsed = now - last
+        return card.isReview && card.fsrs.due > now && card.stability < SAME_DAY_MAX_STABILITY &&
+            elapsed >= config.sameDayGapMs && elapsed < SAME_DAY_WINDOW_MS
     }
 
     /**
@@ -271,5 +310,9 @@ class SessionEngine(
         const val HINT_AFTER_MISSES = 2
         const val MIN_SEPARATION_M = 15_000.0
         const val CLOSER_RATIO = 1.4
+        const val SAME_DAY_MAX_STABILITY = 7.0
+
+        /** "Earlier today": a waking day, so yesterday's places wait for their own review. */
+        const val SAME_DAY_WINDOW_MS = 16 * HOUR_MS
     }
 }

@@ -154,6 +154,17 @@ What 1d simplified, on purpose:
       tolerance, which widens for new places
 - Not yet: points are not stored, so there is no best score or history of scores
 
+### Pace - built
+- [x] As many sessions a day as the player likes: once today's is done, home says so
+      and offers another session
+- [x] A pace setting for new places: 20 a day (normal, the default), 40 (fast) or no
+      limit; at the limit, home says so and points to the setting
+- [x] At every pace, a new place comes in only while fewer than 4 places are still in
+      their learning steps and recent accuracy is high; at most a third of a session
+      is new places (5 of 15, 8 of 25)
+- [x] Places learned in an earlier session today come back once more, 2 or more hours
+      later (minutes, hours, then days)
+
 **Exit test:** closed beta; retention at review between 85 and 92 percent; pre/post
 test shows large gains; D7 retention benchmark agreed in advance.
 

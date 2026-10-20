@@ -119,13 +119,29 @@ fun HomeScreen(
                     )
                 }
                 if (state.offerMapTest) MapTestOffer(onMapTest, viewModel::snoozeMapTest)
+                // Once a day is the minimum, not the limit: after it, as many sessions as the player likes.
                 val hasWork = state.dueNow + state.newAvailable > 0
+                val practicedToday = state.streak.playedToday
+                if (practicedToday && hasWork) {
+                    Text(stringResource(R.string.home_daily_done), color = MaterialTheme.colorScheme.primary)
+                }
                 Text(
-                    if (hasWork) stringResource(R.string.home_due, state.dueNow, state.newAvailable)
-                    else stringResource(R.string.home_nothing_due),
+                    when {
+                        hasWork -> stringResource(R.string.home_due, state.dueNow, state.newAvailable)
+                        state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
+                        else -> stringResource(R.string.home_nothing_due)
+                    },
                 )
                 Button(onClick = { onStartSession(!hasWork) }, Modifier.fillMaxWidth()) {
-                    Text(stringResource(if (hasWork) R.string.home_start else R.string.home_practice_more))
+                    Text(
+                        stringResource(
+                            when {
+                                !hasWork -> R.string.home_practice_more
+                                practicedToday -> R.string.home_more
+                                else -> R.string.home_start
+                            },
+                        ),
+                    )
                 }
             }
             Text(stringResource(R.string.attribution), style = MaterialTheme.typography.labelSmall)

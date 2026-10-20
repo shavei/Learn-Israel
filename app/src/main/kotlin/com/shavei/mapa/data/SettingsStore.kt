@@ -8,11 +8,18 @@ enum class SessionLength(val questions: Int) { SHORT(10), NORMAL(15), LONG(25) }
 
 enum class ThemeChoice { SYSTEM, LIGHT, DARK }
 
+/**
+ * How many new places a day at most; null for no daily limit. At every pace a new place
+ * also waits until earlier ones have stuck and recent answers are mostly right.
+ */
+enum class LearningPace(val newPerDay: Int?) { NORMAL(20), FAST(40), UNLIMITED(null) }
+
 /** How the land is drawn: flat colors, or shaded relief colored by height. */
 enum class MapStyle { STANDARD, RELIEF }
 
 data class Settings(
     val sessionLength: SessionLength = SessionLength.NORMAL,
+    val pace: LearningPace = LearningPace.NORMAL,
     /** The 1949 armistice line, off by default (docs/10-risks-and-open-questions.md, decision 1). */
     val showGreenLine: Boolean = false,
     val mapStyle: MapStyle = MapStyle.STANDARD,
@@ -40,6 +47,7 @@ class SettingsStore(context: Context) {
         val next = change(_settings.value)
         prefs.edit()
             .putString(SESSION_LENGTH, next.sessionLength.name)
+            .putString(PACE, next.pace.name)
             .putBoolean(GREEN_LINE, next.showGreenLine)
             .putString(MAP_STYLE, next.mapStyle.name)
             .putString(THEME, next.theme.name)
@@ -56,6 +64,7 @@ class SettingsStore(context: Context) {
         val d = Settings()
         return Settings(
             sessionLength = enumOr(prefs.getString(SESSION_LENGTH, null), d.sessionLength),
+            pace = enumOr(prefs.getString(PACE, null), d.pace),
             showGreenLine = prefs.getBoolean(GREEN_LINE, d.showGreenLine),
             // The topographic style is gone; whoever chose it keeps a map that shows height.
             mapStyle = enumOr(prefs.getString(MAP_STYLE, null)?.replace("TOPOGRAPHIC", MapStyle.RELIEF.name), d.mapStyle),
@@ -73,6 +82,7 @@ class SettingsStore(context: Context) {
 
     private companion object {
         const val SESSION_LENGTH = "sessionLength"
+        const val PACE = "pace"
         const val GREEN_LINE = "showGreenLine"
         const val MAP_STYLE = "mapStyle"
         const val THEME = "theme"

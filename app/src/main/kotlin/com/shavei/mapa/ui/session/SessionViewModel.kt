@@ -94,6 +94,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                     newIntroducedToday = app.progress.newIntroducedToday(now),
                     config = SessionConfig(
                         size = app.settings.current.sessionLength.questions,
+                        maxNewPerDay = app.settings.current.pace.newPerDay,
                         strengthenWeakest = kind == SessionKind.EXTRA,
                     ),
                 )

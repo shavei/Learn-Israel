@@ -11,6 +11,7 @@ people actually remember.
 > mode. A 20-place map test before the first session and a month later, and local
 > learning stats you can share. Two map styles: standard and shaded relief.
 > GeoGuessr-style points: up to 5,000 for each answer, more the closer you tap.
+> As many sessions a day as you like, at the pace of new places you choose.
 > See the [roadmap](docs/09-roadmap.md).
 
 ## Install on your phone

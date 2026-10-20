@@ -8,6 +8,9 @@
     <string name="home_due">%1$d לחזרה, %2$d חדשים</string>
     <string name="home_nothing_due">סיימתם להיום. כל הכבוד! חזרו מחר.</string>
     <string name="home_practice_more">תרגול נוסף</string>
+    <string name="home_more">אימון נוסף</string>
+    <string name="home_daily_done">האימון היומי הושלם. אפשר להמשיך ללמוד כמה שרוצים.</string>
+    <string name="home_new_cap">למדתם היום %1$d מקומות חדשים, כל מה שהקצב שבחרתם מאפשר. אפשר לשנות את הקצב בהגדרות, או לחזק מקומות שכבר למדתם.</string>
     <string name="attribution">נתוני מפה: הלמ״ס, משרד החקלאות, UN OCHA, GeoNames, © OpenStreetMap contributors, Copernicus DEM</string>
     <string name="discover_title">מקום חדש</string>
     <string name="discover_continue">הבנתי, בואו נתרגל</string>
@@ -129,6 +132,11 @@
     <string name="length_short">קצר, 10 שאלות</string>
     <string name="length_normal">רגיל, 15 שאלות</string>
     <string name="length_long">ארוך, 25 שאלות</string>
+    <string name="settings_pace">קצב מקומות חדשים</string>
+    <string name="pace_normal">רגיל, עד 20 ביום</string>
+    <string name="pace_fast">מהיר, עד 40 ביום</string>
+    <string name="pace_unlimited">בלי הגבלה</string>
+    <string name="settings_pace_note">בכל קצב, מקום חדש מגיע רק אחרי שהקודמים נקלטו וכשרוב התשובות נכונות. כל מקום חדש מוסיף חזרות בימים הבאים.</string>
     <string name="settings_map">מפה</string>
     <string name="map_style_standard">רגילה</string>
     <string name="map_style_standard_note">צבעים נקיים</string>
