@@ -34,8 +34,6 @@ data class HomeState(
     val newPerDay: Int? = null,
     /** Regions and districts in practice, for a Map Builder round. */
     val buildPlaces: Int = 0,
-    /** The Jordan and the streams in practice, for a Trace It round. */
-    val tracePlaces: Int = 0,
     /** Places past their learning steps, for free play: a blitz needs a few of them. */
     val freePlayPlaces: Int = 0,
     /** Learned places near enough to each other for a road trip. */
@@ -85,7 +83,6 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
                 newCapReached = notStarted > 0 && newLeftToday == 0,
                 newPerDay = config.maxNewPerDay,
                 buildPlaces = locate.keys.count { app.content.place(it)?.type?.let(Drill::of) == Drill.BUILD },
-                tracePlaces = locate.keys.count { app.content.place(it)?.type?.let(Drill::of) == Drill.TRACE },
                 freePlayPlaces = FreePlay.learned(app.content, cards).size,
                 roadTripReady = RoadTrip.plan(app.content, cards).isNotEmpty(),
                 mastery = locate.mapValues { (_, c) -> app.scheduler.mastery(c.fsrs, now) },

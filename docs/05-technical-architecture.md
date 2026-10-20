@@ -40,7 +40,7 @@
 :core:map                 Compose map renderer (layers, camera, gestures, animations)
 :feature:onboarding       Language, placement test, tutorial
 :feature:session          Daily session player (hosts all question types)
-:feature:modes            Free play: Pin It, Name It, Builder, Blitz, Trace, Road Trip
+:feature:modes            Free play: Pin It, Name It, Builder, Blitz, Focus, Road Trip
 :feature:progress         Mastery map, stats, achievements
 :feature:settings         Preferences, layers (e.g. Green Line), notifications
 tools/                    Python data pipeline (not shipped), see doc 06

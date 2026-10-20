@@ -37,10 +37,9 @@ No signup, no permissions on first run.
   dark design; water, borders and outlines are the same in both.
 - Large tap targets for UI; the map itself is the target in Pin It, so allow
   zoom and provide generous tolerance at default zoom.
-- Map Builder and Trace It: one finger drags the shape or draws, two fingers pan and
-  zoom, so precision never needs a steady single finger at the full-country view.
-  Nothing is final on lifting the finger: "here" and "done" hand the answer in, and a
-  stroke that starts where the last one ended continues it.
+- Map Builder: one finger drags the shape, two fingers pan and zoom, so precision never
+  needs a steady single finger at the full-country view. Nothing is final on lifting
+  the finger: "here" hands the answer in.
 
 ## Accessibility
 

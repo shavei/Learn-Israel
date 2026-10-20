@@ -14,6 +14,7 @@ import com.shavei.mapa.learning.AnswerTally
 import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.learning.Facet
+import com.shavei.mapa.learning.Focus
 import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.LearnedConfusables
 import com.shavei.mapa.learning.MapTest
@@ -86,8 +87,11 @@ enum class SessionKind {
     /** A Map Builder round from home: regions and districts the player has met. */
     BUILD,
 
-    /** A Trace It round from home: the Jordan and the streams the player has met. */
-    TRACE,
+    /**
+     * Focused practice from home: the places most in need by the answer log (missed most,
+     * answered least), each asked the way it is tallied. The schedule stays as it was.
+     */
+    FOCUS,
 
     /** Free play: a minute of Pin It on learned places, as many as the player can find. */
     BLITZ,
@@ -150,16 +154,17 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                     scheduler = app.scheduler,
                     initialCards = cards,
                     newIntroducedToday = app.progress.newIntroducedToday(now),
-                    config = SessionConfig(
-                        size = app.settings.current.sessionLength.questions,
-                        maxNewPerDay = app.settings.current.pace.newPerDay,
-                        strengthenWeakest = kind == SessionKind.EXTRA,
-                        drill = when (kind) {
-                            SessionKind.BUILD -> Drill.BUILD
-                            SessionKind.TRACE -> Drill.TRACE
-                            else -> null
-                        },
-                    ),
+                    config = if (kind == SessionKind.FOCUS) {
+                        // Ten places and each miss once more: the overtime holds every miss.
+                        SessionConfig(size = Focus.SIZE, overtime = Focus.SIZE, focus = true)
+                    } else {
+                        SessionConfig(
+                            size = app.settings.current.sessionLength.questions,
+                            maxNewPerDay = app.settings.current.pace.newPerDay,
+                            strengthenWeakest = kind == SessionKind.EXTRA,
+                            drill = Drill.BUILD.takeIf { kind == SessionKind.BUILD },
+                        )
+                    },
                     learnedConfusables = LearnedConfusables.of(app.progress.confusions()),
                     tallies = AnswerTally.of(app.progress.reviewRecords()),
                 )
@@ -191,10 +196,6 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
 
     /** Map Builder: the shape was dropped [dx], [dy] meters from its place. */
     fun onMoved(dx: Double, dy: Double) = answer(Response.Moved(dx, dy)) { it is Question.Build }
-
-    fun onDrawn(path: List<MapPoint>) {
-        if (path.size >= 2) answer(Response.Drawn(path)) { it is Question.Trace }
-    }
 
     fun onContinue() {
         if (_ui.value is SessionUi.Feedback) advance()

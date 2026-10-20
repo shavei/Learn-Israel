@@ -80,20 +80,6 @@ the distance to the polygon edge, `tol` scales with the square root of the area.
 "Tap anywhere on Route 90". Distance to the nearest segment, tolerance by line type.
 A crater is drawn in OpenStreetMap as a line along its floor, so it is graded as one.
 
-### LOCATE in Trace It (the Jordan and the streams)
-
-```
-d       = mean distance between the drawing and the line (km): 100 points spread evenly
-          along each, the mean distance from the drawing's points to the line and from
-          the line's points to the drawing, averaged
-tol     = the line's Pin It tolerance (the Jordan 4 km, a stream 3 km) x learning multiplier
-```
-
-Graded by the same bands as a tap (within `tol` Good, within 3 x `tol` Hard). Easy needs
-the drawing within half the tolerance in under 15 seconds. Measuring both ways means the
-drawing must cover the whole course: half of the river drawn exactly is as far off as a
-line a few km beside all of it. The direction does not matter.
-
 ### LOCATE in Map Builder (regions and districts)
 
 ```
@@ -107,14 +93,34 @@ tol     = max(4 km, 15% of the shape's size, the square root of its area)
 (Menashe, the Western Galilee) fair to drop with a finger. Same bands as a tap; Easy
 needs half the tolerance in under 8 seconds.
 
-### When the engine asks them
+### When the engine asks it
 
-Map Builder and Trace It practice the place's `LOCATE` card, like Pin It: in the daily
-session, a due review of a region, a district, the Jordan or a stream is asked that way
-half of the time. Places in their learning steps, and places with hints on, always get
-Pin It. From home, a Map Builder or Trace It round asks every place of its kind the
-player has met, weakest first, each once; a miss comes back once. A round brings no new
-places, and its answers count like extra practice.
+Map Builder practices the place's `LOCATE` card, like Pin It: in the daily session, a
+due review of a region or a district is asked that way half of the time. Places in
+their learning steps, and places with hints on, always get Pin It. From home, a Map
+Builder round asks every region and district the player has met, weakest first, each
+once; a miss comes back once. A round brings no new places, and its answers count like
+extra practice.
+
+### Focused practice
+
+A round from home chosen by the answer log alone. Each card's tally (right, close and
+wrong, and the miss rate over its last 10 answers, a close answer counting half) gives
+it a need:
+
+```
+need    = recent miss rate + 1 / (2 + answers so far)
+
+          never answered: 0.5; right once: 0.33; right 20 times: 0.05
+          missed 4 in 10: 0.48; missed every time, 10 answers: 1.08
+```
+
+Every card the player has met can be asked, still in its learning steps or not. Each
+place is asked once, by its card with the most need; the 10 places with the most need
+come first, ties to the weaker card. A miss comes back once, after the 10. Pin It is
+always a tap (no Map Builder), names and relations as in the session. Answers are
+logged with their question type and update the tally, but the scheduler's card stays as
+it was: the round never moves a review earlier or later.
 
 ### NAME
 Multiple choice: correct = Good at most (recognition is weaker evidence; Easy is
@@ -142,7 +148,7 @@ points  = 5000                          if d <= 1
           d:      1     3     5    10    20    50   100
           points: 5000  4353  3789 2679  1340  167   5
 
-Map Builder: d is how far the shape landed from its place; Trace It: the mean distance
+Map Builder: d is how far the shape landed from its place
 NAME, RELATE: 5000 when right (a spelling slip included), 0 when wrong
 ```
 

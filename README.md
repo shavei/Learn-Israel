@@ -13,8 +13,8 @@ people actually remember.
 > learning stats you can share. Two map styles: standard and shaded relief.
 > GeoGuessr-style points: up to 5,000 for each answer, more the closer you tap.
 > As many sessions a day as you like, at the pace of new places you choose.
-> Map Builder (drag a region into place) and Trace It (draw the Jordan or a stream),
-> mixed into the session and as rounds of their own. Free play on learned places:
+> Map Builder (drag a region into place), mixed into the session and as a round of its own.
+> Focused practice: a round of the places your own answers say need it most. Free play on learned places:
 > Blitz (a minute against the clock) and Road Trip (a chain of stops across the map).
 > Ranks by places known, 15 achievements for real knowledge, and confusable pairs
 > learned from your own missed taps, practiced side by side.
@@ -32,7 +32,7 @@ asked. Installing a newer build updates the app and keeps your progress.
 
 ![Points: the running score above a question, 5,000 points for a tap inside the sea, 3 points for a miss 107 km away, and the session total](docs/images/points.png)
 
-![Map Builder and Trace It: the Sharon dragged from the sea, its feedback with the true place, the Jordan drawn with a finger, and its feedback with the mean distance](docs/images/drills.png)
+![Map Builder and focused practice: the Sharon dragged from the sea, its feedback with the true place, the two rounds on home, and focused practice opening on the place missed most](docs/images/drills.png)
 
 ![Motivation: the rank on home, the achievements on the progress screen, the pairs learned from missed taps, and a new achievement on a session summary](docs/images/motivation.png)
 

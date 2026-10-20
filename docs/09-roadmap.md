@@ -216,6 +216,8 @@ smaller releases, in order of learning value, each playable on its own.
 - Decided (doc 10): in the daily session and as rounds from home; one shape per
   question; the Jordan and all 8 streams, craters Pin It only
 - Not yet: roads (with the highways), the coastline, and seas or neighbors in Map Builder
+- Later removed: Trace It, replaced on home by focused practice (below); rivers and
+  streams are Pin It only, and older logs keep their TRACE answers
 
 ### 2c. Free play: Blitz and Road Trip - built
 - [x] Blitz: 60 seconds of Pin It on learned places (past their learning steps), each
@@ -257,6 +259,16 @@ smaller releases, in order of learning value, each playable on its own.
   from 2 confusions; achievements tied to places use the current content, so new
   places in a theme reopen nothing already earned
 - Not yet: global confusable pairs (with the log upload, 2e), and a best Blitz score
+
+### Focused practice - built
+- [x] A round of 10 from home, in place of Trace It, run by the answer log alone: every
+      place met can come up, the most in need first (recent miss rate, plus a bonus for
+      few answers, docs/04-learning-engine.md)
+- [x] Each place asked once, by the skill its log shows the most need for; a miss
+      comes back once at the end
+- [x] Answers are logged and update the tally, but leave the scheduler's cards as they were
+- Decided (doc 10): Trace It removed everywhere; places in their learning steps count;
+  missed most and answered least weigh together in one score
 
 ### 2e. Data
 - [ ] Opt-in anonymous log upload; first global FSRS parameter fit
