@@ -198,9 +198,24 @@ smaller releases, in order of learning value, each playable on its own.
 - Not yet: the highways (Routes 1, 2, 4, 6, 40 and 90), left out for now and still
   wanted later
 
-### 2b. Map Builder and Trace It
-- [ ] Map Builder: drag region and district shapes into place on the outline
-- [ ] Trace It: draw a river or a road with a finger, scored by mean distance
+### 2b. Map Builder and Trace It - built
+- [x] Map Builder: drag a region or district shape into place on the outline, one shape
+      per question, from the same start in the sea every time; scored by how far it
+      lands (right within 15 percent of its size, at least 4 km)
+- [x] Trace It: draw the course of the Jordan or one of the 8 streams with a finger,
+      scored by the mean distance between the drawing and the line, both ways (right
+      within the line's Pin It tolerance: 4 km for the Jordan, 3 km for a stream)
+- [x] One finger drags or draws, two pan and zoom; "here" and "done" hand the answer in
+- [x] Both practice the place's LOCATE card: in the daily session a due region, district
+      or line review is asked this way half of the time (Pin It while learning or with
+      hints), with points and feedback like any answer
+- [x] Home offers a round of each on the places of its kind already met, weakest first,
+      each once, a miss once more (docs/04-learning-engine.md)
+- [x] Answers are logged as BUILD and TRACE: where the shape's center was dropped, and
+      the drawn path
+- Decided (doc 10): in the daily session and as rounds from home; one shape per
+  question; the Jordan and all 8 streams, craters Pin It only
+- Not yet: roads (with the highways), the coastline, and seas or neighbors in Map Builder
 
 ### 2c. Free play: Blitz and Road Trip
 - [ ] Blitz: 60 seconds of Pin It on learned places, at reduced weight

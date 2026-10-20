@@ -3,6 +3,11 @@ package com.shavei.mapa.ui.map
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.runtime.Composable
@@ -27,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
@@ -60,6 +66,24 @@ sealed interface MapDecoration {
 
     /** A name on the map; [color] defaults to the palette's label color. */
     data class Label(val at: MapPoint, val text: String, val color: Color? = null) : MapDecoration
+
+    /** An area drawn [dx] meters east and [dy] meters north of where it lies: a Map Builder shape. */
+    data class Moved(val shape: Shape.Area, val dx: Double, val dy: Double, val color: Color, val alpha: Float = 0.45f) : MapDecoration
+
+    /** A path drawn by the player in Trace It. */
+    data class Drawing(val path: List<MapPoint>, val color: Color) : MapDecoration
+}
+
+/**
+ * One-finger drags on the map, in map meters, for Map Builder and Trace It. Two fingers
+ * still pan and zoom; a second finger coming down makes the drag so far the start of a
+ * pinch, so it is [cancel]led.
+ */
+interface MapDrag {
+    fun start(at: MapPoint)
+    fun move(to: MapPoint)
+    fun end()
+    fun cancel()
 }
 
 /**
@@ -98,6 +122,14 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         val visibleHeight = (size.height - padTop - padBottom).coerceAtLeast(size.height * 0.4f)
         homeScale = min(size.width / padded.width, visibleHeight / padded.height)
         if (resetView) reset()
+    }
+
+    /** Frames [b] in the visible part of the screen, zoomed in as far as it allows. */
+    fun show(b: Bounds) {
+        if (homeScale == 0.0) return
+        val visibleHeight = (size.height - padTop - padBottom).coerceAtLeast(size.height * 0.4f)
+        scale = min(size.width / b.width, visibleHeight / b.height).coerceIn(homeScale * 0.5, homeScale * 12)
+        center = centerPlacing(b.center, visibleCenterY(padTop, padBottom))
     }
 
     /** Frames all of Israel in the visible part of the screen. */
@@ -167,6 +199,10 @@ fun MapView(
     /** What a screen reader says about the map. */
     description: String? = null,
     onTap: ((MapPoint) -> Unit)? = null,
+    /** One-finger drags move a shape or draw (two fingers pan and zoom); null for the usual pan and zoom. */
+    onDrag: MapDrag? = null,
+    /** False while the player traces the Jordan, which the base map would otherwise show. */
+    showRivers: Boolean = true,
     /** False for a still picture of the map, such as the style previews in settings. */
     interactive: Boolean = true,
     look: MapLook = LocalMapLook.current,
@@ -187,9 +223,12 @@ fun MapView(
             .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier)
             .onSizeChanged { camera.onSize(it) }
             .then(
-                if (!interactive) Modifier
-                else Modifier.pointerInput(camera) {
-                    detectTransformGestures { centroid, pan, zoom, _ -> camera.transform(centroid, pan, zoom) }
+                when {
+                    !interactive -> Modifier
+                    onDrag != null -> Modifier.pointerInput(camera, onDrag) { detectDrags(camera, onDrag) }
+                    else -> Modifier.pointerInput(camera) {
+                        detectTransformGestures { centroid, pan, zoom, _ -> camera.transform(centroid, pan, zoom) }
+                    }
                 },
             )
             .pointerInput(camera, onTap) {
@@ -217,7 +256,9 @@ fun MapView(
                 layers.regions, colors.regionOutline,
                 style = Stroke(width = px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f * px, 4f * px))),
             )
-            drawPath(layers.rivers, colors.river, style = Stroke(width = 2f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            if (showRivers) {
+                drawPath(layers.rivers, colors.river, style = Stroke(width = 2f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
             drawPath(layers.lakes, colors.lake)
             if (showGreenLine) drawPath(layers.greenLine, colors.greenLine, style = Stroke(width = 1.5f * px))
 
@@ -232,6 +273,13 @@ fun MapView(
                     is Shape.Point -> Unit // drawn in screen space so it keeps its size
                 }
             }
+            for (d in decorations) if (d is MapDecoration.Moved) {
+                val path = pathCache.getOrPut(d.shape) { shapePath(d.shape, origin) }
+                withTransform({ translate(d.dx.toFloat(), d.dy.toFloat()) }) {
+                    drawPath(path, d.color, alpha = d.alpha)
+                    drawPath(path, d.color, style = Stroke(width = 2.5f * px))
+                }
+            }
         }
 
         for (d in decorations) when (d) {
@@ -241,6 +289,15 @@ fun MapView(
                 drawCircle(d.color, radius = 8f, center = c)
                 if (d.emphasis) drawCircle(d.color, radius = 21f, center = c, style = Stroke(width = 3f))
             }
+            is MapDecoration.Drawing -> if (d.path.size >= 2) {
+                val path = Path().apply {
+                    camera.toScreen(d.path[0]).let { moveTo(it.x, it.y) }
+                    for (i in 1 until d.path.size) camera.toScreen(d.path[i]).let { lineTo(it.x, it.y) }
+                }
+                drawPath(path, colors.markerRing, style = Stroke(width = 9f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(path, d.color, style = Stroke(width = 5f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
+            is MapDecoration.Moved -> Unit // drawn in map space above
             is MapDecoration.Connector ->
                 drawLine(d.color, camera.toScreen(d.from), camera.toScreen(d.to), strokeWidth = 4f, cap = StrokeCap.Round)
             is MapDecoration.Marker -> {
@@ -262,6 +319,29 @@ fun MapView(
             }
         }
     }
+}
+
+/** One finger drags through [drag]; two pan and zoom the camera, as everywhere else. */
+private suspend fun PointerInputScope.detectDrags(camera: MapCamera, drag: MapDrag) = awaitEachGesture {
+    val down = awaitFirstDown(requireUnconsumed = false)
+    drag.start(camera.toMap(down.position))
+    var dragging = true
+    while (true) {
+        val event = awaitPointerEvent()
+        val pressed = event.changes.filter { it.pressed }
+        if (pressed.isEmpty()) break
+        if (pressed.size > 1) {
+            if (dragging) {
+                drag.cancel()
+                dragging = false
+            }
+            camera.transform(event.calculateCentroid(), event.calculatePan(), event.calculateZoom())
+        } else if (dragging) {
+            drag.move(camera.toMap(pressed[0].position))
+        }
+        event.changes.forEach { it.consume() }
+    }
+    if (dragging) drag.end()
 }
 
 /** Draws a terrain image where it lies, inside [inMapSpace]. */

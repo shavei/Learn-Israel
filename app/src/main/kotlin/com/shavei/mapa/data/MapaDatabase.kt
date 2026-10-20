@@ -33,17 +33,18 @@ data class ReviewEntity(
     val placeId: String,
     val facet: String,
     /**
-     * The question type: LOCATE, NAME_CHOICE, NAME_TYPED, RELATE, or PLACEMENT and
-     * MAP_TEST for the two tests, which are not practice.
+     * The question type: LOCATE, BUILD (Map Builder), TRACE (Trace It), NAME_CHOICE,
+     * NAME_TYPED, RELATE, or PLACEMENT and MAP_TEST for the two tests, which are not practice.
      */
     val mode: String,
     val sessionId: String,
     val timestamp: Long,
     val rating: Int,
     val errorMeters: Double?,
+    /** Where the player tapped; for Map Builder, where the shape's center was dropped. */
     val tapX: Double?,
     val tapY: Double?,
-    /** The chosen place id or the typed text. */
+    /** The chosen place id, the typed text, or the path drawn in Trace It ("x,y;x,y", meters). */
     val answer: String?,
     val responseMs: Long,
     val appVersion: String,

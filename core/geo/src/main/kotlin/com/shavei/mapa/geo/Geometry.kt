@@ -49,6 +49,13 @@ class Line(val coords: DoubleArray) {
 
     val bounds: Bounds by lazy { Bounds.of(coords) }
 
+    /** Length in meters. */
+    val length: Double by lazy {
+        var sum = 0.0
+        for (i in 0 until coords.size - 2 step 2) sum += hypot(coords[i + 2] - coords[i], coords[i + 3] - coords[i + 1])
+        sum
+    }
+
     fun distanceTo(p: MapPoint): Double {
         var best = Double.POSITIVE_INFINITY
         for (i in 0 until coords.size - 2 step 2) {
@@ -185,6 +192,47 @@ private fun nearestPointOnLines(p: MapPoint, lines: List<Line>): MapPoint {
         }
     }
     return best
+}
+
+/**
+ * [count] points spread evenly by length along [lines], taken as one path in order: the
+ * first point of the first line, the last of the last, and the rest in between.
+ */
+fun samplePoints(lines: List<Line>, count: Int): List<MapPoint> {
+    require(lines.isNotEmpty() && count >= 2)
+    val last = lines.last().coords
+    val end = MapPoint(last[last.size - 2], last[last.size - 1])
+    val total = lines.sumOf { it.length }
+    if (total == 0.0) return List(count) { end }
+    val step = total / (count - 1)
+    val result = ArrayList<MapPoint>(count)
+    var target = 0.0
+    var walked = 0.0
+    for (line in lines) {
+        val c = line.coords
+        for (i in 0 until c.size - 2 step 2) {
+            val segment = hypot(c[i + 2] - c[i], c[i + 3] - c[i + 1])
+            while (result.size < count - 1 && target <= walked + segment) {
+                val t = if (segment == 0.0) 0.0 else (target - walked) / segment
+                result += MapPoint(c[i] + t * (c[i + 2] - c[i]), c[i + 1] + t * (c[i + 3] - c[i + 1]))
+                target += step
+            }
+            walked += segment
+        }
+    }
+    while (result.size < count) result += end
+    return result
+}
+
+/**
+ * How far apart two paths run, on average, in meters: the mean distance from points along
+ * [a] to [b] and from points along [b] to [a], averaged. Both ways count, so a path that
+ * follows only half of a river is as far off as one drawn beside all of it.
+ */
+fun meanDistance(a: List<Line>, b: List<Line>, samples: Int = 100): Double {
+    val ab = samplePoints(a, samples).sumOf { p -> b.minOf { it.distanceTo(p) } } / samples
+    val ba = samplePoints(b, samples).sumOf { p -> a.minOf { it.distanceTo(p) } } / samples
+    return (ab + ba) / 2
 }
 
 /** Square root of an area, a handy "size" of a region in meters. */

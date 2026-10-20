@@ -75,12 +75,24 @@ Relational questions that fix hierarchical distortions:
 - "Estimate the distance from Haifa to Eilat" (slider, scored by error ratio).
 
 ### 5. Map Builder (puzzle, facet: `LOCATE` for regions)
-Drag region or district shapes into place on the outline. Great for the frame layer
-(districts, natural regions, seas, neighbors). Satisfying and very tactile on a phone.
+Drag a region or district shape into place on the outline, one shape per question.
+The shape starts in the sea off the middle of the coast (the same spot for every
+shape, so the start gives nothing away); one finger drags it, two fingers pan and zoom
+the map, and "here" hands it in. Scored by how far it lands from its place. Satisfying
+and very tactile on a phone.
 
-### 6. Trace It (later, facet: `LOCATE` for lines)
-Draw the path of the Jordan River, Route 6, or the coastline with a finger. Scored
-by average distance between drawn path and the true line (Fréchet-like distance).
+### 6. Trace It (facet: `LOCATE` for lines)
+Draw the course of the Jordan River or a stream (the Yarkon, the Kishon, the Alexander,
+the Ayalon, the Sorek, the Besor, the Dan, the Hermon) with a finger; later Route 6 and
+the other highways. The map opens on the line's surroundings, never centered on it.
+Scored by the mean distance between the drawing and the true line, both ways, so
+drawing half the river or a line beside it both cost. Craters are too short to trace
+and stay Pin It only.
+
+Both modes practice the same `LOCATE` card as Pin It. In the daily session, a due
+review of a region, a district or a line is its Map Builder or Trace It question half
+of the time; places still being learned, and struggling places, get Pin It. Home also
+offers a round of each, on the places of its kind the player has met.
 
 ### 7. Road Trip (story mode, later)
 A narrative chain: "You land at Ben Gurion. Drive to the Dead Sea, then to Masada,

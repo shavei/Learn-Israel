@@ -3,6 +3,7 @@ package com.shavei.mapa.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
+import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.learning.Facet
 import com.shavei.mapa.learning.MapTest
 import com.shavei.mapa.learning.SessionConfig
@@ -29,6 +30,10 @@ data class HomeState(
     /** New places remain, but today's are used up at the chosen pace. */
     val newCapReached: Boolean = false,
     val newPerDay: Int? = null,
+    /** Regions and districts in practice, for a Map Builder round. */
+    val buildPlaces: Int = 0,
+    /** The Jordan and the streams in practice, for a Trace It round. */
+    val tracePlaces: Int = 0,
     /** placeId to 0..1 strength shown on the mastery map. */
     val mastery: Map<String, Double> = emptyMap(),
     val streak: Streak = Streak(0, 0, false),
@@ -73,6 +78,8 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
                 newAvailable = minOf(notStarted, newLeftToday, config.maxNewPerSession),
                 newCapReached = notStarted > 0 && newLeftToday == 0,
                 newPerDay = config.maxNewPerDay,
+                buildPlaces = locate.keys.count { app.content.place(it)?.type?.let(Drill::of) == Drill.BUILD },
+                tracePlaces = locate.keys.count { app.content.place(it)?.type?.let(Drill::of) == Drill.TRACE },
                 mastery = locate.mapValues { (_, c) -> app.scheduler.mastery(c.fsrs, now) },
                 streak = Streak.of(daysPlayed, today),
                 offerReminder = offerReminder,

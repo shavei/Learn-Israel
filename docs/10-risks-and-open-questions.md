@@ -18,6 +18,9 @@
 | 12 | Review of the tier 4 to 6 Hebrew text? (2026-10-20) | Shipped without a separate review | Names, hints and facts are fixed as testers report problems |
 | 13 | Do nature and heritage places count in the region percentages? (2026-10-20) | Yes: a region counts every place in it | A region is 100 percent only when its cities, mountains, streams and sites are all known; percentages drop once tier 4 places exist |
 | 14 | More tier 4 to 6 places now? (2026-10-20) | No: 49 are enough until the playtest shows players reach them | More reserves, valleys and sites wait; Haifa airport and Tel Dan stay out (each sits beside another place) |
+| 15 | Where do Map Builder and Trace It live? (2026-10-20) | Both in the daily session, as another way to find a known region or line, and as rounds from home | They share the LOCATE card with Pin It; a home round brings no new places |
+| 16 | What is one Map Builder question? (2026-10-20) | One shape per question, dragged into place | One card per question, as in the rest of the session; a whole-puzzle round can come later |
+| 17 | Which lines can Trace It ask for? (2026-10-20) | The Jordan and all 8 streams, the Dan and the Hermon included | The craters stay Pin It only; the highways join Trace It when they are added |
 
 ## Still open
 

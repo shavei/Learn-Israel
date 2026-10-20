@@ -2,17 +2,24 @@ package com.shavei.mapa.learning
 
 import com.shavei.mapa.content.Place
 import com.shavei.mapa.content.PlaceType
+import com.shavei.mapa.geo.Line
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.geo.characteristicSize
+import com.shavei.mapa.geo.meanDistance
 import com.shavei.mapa.learning.fsrs.Rating
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
 data class Grade(
     val rating: Rating,
-    /** For taps: how far from the place, 0 when inside an area. Null for other answers. */
+    /**
+     * For taps: how far from the place, 0 when inside an area. For Map Builder, how far the
+     * shape was dropped from its place; for Trace It, the mean distance between the drawing
+     * and the line. Null for other answers.
+     */
     val errorMeters: Double? = null,
     val toleranceMeters: Double? = null,
     /** A typed name accepted with one wrong letter; feedback shows the exact spelling. */
@@ -27,6 +34,10 @@ data class Grade(
 object Grader {
     /** Answers faster than this can earn EASY. */
     const val FLUENT_RESPONSE_MS = 4_000L
+
+    /** Dragging a shape takes longer than a tap, and drawing a river longer still. */
+    const val FLUENT_BUILD_MS = 8_000L
+    const val FLUENT_TRACE_MS = 15_000L
 
     /** Error bands, as multiples of the tolerance: within 1x is right, within 3x is close. */
     private const val CLOSE_FACTOR = 3.0
@@ -87,10 +98,51 @@ object Grader {
         stabilityDays: Double? = null,
     ): Grade {
         val tolerance = tolerance(place) * learningMultiplier(stabilityDays)
-        val error = place.shape.distanceTo(tap)
+        return byDistance(place.shape.distanceTo(tap), tolerance, !firstReview && responseMs < FLUENT_RESPONSE_MS, hint)
+    }
+
+    /**
+     * How far a Map Builder shape may land from its place once the region is well known:
+     * 15 percent of its size (most of the shape on its place), at least 4 km.
+     */
+    fun buildTolerance(place: Place): Double = max(4_000.0, 0.15 * (place.shape as Shape.Area).characteristicSize())
+
+    /** Map Builder: the shape of [place] dropped [dx], [dy] meters from its place. */
+    fun gradeBuild(
+        place: Place,
+        dx: Double,
+        dy: Double,
+        responseMs: Long,
+        firstReview: Boolean,
+        hint: Boolean = false,
+        stabilityDays: Double? = null,
+    ): Grade {
+        val tolerance = buildTolerance(place) * learningMultiplier(stabilityDays)
+        return byDistance(hypot(dx, dy), tolerance, !firstReview && responseMs < FLUENT_BUILD_MS, hint)
+    }
+
+    /**
+     * Trace It: [path] drawn for a river or a stream, graded by the mean distance between
+     * the drawing and the line, with the line's Pin It tolerance.
+     */
+    fun gradeTrace(
+        place: Place,
+        path: List<MapPoint>,
+        responseMs: Long,
+        firstReview: Boolean,
+        hint: Boolean = false,
+        stabilityDays: Double? = null,
+    ): Grade {
+        val tolerance = tolerance(place) * learningMultiplier(stabilityDays)
+        val drawn = Line(DoubleArray(path.size * 2) { if (it % 2 == 0) path[it / 2].x else path[it / 2].y })
+        val error = meanDistance(listOf(drawn), (place.shape as Shape.Lines).lines)
+        return byDistance(error, tolerance, !firstReview && responseMs < FLUENT_TRACE_MS, hint)
+    }
+
+    /** Within the tolerance is right (EASY when [fluent] and within half of it), within 3x close. */
+    private fun byDistance(error: Double, tolerance: Double, fluent: Boolean, hint: Boolean): Grade {
         val rating = when {
-            error <= tolerance ->
-                if (!firstReview && responseMs < FLUENT_RESPONSE_MS && error <= tolerance / 2) Rating.EASY else Rating.GOOD
+            error <= tolerance -> if (fluent && error <= tolerance / 2) Rating.EASY else Rating.GOOD
             error <= tolerance * CLOSE_FACTOR -> Rating.HARD
             else -> Rating.AGAIN
         }

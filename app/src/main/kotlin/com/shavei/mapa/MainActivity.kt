@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.shavei.mapa.data.Settings
 import com.shavei.mapa.data.ThemeChoice
+import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.reminder.Reminders
 import com.shavei.mapa.ui.home.HomeScreen
 import com.shavei.mapa.ui.map.LocalMapLook
@@ -149,6 +150,7 @@ private fun App(app: MapaApplication, settings: Settings) {
                 onProgress = { open(Screen.PROGRESS) },
                 onSettings = { open(Screen.SETTINGS) },
                 onMapTest = { startSession(SessionKind.MAP_TEST) },
+                onDrill = { drill -> startSession(if (drill == Drill.BUILD) SessionKind.BUILD else SessionKind.TRACE) },
             )
         }
         Screen.SESSION -> {

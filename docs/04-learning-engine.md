@@ -79,7 +79,42 @@ the distance to the polygon edge, `tol` scales with the square root of the area.
 ### LOCATE on a line item (river, stream, crater; later roads) in Pin It
 "Tap anywhere on Route 90". Distance to the nearest segment, tolerance by line type.
 A crater is drawn in OpenStreetMap as a line along its floor, so it is graded as one.
-In Trace It: mean distance between the drawn path and the true line, graded by bands.
+
+### LOCATE in Trace It (the Jordan and the streams)
+
+```
+d       = mean distance between the drawing and the line (km): 100 points spread evenly
+          along each, the mean distance from the drawing's points to the line and from
+          the line's points to the drawing, averaged
+tol     = the line's Pin It tolerance (the Jordan 4 km, a stream 3 km) x learning multiplier
+```
+
+Graded by the same bands as a tap (within `tol` Good, within 3 x `tol` Hard). Easy needs
+the drawing within half the tolerance in under 15 seconds. Measuring both ways means the
+drawing must cover the whole course: half of the river drawn exactly is as far off as a
+line a few km beside all of it. The direction does not matter.
+
+### LOCATE in Map Builder (regions and districts)
+
+```
+d       = how far the shape was dropped from its place (km), the length of the move
+          between where it lies and where the player left it
+tol     = max(4 km, 15% of the shape's size, the square root of its area)
+          x learning multiplier
+```
+
+15 percent of its size leaves most of a shape on its place; 4 km keeps small regions
+(Menashe, the Western Galilee) fair to drop with a finger. Same bands as a tap; Easy
+needs half the tolerance in under 8 seconds.
+
+### When the engine asks them
+
+Map Builder and Trace It practice the place's `LOCATE` card, like Pin It: in the daily
+session, a due review of a region, a district, the Jordan or a stream is asked that way
+half of the time. Places in their learning steps, and places with hints on, always get
+Pin It. From home, a Map Builder or Trace It round asks every place of its kind the
+player has met, weakest first, each once; a miss comes back once. A round brings no new
+places, and its answers count like extra practice.
 
 ### NAME
 Multiple choice: correct = Good at most (recognition is weaker evidence; Easy is
@@ -107,6 +142,7 @@ points  = 5000                          if d <= 1
           d:      1     3     5    10    20    50   100
           points: 5000  4353  3789 2679  1340  167   5
 
+Map Builder: d is how far the shape landed from its place; Trace It: the mean distance
 NAME, RELATE: 5000 when right (a spelling slip included), 0 when wrong
 ```
 

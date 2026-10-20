@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.PlaceType
+import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.ui.Panel
 import com.shavei.mapa.ui.formatTime
 import com.shavei.mapa.ui.rememberNotificationAccess
@@ -53,6 +55,8 @@ fun HomeScreen(
     onProgress: () -> Unit,
     onSettings: () -> Unit,
     onMapTest: () -> Unit,
+    /** A Map Builder or Trace It round. */
+    onDrill: (Drill) -> Unit,
 ) {
     LaunchedEffect(Unit) { viewModel.refresh() }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -142,6 +146,17 @@ fun HomeScreen(
                             },
                         ),
                     )
+                }
+                // Free choice of the hands-on modes, on places already met (the daily session mixes them in too).
+                if (state.buildPlaces + state.tracePlaces > 0) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { onDrill(Drill.BUILD) }, Modifier.weight(1f), enabled = state.buildPlaces > 0) {
+                            Text(stringResource(R.string.home_build))
+                        }
+                        OutlinedButton(onClick = { onDrill(Drill.TRACE) }, Modifier.weight(1f), enabled = state.tracePlaces > 0) {
+                            Text(stringResource(R.string.home_trace))
+                        }
+                    }
                 }
             }
             Text(stringResource(R.string.attribution), style = MaterialTheme.typography.labelSmall)
