@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -34,32 +36,21 @@ import com.shavei.mapa.geo.Line
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.geo.Polygon
 import com.shavei.mapa.geo.Shape
+import com.shavei.mapa.ui.theme.LocalMapPalette
 import kotlin.math.min
-
-object MapColors {
-    val sea = Color(0xFFA9CBE8)
-    val neighbor = Color(0xFFE4E0D8)
-    val gaza = Color(0xFFDAD5CA)
-    val land = Color(0xFFF7F1E1)
-    val border = Color(0xFF8A8478)
-    val lake = Color(0xFF7FB2DC)
-    val river = Color(0xFF3A7FC0)
-    val greenLine = Color(0xFF4F9A5A)
-    val regionOutline = Color(0x998A8478)
-    val target = Color(0xFFD9480F)
-    val tap = Color(0xFF1C1B1F)
-    val good = Color(0xFF2B8A3E)
-    val close = Color(0xFFE8A317)
-    val miss = Color(0xFFC92A2A)
-    val mastery = Color(0xFF1E5F8C)
-}
 
 /** Something drawn on top of the base map: a highlighted place, a tap, a line, a label. */
 sealed interface MapDecoration {
-    data class Highlight(val shape: Shape, val color: Color, val alpha: Float = 0.45f) : MapDecoration
+    /**
+     * A place filled with [color]. [emphasis] adds a heavier outline (a ring for a point),
+     * so a state such as "known" never depends on color alone.
+     */
+    data class Highlight(val shape: Shape, val color: Color, val alpha: Float = 0.45f, val emphasis: Boolean = false) : MapDecoration
     data class Marker(val at: MapPoint, val color: Color, val radiusPx: Float = 14f) : MapDecoration
     data class Connector(val from: MapPoint, val to: MapPoint, val color: Color) : MapDecoration
-    data class Label(val at: MapPoint, val text: String, val color: Color = Color(0xFF1C1B1F)) : MapDecoration
+
+    /** A name on the map; [color] defaults to the palette's label color. */
+    data class Label(val at: MapPoint, val text: String, val color: Color? = null) : MapDecoration
 }
 
 /**
@@ -164,8 +155,11 @@ fun MapView(
     modifier: Modifier = Modifier,
     decorations: List<MapDecoration> = emptyList(),
     showGreenLine: Boolean = false,
+    /** What a screen reader says about the map. */
+    description: String? = null,
     onTap: ((MapPoint) -> Unit)? = null,
 ) {
+    val colors = LocalMapPalette.current
     // Paths are built once in map meters relative to an origin near Israel, which keeps
     // float coordinates small; the camera is applied as a canvas transform when drawing.
     val origin = map.home.center
@@ -175,6 +169,7 @@ fun MapView(
 
     Canvas(
         modifier = modifier
+            .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier)
             .onSizeChanged { camera.onSize(it) }
             .pointerInput(camera) {
                 detectTransformGestures { centroid, pan, zoom, _ -> camera.transform(centroid, pan, zoom) }
@@ -184,29 +179,29 @@ fun MapView(
             },
     ) {
         if (camera.scale == 0.0) return@Canvas
-        drawRect(MapColors.sea)
+        drawRect(colors.sea)
 
         inMapSpace(camera, origin) { px ->
-            drawPath(layers.neighbors, MapColors.neighbor)
-            drawPath(layers.neighbors, MapColors.border, style = Stroke(width = px))
-            drawPath(layers.gaza, MapColors.gaza)
-            drawPath(layers.gaza, MapColors.border, style = Stroke(width = px))
-            drawPath(layers.land, MapColors.land)
-            drawPath(layers.land, MapColors.border, style = Stroke(width = 1.5f * px))
+            drawPath(layers.neighbors, colors.neighbor)
+            drawPath(layers.neighbors, colors.border, style = Stroke(width = px))
+            drawPath(layers.gaza, colors.gaza)
+            drawPath(layers.gaza, colors.border, style = Stroke(width = px))
+            drawPath(layers.land, colors.land)
+            drawPath(layers.land, colors.border, style = Stroke(width = 1.5f * px))
             drawPath(
-                layers.regions, MapColors.regionOutline,
+                layers.regions, colors.regionOutline,
                 style = Stroke(width = px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f * px, 4f * px))),
             )
-            drawPath(layers.rivers, MapColors.river, style = Stroke(width = 2f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            drawPath(layers.lakes, MapColors.lake)
-            if (showGreenLine) drawPath(layers.greenLine, MapColors.greenLine, style = Stroke(width = 1.5f * px))
+            drawPath(layers.rivers, colors.river, style = Stroke(width = 2f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawPath(layers.lakes, colors.lake)
+            if (showGreenLine) drawPath(layers.greenLine, colors.greenLine, style = Stroke(width = 1.5f * px))
 
             for (d in decorations) if (d is MapDecoration.Highlight) {
                 val path = pathCache.getOrPut(d.shape) { shapePath(d.shape, origin) }
                 when (d.shape) {
                     is Shape.Area -> {
                         drawPath(path, d.color, alpha = d.alpha)
-                        drawPath(path, d.color, style = Stroke(width = 2.5f * px))
+                        drawPath(path, d.color, style = Stroke(width = (if (d.emphasis) 4.5f else 2.5f) * px))
                     }
                     is Shape.Lines -> drawPath(path, d.color, style = Stroke(width = 6f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
                     is Shape.Point -> Unit // drawn in screen space so it keeps its size
@@ -219,20 +214,21 @@ fun MapView(
                 val c = camera.toScreen(d.shape.at)
                 drawCircle(d.color, radius = 16f, center = c, alpha = d.alpha)
                 drawCircle(d.color, radius = 8f, center = c)
+                if (d.emphasis) drawCircle(d.color, radius = 21f, center = c, style = Stroke(width = 3f))
             }
             is MapDecoration.Connector ->
                 drawLine(d.color, camera.toScreen(d.from), camera.toScreen(d.to), strokeWidth = 4f, cap = StrokeCap.Round)
             is MapDecoration.Marker -> {
                 val c = camera.toScreen(d.at)
-                drawCircle(Color.White, radius = d.radiusPx + 3f, center = c)
+                drawCircle(colors.markerRing, radius = d.radiusPx + 3f, center = c)
                 drawCircle(d.color, radius = d.radiusPx, center = c)
             }
             is MapDecoration.Label -> {
-                val layout = textMeasurer.measure(d.text, TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = d.color))
+                val layout = textMeasurer.measure(d.text, TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = d.color ?: colors.labelText))
                 val c = camera.toScreen(d.at)
                 val topLeft = Offset(c.x - layout.size.width / 2, c.y - layout.size.height - 18f)
                 drawRoundRect(
-                    Color.White.copy(alpha = 0.85f),
+                    colors.labelBox,
                     topLeft = topLeft - Offset(8f, 4f),
                     size = androidx.compose.ui.geometry.Size(layout.size.width + 16f, layout.size.height + 8f),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f),

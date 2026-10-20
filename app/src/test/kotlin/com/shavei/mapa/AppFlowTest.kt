@@ -16,7 +16,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Drives the real app on the JVM: home screen, then the first steps of a daily session.
+ * Drives the real app on the JVM: the welcome screen, the first steps of a daily
+ * session, then home with the reminder offer.
  * Screenshots go to app/build/screenshots for human review.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -36,10 +37,10 @@ class AppFlowTest {
 
     @Test
     fun firstSessionTeachesTheMediterranean() {
-        waitForText("התחילו אימון יומי")
-        screenshot("1-home")
+        waitForText("בואו נתחיל")
+        screenshot("0-welcome")
 
-        compose.onNodeWithText("התחילו אימון יומי").performClick()
+        compose.onNodeWithText("בואו נתחיל").performClick()
         // A fresh player starts with the frame: the Mediterranean is introduced first.
         waitForText("מקום חדש")
         compose.onNodeWithText("הים התיכון").assertExists()
@@ -68,6 +69,12 @@ class AppFlowTest {
 
         compose.onNodeWithText("יציאה").performClick()
         waitForText("2 מתוך 153 מקומות בתרגול")
+        // After the first session, and only then, the daily reminder is offered.
+        waitForText("תזכורת יומית?")
+        compose.onNodeWithText("רצף: יום אחד").assertExists()
         screenshot("7-home-after")
+
+        compose.onNodeWithText("לא עכשיו").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodes(hasText("תזכורת יומית?")).fetchSemanticsNodes().isEmpty() }
     }
 }

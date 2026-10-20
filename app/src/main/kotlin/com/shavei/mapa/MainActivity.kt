@@ -1,23 +1,64 @@
 package com.shavei.mapa
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.shavei.mapa.data.Settings
+import com.shavei.mapa.data.ThemeChoice
+import com.shavei.mapa.reminder.Reminders
 import com.shavei.mapa.ui.home.HomeScreen
 import com.shavei.mapa.ui.home.HomeViewModel
+import com.shavei.mapa.ui.onboarding.OnboardingScreen
+import com.shavei.mapa.ui.progress.ProgressScreen
+import com.shavei.mapa.ui.progress.ProgressViewModel
+import com.shavei.mapa.ui.session.SessionKind
 import com.shavei.mapa.ui.session.SessionScreen
 import com.shavei.mapa.ui.session.SessionViewModel
+import com.shavei.mapa.ui.settings.SettingsScreen
 import com.shavei.mapa.ui.theme.MapaTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+
+private enum class Screen { LOADING, ONBOARDING, HOME, SESSION, PROGRESS, SETTINGS }
+
+/** Decides the first screen: the welcome screen, or home for a player who has started. */
+private class StartViewModel(app: MapaApplication) : ViewModel() {
+    val firstScreen = MutableStateFlow<Screen?>(null)
+
+    init {
+        viewModelScope.launch {
+            // Players who already have progress (from before onboarding existed) skip it.
+            if (!app.settings.current.onboarded && app.progress.cards().isNotEmpty()) {
+                app.settings.update { it.copy(onboarded = true) }
+            }
+            firstScreen.value = if (app.settings.current.onboarded) Screen.HOME else Screen.ONBOARDING
+        }
+    }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,28 +66,91 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val app = application as MapaApplication
         setContent {
-            MapaTheme {
-                var inSession by rememberSaveable { mutableStateOf(false) }
-                var extraPractice by rememberSaveable { mutableStateOf(false) }
-                // A fresh key gives every session its own ViewModel.
-                var sessionNumber by rememberSaveable { mutableIntStateOf(0) }
-
-                if (inSession) {
-                    BackHandler { inSession = false }
-                    val vm: SessionViewModel = viewModel(
-                        key = "session-$sessionNumber",
-                        factory = viewModelFactory { initializer { SessionViewModel(app, extraPractice) } },
-                    )
-                    SessionScreen(app.content, vm, onExit = { inSession = false })
-                } else {
-                    val vm: HomeViewModel = viewModel(factory = viewModelFactory { initializer { HomeViewModel(app) } })
-                    HomeScreen(app.content, vm) { extra ->
-                        extraPractice = extra
-                        sessionNumber++
-                        inSession = true
-                    }
+            val settings by app.settings.settings.collectAsStateWithLifecycle()
+            val dark = when (settings.theme) {
+                ThemeChoice.SYSTEM -> isSystemInDarkTheme()
+                ThemeChoice.LIGHT -> false
+                ThemeChoice.DARK -> true
+            }
+            LaunchedEffect(dark) {
+                // Status bar icons follow the app's theme, which can differ from the system's.
+                val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+            }
+            MapaTheme(dark) {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    App(app, settings)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun App(app: MapaApplication, settings: Settings) {
+    var screen by rememberSaveable { mutableStateOf(Screen.LOADING) }
+    var sessionKind by rememberSaveable { mutableStateOf(SessionKind.DAILY) }
+    // A fresh key gives every session (and progress view) its own ViewModel.
+    var visit by rememberSaveable { mutableIntStateOf(0) }
+
+    if (screen == Screen.LOADING) {
+        val start: StartViewModel = viewModel(factory = viewModelFactory { initializer { StartViewModel(app) } })
+        val first by start.firstScreen.collectAsStateWithLifecycle()
+        LaunchedEffect(first) { first?.let { screen = it } }
+    }
+
+    fun startSession(kind: SessionKind) {
+        app.settings.update { it.copy(onboarded = true) }
+        sessionKind = kind
+        visit++
+        screen = Screen.SESSION
+    }
+
+    fun open(next: Screen) {
+        visit++
+        screen = next
+    }
+
+    if (screen != Screen.HOME && screen != Screen.ONBOARDING && screen != Screen.LOADING) {
+        BackHandler { screen = Screen.HOME }
+    }
+    when (screen) {
+        Screen.LOADING -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+        Screen.ONBOARDING -> OnboardingScreen(
+            app.content,
+            onStart = { startSession(SessionKind.DAILY) },
+            onPlacement = { startSession(SessionKind.PLACEMENT) },
+        )
+        Screen.HOME -> {
+            val vm: HomeViewModel = viewModel(factory = viewModelFactory { initializer { HomeViewModel(app) } })
+            HomeScreen(
+                app.content, vm, settings.showGreenLine,
+                onStartSession = { extra -> startSession(if (extra) SessionKind.EXTRA else SessionKind.DAILY) },
+                onProgress = { open(Screen.PROGRESS) },
+                onSettings = { open(Screen.SETTINGS) },
+            )
+        }
+        Screen.SESSION -> {
+            val vm: SessionViewModel = viewModel(
+                key = "session-$visit",
+                factory = viewModelFactory { initializer { SessionViewModel(app, sessionKind) } },
+            )
+            SessionScreen(app.content, vm, settings.showGreenLine, onExit = { screen = Screen.HOME })
+        }
+        Screen.PROGRESS -> {
+            val vm: ProgressViewModel = viewModel(
+                key = "progress-$visit",
+                factory = viewModelFactory { initializer { ProgressViewModel(app) } },
+            )
+            ProgressScreen(vm, onBack = { screen = Screen.HOME })
+        }
+        Screen.SETTINGS -> SettingsScreen(
+            settings,
+            onChange = { change ->
+                app.settings.update(change)
+                Reminders.apply(app, app.settings.current)
+            },
+            onBack = { screen = Screen.HOME },
+        )
     }
 }

@@ -31,7 +31,7 @@ data class ReviewEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val placeId: String,
     val facet: String,
-    /** The question type: LOCATE, NAME_CHOICE, NAME_TYPED or RELATE. */
+    /** The question type: LOCATE, NAME_CHOICE, NAME_TYPED, RELATE, or PLACEMENT for the placement test. */
     val mode: String,
     val sessionId: String,
     val timestamp: Long,
@@ -56,12 +56,31 @@ interface ProgressDao {
     @Insert
     suspend fun insert(review: ReviewEntity)
 
-    /** Places whose very first review happened at or after [since]. */
+    /**
+     * Places introduced at or after [since]: first practiced then, outside the placement
+     * test. A place the placement test found was never introduced; one it missed is
+     * introduced when it is first taught.
+     */
     @Query(
-        """SELECT COUNT(*) FROM (SELECT placeId FROM reviews GROUP BY placeId HAVING MIN(timestamp) >= :since)""",
+        """SELECT COUNT(*) FROM (SELECT placeId FROM reviews GROUP BY placeId
+            HAVING MIN(CASE WHEN mode != 'PLACEMENT' THEN timestamp END) >= :since
+            AND MAX(mode = 'PLACEMENT' AND rating >= 3) = 0)""",
     )
     suspend fun countIntroducedSince(since: Long): Int
+
+    /** When every practice answer was given (the placement test is not practice). */
+    @Query("SELECT timestamp FROM reviews WHERE mode != 'PLACEMENT' ORDER BY timestamp")
+    suspend fun practiceTimes(): List<Long>
+
+    @Query("SELECT MAX(timestamp) FROM reviews WHERE mode != 'PLACEMENT'")
+    suspend fun lastPracticeTime(): Long?
+
+    /** Distance errors of Pin It answers, for the history of average error. */
+    @Query("SELECT placeId, timestamp, errorMeters FROM reviews WHERE mode = 'LOCATE' AND errorMeters IS NOT NULL ORDER BY timestamp")
+    suspend fun locateErrors(): List<LocateError>
 }
+
+data class LocateError(val placeId: String, val timestamp: Long, val errorMeters: Double)
 
 @Database(entities = [CardEntity::class, ReviewEntity::class], version = 2, exportSchema = false)
 abstract class MapaDatabase : RoomDatabase() {

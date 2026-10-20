@@ -7,6 +7,7 @@ import com.shavei.mapa.content.ContentParser
 import com.shavei.mapa.data.MIGRATION_1_2
 import com.shavei.mapa.data.MapaDatabase
 import com.shavei.mapa.data.ProgressRepository
+import com.shavei.mapa.data.SettingsStore
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
 
 /** Manual dependency container. Small enough for Phase 0 that Hilt is not needed yet. */
@@ -22,6 +23,8 @@ class MapaApplication : Application() {
     val database: MapaDatabase by lazy {
         Room.databaseBuilder(this, MapaDatabase::class.java, "mapa.db").addMigrations(MIGRATION_1_2).build()
     }
+
+    val settings: SettingsStore by lazy { SettingsStore(this) }
 
     val progress: ProgressRepository by lazy {
         ProgressRepository(database.progressDao(), BuildConfigInfo.versionName(this))

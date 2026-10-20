@@ -43,7 +43,7 @@ class SessionEngine(
     private val config: SessionConfig = SessionConfig(),
     private val clock: () -> Long = System::currentTimeMillis,
     private val random: Random = Random.Default,
-) {
+) : QuestionSource {
     private val cards = initialCards.toMutableMap()
     private val history = mutableListOf<CardKey>()
     private val _answers = mutableListOf<Answer>()
@@ -53,7 +53,7 @@ class SessionEngine(
     private var pendingContrast: CardKey? = null
     private var current: Question? = null
 
-    val answers: List<Answer> get() = _answers
+    override val answers: List<Answer> get() = _answers
     fun card(key: CardKey): StudyCard? = cards[key]
     fun card(placeId: String, facet: Facet = Facet.LOCATE) = cards[CardKey(placeId, facet)]
 
@@ -65,14 +65,14 @@ class SessionEngine(
     }
 
     /** The next question, or null when the session is over. Repeats until the question is answered. */
-    fun next(): Question? {
+    override fun next(): Question? {
         current?.let { return it }
         val now = clock()
         if (_answers.size >= config.size + config.overtime) return null
         return (pick(now, config.minGap) ?: pick(now, 1)).also { current = it }
     }
 
-    fun submit(question: Question, response: Response, responseMs: Long): Answer {
+    override fun submit(question: Question, response: Response, responseMs: Long): Answer {
         val now = clock()
         current = null
         val key = question.key

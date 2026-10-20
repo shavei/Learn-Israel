@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark window behind the first frame, so dark mode does not flash white at launch. -->
+    <style name="Theme.Mapa" parent="android:Theme.Material.NoActionBar" />
+</resources>

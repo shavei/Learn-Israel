@@ -32,6 +32,8 @@ data class Place(
     val aliases: List<String> = emptyList(),
     /** Places players tend to mix up with this one; practiced side by side. */
     val confusables: List<String> = emptyList(),
+    /** For a city: the key of the natural region it lies in (`region.<key>` is that region's place). */
+    val region: String? = null,
 )
 
 /** A background layer of the map (land, neighbors, lakes, ...). */

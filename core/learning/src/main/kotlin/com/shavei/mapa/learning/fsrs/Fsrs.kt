@@ -143,6 +143,19 @@ class FsrsScheduler(
         return FsrsCard(state = state, step = step, stability = s, difficulty = d, due = now + finalInterval, lastReview = now)
     }
 
+    /**
+     * A new card answered once with [rating] that skips the short learning steps and goes
+     * straight to review. The placement test seeds known places this way, so they come
+     * back in a few days for confirmation instead of minutes later.
+     */
+    fun graduate(rating: Rating, now: Long): FsrsCard {
+        val s = initialStability(rating)
+        return FsrsCard(
+            state = CardState.REVIEW, step = null, stability = s, difficulty = clampDifficulty(initialDifficulty(rating)),
+            due = now + nextIntervalDays(s) * DAY_MS, lastReview = now,
+        )
+    }
+
     /** Whole days until the card is expected to fall to the desired retention. */
     fun nextIntervalDays(stability: Double): Long {
         val raw = (stability / factor) * (desiredRetention.pow(1 / decay) - 1)

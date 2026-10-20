@@ -9,6 +9,7 @@ import com.shavei.mapa.learning.StudyCard
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.FsrsCard
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 class ProgressRepository(private val dao: ProgressDao, private val appVersion: String) {
@@ -23,21 +24,39 @@ class ProgressRepository(private val dao: ProgressDao, private val appVersion: S
         return dao.countIntroducedSince(startOfDay)
     }
 
-    suspend fun save(answer: Answer, sessionId: String) {
+    /** Local days with at least one practice answer: the streak is built from these. */
+    suspend fun daysPlayed(zone: ZoneId = ZoneId.systemDefault()): Set<LocalDate> =
+        dao.practiceTimes().mapTo(HashSet()) { day(it, zone) }
+
+    suspend fun lastDayPlayed(zone: ZoneId = ZoneId.systemDefault()): LocalDate? = dao.lastPracticeTime()?.let { day(it, zone) }
+
+    /** Pin It errors grouped by local day, in day order. */
+    suspend fun locateErrorsByDay(zone: ZoneId = ZoneId.systemDefault()): Map<LocalDate, List<LocateError>> =
+        dao.locateErrors().groupBy { day(it.timestamp, zone) }
+
+    private fun day(at: Long, zone: ZoneId) = Instant.ofEpochMilli(at).atZone(zone).toLocalDate()
+
+    /**
+     * Saves an answer and the card it changed. In the [placement] test only places the
+     * player found get a card; the rest stay new, but every answer is logged.
+     */
+    suspend fun save(answer: Answer, sessionId: String, placement: Boolean = false) {
         val key = answer.question.key
         val c = answer.after
-        dao.upsert(
-            CardEntity(
-                key.placeId, key.facet.name, c.fsrs.state.value, c.fsrs.step, c.fsrs.stability, c.fsrs.difficulty,
-                c.fsrs.due, c.fsrs.lastReview, c.struggles,
-            ),
-        )
+        if (!placement || answer.grade.isCorrect) {
+            dao.upsert(
+                CardEntity(
+                    key.placeId, key.facet.name, c.fsrs.state.value, c.fsrs.step, c.fsrs.stability, c.fsrs.difficulty,
+                    c.fsrs.due, c.fsrs.lastReview, c.struggles,
+                ),
+            )
+        }
         val tap = (answer.response as? Response.Tap)?.at
         dao.insert(
             ReviewEntity(
                 placeId = key.placeId,
                 facet = key.facet.name,
-                mode = mode(answer.question),
+                mode = if (placement) "PLACEMENT" else mode(answer.question),
                 sessionId = sessionId,
                 timestamp = answer.at,
                 rating = answer.grade.rating.value,

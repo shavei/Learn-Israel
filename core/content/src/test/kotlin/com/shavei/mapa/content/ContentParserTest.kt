@@ -27,6 +27,13 @@ class ContentParserTest {
     }
 
     @Test
+    fun everyCityNamesTheRegionItLiesIn() {
+        val regions = content.places.filter { it.type == PlaceType.REGION }.map { it.id.removePrefix("region.") }.toSet()
+        for (city in content.places.filter { it.type == PlaceType.CITY }) assertTrue(city.region in regions, city.id)
+        assertEquals("gush_dan", content.place("city.tel_aviv")?.region)
+    }
+
+    @Test
     fun geometryTypesMatchPlaceTypes() {
         for (p in content.places) {
             when (p.type) {

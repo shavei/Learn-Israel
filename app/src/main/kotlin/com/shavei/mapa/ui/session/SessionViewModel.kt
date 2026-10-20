@@ -6,7 +6,9 @@ import com.shavei.mapa.MapaApplication
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
+import com.shavei.mapa.learning.PlacementTest
 import com.shavei.mapa.learning.Question
+import com.shavei.mapa.learning.QuestionSource
 import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.SessionConfig
 import com.shavei.mapa.learning.SessionEngine
@@ -23,27 +25,51 @@ sealed interface SessionUi {
     data class Finished(val summary: SessionSummary) : SessionUi
 }
 
-data class SessionSummary(val answers: Int, val correct: Int, val newPlaces: Int, val averageCityErrorMeters: Double?)
+data class SessionSummary(
+    val answers: Int,
+    val correct: Int,
+    val newPlaces: Int,
+    val averageCityErrorMeters: Double?,
+    /** The placement test, where [correct] places were found and seeded. */
+    val placement: Boolean = false,
+)
 
-class SessionViewModel(private val app: MapaApplication, extraPractice: Boolean) : ViewModel() {
+enum class SessionKind {
+    DAILY,
+
+    /** After the daily work is done: review places early, weakest first. */
+    EXTRA,
+
+    /** The optional placement test at onboarding. */
+    PLACEMENT,
+}
+
+class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) : ViewModel() {
     private val _ui = MutableStateFlow<SessionUi>(SessionUi.Loading)
     val ui: StateFlow<SessionUi> = _ui
 
     private val sessionId = UUID.randomUUID().toString()
-    private lateinit var engine: SessionEngine
+    private lateinit var engine: QuestionSource
     private var askedAt = 0L
     private var number = 0
 
     init {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            engine = SessionEngine(
-                content = app.content,
-                scheduler = app.scheduler,
-                initialCards = app.progress.cards(),
-                newIntroducedToday = app.progress.newIntroducedToday(now),
-                config = SessionConfig(strengthenWeakest = extraPractice),
-            )
+            engine = if (kind == SessionKind.PLACEMENT) {
+                PlacementTest(app.content, app.scheduler)
+            } else {
+                SessionEngine(
+                    content = app.content,
+                    scheduler = app.scheduler,
+                    initialCards = app.progress.cards(),
+                    newIntroducedToday = app.progress.newIntroducedToday(now),
+                    config = SessionConfig(
+                        size = app.settings.current.sessionLength.questions,
+                        strengthenWeakest = kind == SessionKind.EXTRA,
+                    ),
+                )
+            }
             advance()
         }
     }
@@ -68,7 +94,7 @@ class SessionViewModel(private val app: MapaApplication, extraPractice: Boolean)
         if (!accepts(ui.question)) return
         val answer = engine.submit(ui.question, response, System.currentTimeMillis() - askedAt)
         _ui.value = SessionUi.Feedback(answer, ui.number)
-        viewModelScope.launch { app.progress.save(answer, sessionId) }
+        viewModelScope.launch { app.progress.save(answer, sessionId, placement = kind == SessionKind.PLACEMENT) }
     }
 
     private fun advance() {
@@ -94,6 +120,7 @@ class SessionViewModel(private val app: MapaApplication, extraPractice: Boolean)
             correct = answers.count { it.grade.isCorrect },
             newPlaces = answers.count { it.before == null && it.question is Question.Locate },
             averageCityErrorMeters = cityErrors.takeIf { it.isNotEmpty() }?.average(),
+            placement = kind == SessionKind.PLACEMENT,
         )
     }
 }
