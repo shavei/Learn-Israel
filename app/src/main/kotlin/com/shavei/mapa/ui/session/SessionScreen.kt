@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -33,7 +36,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -49,15 +56,18 @@ import com.shavei.mapa.learning.Relation
 import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.fsrs.Rating
 import com.shavei.mapa.ui.formatKm
-import com.shavei.mapa.ui.map.MapColors
 import com.shavei.mapa.ui.map.MapDecoration
 import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
+import com.shavei.mapa.ui.theme.LocalMapPalette
+import com.shavei.mapa.ui.theme.MapPalette
 
 @Composable
-fun SessionScreen(content: Content, viewModel: SessionViewModel, onExit: () -> Unit) {
+fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: Boolean, onExit: () -> Unit) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val camera = rememberMapCamera(content.map)
+    val colors = LocalMapPalette.current
+    val placement = viewModel.kind == SessionKind.PLACEMENT
 
     var topPx by remember { mutableFloatStateOf(0f) }
     var bottomPx by remember { mutableFloatStateOf(0f) }
@@ -78,16 +88,17 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, onExit: () -> U
     }
 
     val decorations = when (val s = ui) {
-        is SessionUi.Discover -> placeDecorations(s.question.place)
-        is SessionUi.Ask -> askDecorations(s.question)
-        is SessionUi.Feedback -> feedbackDecorations(s.answer)
+        is SessionUi.Discover -> placeDecorations(s.question.place, colors)
+        is SessionUi.Ask -> askDecorations(s.question, colors)
+        is SessionUi.Feedback -> feedbackDecorations(s.answer, colors)
         else -> emptyList()
     }
     val asking = (ui as? SessionUi.Ask)?.question
 
     Box(Modifier.fillMaxSize()) {
         MapView(
-            content.map, camera, Modifier.fillMaxSize().testTag("map"), decorations,
+            content.map, camera, Modifier.fillMaxSize().testTag("map"), decorations, showGreenLine,
+            description = stringResource(R.string.session_map_description),
             onTap = if (asking is Question.Locate) viewModel::onTap else null,
         )
         Column(
@@ -98,11 +109,14 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, onExit: () -> U
                 TextButton(onClick = onExit) { Text(stringResource(R.string.quit)) }
             }
             val ask = ui as? SessionUi.Ask
-            if (ask != null) PromptCard(ask.question, ask.number)
+            if (ask != null) PromptCard(ask.question, ask.number, placement)
         }
+        // Scrolls rather than covering the map when the system font is very large.
+        val maxBottom = (LocalConfiguration.current.screenHeightDp * 0.5f).dp
         Box(
             Modifier.safeDrawingPadding().imePadding().padding(12.dp).fillMaxWidth().align(Alignment.BottomCenter)
-                .onGloballyPositioned { bottomPx = it.size.height + 24f },
+                .onGloballyPositioned { bottomPx = it.size.height + 24f }
+                .heightIn(max = maxBottom).verticalScroll(rememberScrollState()),
         ) {
             when (val s = ui) {
                 SessionUi.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -121,10 +135,14 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, onExit: () -> U
 }
 
 @Composable
-private fun PromptCard(question: Question, number: Int) {
+private fun PromptCard(question: Question, number: Int, placement: Boolean) {
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.ask_counter, number), style = MaterialTheme.typography.labelMedium)
+        // Read as one announcement when a new question appears.
+        Column(Modifier.padding(16.dp).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
+            Text(
+                stringResource(if (placement) R.string.placement_counter else R.string.ask_counter, number),
+                style = MaterialTheme.typography.labelMedium,
+            )
             Text(promptText(question), style = MaterialTheme.typography.headlineSmall)
             val hint = (question as? Question.Locate)?.hint == true || (question as? Question.NameChoice)?.hint == true
             if (hint) {
@@ -207,13 +225,17 @@ private fun DiscoverCard(place: Place, onContinue: () -> Unit) {
 
 @Composable
 private fun FeedbackCard(answer: Answer, content: Content, onContinue: () -> Unit) {
+    val colors = LocalMapPalette.current
     val (title, color) = when (answer.grade.rating) {
-        Rating.GOOD, Rating.EASY -> stringResource(R.string.feedback_perfect) to MapColors.good
-        Rating.HARD -> stringResource(R.string.feedback_close) to MapColors.close
-        Rating.AGAIN -> stringResource(R.string.feedback_miss) to MapColors.miss
+        Rating.GOOD, Rating.EASY -> stringResource(R.string.feedback_perfect) to colors.goodText
+        Rating.HARD -> stringResource(R.string.feedback_close) to colors.closeText
+        Rating.AGAIN -> stringResource(R.string.feedback_miss) to colors.missText
     }
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite },
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             Text(title, style = MaterialTheme.typography.headlineSmall, color = color, fontWeight = FontWeight.Bold)
             for (line in feedbackLines(answer, content)) Text(line, style = MaterialTheme.typography.titleMedium)
             Text(answer.place.fact)
@@ -259,30 +281,36 @@ private fun feedbackLines(answer: Answer, content: Content): List<String> {
 private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.summary_title), style = MaterialTheme.typography.headlineSmall)
-            val percent = if (summary.answers == 0) 0 else summary.correct * 100 / summary.answers
-            Text(stringResource(R.string.summary_answers, summary.answers, percent))
-            Text(stringResource(R.string.summary_new, summary.newPlaces))
+            if (summary.placement) {
+                Text(stringResource(R.string.placement_summary_title), style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.placement_summary_found, summary.correct, summary.answers))
+                Text(stringResource(R.string.placement_summary_note))
+            } else {
+                Text(stringResource(R.string.summary_title), style = MaterialTheme.typography.headlineSmall)
+                val percent = if (summary.answers == 0) 0 else summary.correct * 100 / summary.answers
+                Text(stringResource(R.string.summary_answers, summary.answers, percent))
+                Text(stringResource(R.string.summary_new, summary.newPlaces))
+            }
             summary.averageCityErrorMeters?.let { Text(stringResource(R.string.summary_error, formatKm(it))) }
             Button(onClick = onDone, Modifier.fillMaxWidth()) { Text(stringResource(R.string.summary_done)) }
         }
     }
 }
 
-private fun placeDecorations(place: Place): List<MapDecoration> = listOf(
-    MapDecoration.Highlight(place.shape, MapColors.target),
+private fun placeDecorations(place: Place, colors: MapPalette): List<MapDecoration> = listOf(
+    MapDecoration.Highlight(place.shape, colors.target),
     MapDecoration.Label(place.label, place.name),
 )
 
 /** What is shown while a question is open. Never the answer itself. */
-private fun askDecorations(q: Question): List<MapDecoration> = when (q) {
+private fun askDecorations(q: Question, colors: MapPalette): List<MapDecoration> = when (q) {
     is Question.Locate -> emptyList()
     // Naming: the place is marked, its name is what the player must recall.
-    is Question.NameChoice -> listOf(MapDecoration.Highlight(q.place.shape, MapColors.target))
-    is Question.NameTyped -> listOf(MapDecoration.Highlight(q.place.shape, MapColors.target))
+    is Question.NameChoice -> listOf(MapDecoration.Highlight(q.place.shape, colors.target))
+    is Question.NameTyped -> listOf(MapDecoration.Highlight(q.place.shape, colors.target))
     // Relating: only the reference place is shown; the two options stay off the map.
     is Question.Relate -> (q.relation as? Relation.CloserTo)?.reference?.let {
-        listOf(MapDecoration.Highlight(it.shape, MapColors.mastery), MapDecoration.Label(it.label, it.name))
+        listOf(MapDecoration.Highlight(it.shape, colors.mastery), MapDecoration.Label(it.label, it.name))
     }.orEmpty()
 }
 
@@ -297,23 +325,23 @@ private fun feedbackPoints(answer: Answer): List<MapPoint> = when (val r = answe
     else -> (answer.question as? Question.Relate)?.options?.map { it.label } ?: listOf(answer.place.label)
 }
 
-private fun feedbackDecorations(answer: Answer): List<MapDecoration> {
-    val ok: Color = if (answer.grade.isCorrect) MapColors.good else MapColors.target
+private fun feedbackDecorations(answer: Answer, colors: MapPalette): List<MapDecoration> {
+    val ok: Color = if (answer.grade.isCorrect) colors.good else colors.target
     val q = answer.question
     return when (val r = answer.response) {
         is Response.Tap -> buildList {
             val nearest = q.place.shape.nearestAnchor(r.at)
             add(MapDecoration.Highlight(q.place.shape, ok))
-            if ((answer.grade.errorMeters ?: 0.0) > 0) add(MapDecoration.Connector(r.at, nearest, MapColors.tap))
-            add(MapDecoration.Marker(r.at, MapColors.tap, radiusPx = 9f))
+            if ((answer.grade.errorMeters ?: 0.0) > 0) add(MapDecoration.Connector(r.at, nearest, colors.tap))
+            add(MapDecoration.Marker(r.at, colors.tap, radiusPx = 9f))
             add(MapDecoration.Label(q.place.label, q.place.name))
-            answer.tappedNear?.let { add(MapDecoration.Label(it.label, it.name, MapColors.miss)) }
+            answer.tappedNear?.let { add(MapDecoration.Label(it.label, it.name, colors.miss)) }
         }
         else -> if (q is Question.Relate) {
             q.options.flatMap { p ->
-                val color = if (p == q.correct) MapColors.good else MapColors.close
+                val color = if (p == q.correct) colors.good else colors.close
                 listOf(MapDecoration.Highlight(p.shape, color), MapDecoration.Label(p.label, p.name))
-            } + listOfNotNull((q.relation as? Relation.CloserTo)?.reference?.let { MapDecoration.Label(it.label, it.name, MapColors.mastery) })
+            } + listOfNotNull((q.relation as? Relation.CloserTo)?.reference?.let { MapDecoration.Label(it.label, it.name, colors.mastery) })
         } else {
             listOf(MapDecoration.Highlight(q.place.shape, ok), MapDecoration.Label(q.place.label, q.place.name))
         }

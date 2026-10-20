@@ -1,0 +1,193 @@
+package com.shavei.mapa.ui.settings
+
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.shavei.mapa.R
+import com.shavei.mapa.data.SessionLength
+import com.shavei.mapa.data.Settings
+import com.shavei.mapa.data.ThemeChoice
+import com.shavei.mapa.reminder.Reminders
+import com.shavei.mapa.ui.formatTime
+
+/** Settings apply as soon as they change; [onChange] stores them. */
+@Composable
+fun SettingsScreen(settings: Settings, onChange: ((Settings) -> Settings) -> Unit, onBack: () -> Unit) {
+    val context = LocalContext.current
+    var blocked by remember { mutableStateOf(false) }
+    var pickingTime by rememberSaveable { mutableStateOf(false) }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val on = granted && Reminders.canNotify(context)
+        blocked = !on
+        onChange { it.copy(reminderOn = on, reminderOffered = true) }
+    }
+
+    Column(
+        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.settings_title),
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+            TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+        }
+
+        Section(stringResource(R.string.settings_session_length))
+        Choices(
+            options = SessionLength.entries,
+            selected = settings.sessionLength,
+            label = {
+                stringResource(
+                    when (it) {
+                        SessionLength.SHORT -> R.string.length_short
+                        SessionLength.NORMAL -> R.string.length_normal
+                        SessionLength.LONG -> R.string.length_long
+                    },
+                )
+            },
+            onSelect = { length -> onChange { it.copy(sessionLength = length) } },
+        )
+
+        HorizontalDivider()
+        Section(stringResource(R.string.settings_reminder))
+        Toggle(
+            title = stringResource(R.string.settings_reminder),
+            note = stringResource(R.string.settings_reminder_note),
+            checked = settings.reminderOn,
+        ) { on ->
+            when {
+                !on -> onChange { it.copy(reminderOn = false, reminderOffered = true) }
+                Reminders.canNotify(context) -> onChange { it.copy(reminderOn = true, reminderOffered = true) }
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                else -> blocked = true
+            }
+        }
+        if (blocked) Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.secondary)
+        OutlinedButton(onClick = { pickingTime = true }, enabled = settings.reminderOn) {
+            Text(stringResource(R.string.settings_reminder_time, formatTime(settings.reminderMinutes)))
+        }
+
+        HorizontalDivider()
+        Section(stringResource(R.string.settings_map))
+        Toggle(
+            title = stringResource(R.string.settings_green_line),
+            note = stringResource(R.string.settings_green_line_note),
+            checked = settings.showGreenLine,
+        ) { on -> onChange { it.copy(showGreenLine = on) } }
+
+        HorizontalDivider()
+        Section(stringResource(R.string.settings_theme))
+        Choices(
+            options = ThemeChoice.entries,
+            selected = settings.theme,
+            label = {
+                stringResource(
+                    when (it) {
+                        ThemeChoice.SYSTEM -> R.string.theme_system
+                        ThemeChoice.LIGHT -> R.string.theme_light
+                        ThemeChoice.DARK -> R.string.theme_dark
+                    },
+                )
+            },
+            onSelect = { theme -> onChange { it.copy(theme = theme) } },
+        )
+    }
+
+    if (pickingTime) {
+        TimeDialog(settings.reminderMinutes, onDismiss = { pickingTime = false }) { minutes ->
+            pickingTime = false
+            onChange { it.copy(reminderMinutes = minutes) }
+        }
+    }
+}
+
+@Composable
+private fun Section(title: String) {
+    Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
+}
+
+/** A whole-row switch: the row is the touch target and is read as one control. */
+@Composable
+private fun Toggle(title: String, note: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().toggleable(value = checked, role = Role.Switch, onValueChange = onChange).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+@Composable
+private fun <T> Choices(options: List<T>, selected: T, label: @Composable (T) -> String, onSelect: (T) -> Unit) {
+    Column(Modifier.selectableGroup()) {
+        for (option in options) {
+            Row(
+                Modifier.fillMaxWidth()
+                    .selectable(selected = option == selected, role = Role.RadioButton, onClick = { onSelect(option) })
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                RadioButton(selected = option == selected, onClick = null)
+                Text(label(option), style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeDialog(minutes: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+    val state = rememberTimePickerState(initialHour = minutes / 60, initialMinute = minutes % 60, is24Hour = true)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = { onPick(state.hour * 60 + state.minute) }) { Text(stringResource(R.string.time_ok)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.time_cancel)) } },
+        text = { TimePicker(state) },
+    )
+}

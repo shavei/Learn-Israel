@@ -8,7 +8,7 @@
     <string name="home_due">%1$d לחזרה, %2$d חדשים</string>
     <string name="home_nothing_due">סיימתם להיום. כל הכבוד! חזרו מחר.</string>
     <string name="home_practice_more">תרגול נוסף</string>
-    <string name="attribution">נתוני מפה: Natural Earth, GeoNames, © OpenStreetMap contributors, הלמ״ס, UN OCHA</string>
+    <string name="attribution">נתוני מפה: הלמ״ס, משרד החקלאות, UN OCHA, GeoNames, © OpenStreetMap contributors</string>
     <string name="discover_title">מקום חדש</string>
     <string name="discover_continue">הבנתי, בואו נתרגל</string>
     <string name="ask_prompt">סמנו על המפה: %1$s</string>
@@ -39,4 +39,73 @@
     <string name="feedback_you_typed">כתבתם: %1$s</string>
     <string name="feedback_answer_is">התשובה: %1$s</string>
     <string name="feedback_spelling">הכתיב המדויק: %1$s</string>
+
+    <string name="back">חזרה</string>
+
+    <string name="onboarding_tagline">בונים מפה של ישראל בראש, 5 דקות ביום.</string>
+    <string name="onboarding_body">בכל יום תמצאו ותזהו מקומות על מפה ריקה. כל מקום חוזר בדיוק כשהוא מתחיל להישכח, והמפה שלכם מתמלאת במה שאתם באמת יודעים.</string>
+    <string name="onboarding_start">בואו נתחיל</string>
+    <string name="onboarding_placement">כבר מכירים את הארץ? בדיקת רמה</string>
+    <string name="onboarding_placement_note">כ־3 דקות. מקומות שתמצאו יחזרו בקרוב לאישור, והשאר יילמדו מההתחלה.</string>
+
+    <string name="placement_counter">בדיקת רמה · שאלה %1$d</string>
+    <string name="placement_summary_title">סיום בדיקת הרמה</string>
+    <string name="placement_summary_found">מצאתם %1$d מתוך %2$d מקומות</string>
+    <string name="placement_summary_note">המקומות שמצאתם יחזרו בעוד כמה ימים לאישור. השאר יילמדו באימון היומי.</string>
+
+    <string name="home_progress">התקדמות</string>
+    <string name="home_settings">הגדרות</string>
+    <string name="home_streak_none">אימון היום יתחיל רצף</string>
+    <plurals name="home_streak">
+        <item quantity="one">רצף: יום אחד</item>
+        <item quantity="two">רצף: יומיים</item>
+        <item quantity="many">רצף: %d ימים</item>
+        <item quantity="other">רצף: %d ימים</item>
+    </plurals>
+    <string name="home_freezes">הקפאות שמורות: %1$d</string>
+    <string name="home_map_description">המפה שלך: %1$d מקומות בתרגול, %2$d ידועים</string>
+    <string name="session_map_description">מפת ישראל</string>
+    <string name="reminder_offer_title">תזכורת יומית?</string>
+    <string name="reminder_offer_body">הודעה אחת ביום ב־%1$s, רק כשיש מה לתרגל. אפשר לשנות בהגדרות.</string>
+    <string name="reminder_offer_yes">כן, הזכירו לי</string>
+    <string name="reminder_offer_no">לא עכשיו</string>
+
+    <string name="progress_title">התקדמות</string>
+    <string name="progress_regions">אזורים</string>
+    <string name="progress_percent">%1$d%%</string>
+    <string name="progress_region_practiced">%1$d מתוך %2$d מקומות בתרגול</string>
+    <string name="progress_region_description">%1$s: %2$d אחוז, %3$d מתוך %4$d מקומות בתרגול</string>
+    <string name="progress_error_title">סטייה ממוצעת בערים לפי יום (ק״מ)</string>
+    <string name="progress_error_empty">הגרף יופיע אחרי יומיים של אימון.</string>
+    <string name="progress_error_description">סטייה ממוצעת לפי יום, %1$d ימים: מ־%2$s ק״מ ביום הראשון ל־%3$s ק״מ ביום האחרון</string>
+    <string name="progress_km">%1$s ק״מ</string>
+    <string name="progress_known_explained">מקום ידוע הוא מקום שהזיכרון שלו יציב לשלושה שבועות לפחות.</string>
+
+    <string name="settings_title">הגדרות</string>
+    <string name="settings_session_length">אורך אימון</string>
+    <string name="length_short">קצר, 10 שאלות</string>
+    <string name="length_normal">רגיל, 15 שאלות</string>
+    <string name="length_long">ארוך, 25 שאלות</string>
+    <string name="settings_map">מפה</string>
+    <string name="settings_green_line">הקו הירוק</string>
+    <string name="settings_green_line_note">קו שביתת הנשק של 1949, כשכבה נוספת על המפה</string>
+    <string name="settings_theme">ערכת צבעים</string>
+    <string name="theme_system">לפי המכשיר</string>
+    <string name="theme_light">בהירה</string>
+    <string name="theme_dark">כהה</string>
+    <string name="settings_reminder">תזכורת יומית</string>
+    <string name="settings_reminder_note">רק בימים שיש מה לתרגל ועוד לא התאמנתם</string>
+    <string name="settings_reminder_time">שעת התזכורת: %1$s</string>
+    <string name="settings_reminder_blocked">ההתראות של האפליקציה כבויות בהגדרות המכשיר.</string>
+    <string name="time_ok">אישור</string>
+    <string name="time_cancel">ביטול</string>
+
+    <string name="reminder_channel">תזכורת יומית</string>
+    <string name="reminder_new">מקומות חדשים מחכים לכם במפה</string>
+    <plurals name="reminder_due">
+        <item quantity="one">מקום אחד מוכן לחזרה</item>
+        <item quantity="two">2 מקומות מוכנים לחזרה</item>
+        <item quantity="many">%d מקומות מוכנים לחזרה</item>
+        <item quantity="other">%d מקומות מוכנים לחזרה</item>
+    </plurals>
 </resources>

@@ -70,12 +70,32 @@ releases, each playable on its own.
 - [ ] Human review of region borders, Hebrew names, hints and facts
       (see `docs/images/phase1b-regions.png`)
 
-### 1c. Player experience
-- [ ] Onboarding with placement test
-- [ ] Progress screen (region percentages, history of average error)
-- [ ] Daily reminder, streak with freezes
-- [ ] Settings: Green Line layer, session length
-- [ ] Accessibility pass, dark mode
+### 1c. Player experience - built
+- [x] Onboarding: a welcome screen, then the first session or an optional placement
+      test (about 3 minutes, adaptive: the anchors first, then each unit's most
+      important places; found places are seeded for review in two days)
+- [x] Progress screen: known places, streak, history of average city error per day,
+      and a percentage for each of the 19 natural regions
+- [x] Daily reminder, offered once after the first session (never on first run);
+      quiet on days already played, every third day after a week away
+- [x] Streak with freezes: one freeze per 7 days of streak, up to 2 saved; a freeze
+      covers one missed day
+- [x] Settings: session length (10, 15 or 25 questions), daily reminder and its time,
+      Green Line layer, light / dark / system theme
+- [x] Dark mode with its own map palette, not an inversion
+- [x] Accessibility pass: text colors at WCAG AA contrast in both themes; known places
+      get a heavier outline (not color alone); cards scroll instead of covering the map
+      at large font sizes; headings, live regions for questions and feedback, spoken
+      descriptions of the map, the chart and the region bars; whole-row switches
+
+What 1c simplified, on purpose:
+- Settings live in SharedPreferences and the reminder is an inexact AlarmManager
+  alarm, instead of DataStore and WorkManager (doc 05): same behavior, no new
+  dependencies. Navigation is a small screen enum, not Navigation Compose.
+- Units are not locked in the engine, so placement does not unlock units: new places
+  come in curriculum order and the found ones are already out of the queue.
+- Not yet: the screen reader mode built on Name It and Which Way, the Pin It
+  tolerance multiplier and tap-then-confirm (doc 07), and the welcome-back flow.
 
 ### 1d. Measurement
 - [ ] Local learning stats and pre/post map test
@@ -115,7 +135,9 @@ test shows large gains; D7 retention benchmark agreed in advance.
 ## Next steps
 
 1. Install the APK from the README's download link on real phones and run the
-   playtest.
+   playtest (see `docs/images/phase1c-flow.png` for the new screens).
 2. Review the 1b content: region borders, Hebrew names, hints and facts.
-3. Tune tolerances and session size from the playtest.
-4. Phase 1c: onboarding, progress screen with region percentages, reminders, settings.
+3. Tune tolerances, session size and the placement test from the playtest.
+4. Check the reminder on Android 13+ phones (notification permission) and after a
+   reboot.
+5. Phase 1d: local learning stats and the pre/post map test.

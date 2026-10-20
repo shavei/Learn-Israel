@@ -65,3 +65,13 @@ data class Answer(
 ) {
     val place: Place get() = question.place
 }
+
+/** Asks questions one at a time and grades the answers: the daily session or the placement test. */
+interface QuestionSource {
+    val answers: List<Answer>
+
+    /** The next question, or null when done. Repeats until the question is answered. */
+    fun next(): Question?
+
+    fun submit(question: Question, response: Response, responseMs: Long): Answer
+}
