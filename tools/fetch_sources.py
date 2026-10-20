@@ -39,6 +39,8 @@ while the sources keep changing. Rerun this only to refresh them, then rebuild.
                                     style. Copernicus DEM (c) DLR e.V. 2010-2014 and (c) Airbus
                                     Defence and Space GmbH 2014-2018, provided under COPERNICUS
                                     by the European Union and ESA; free to use with attribution.
+  content/osm_places.geojson        The places of content/places.yaml drawn from OpenStreetMap
+                                    (ODbL): rivers and craters by their OSM way or relation.
   content/palestine.geojson         The Gaza Strip and the West Bank from the UN OCHA common
                                     operational dataset (HDX "cod-ab-pse", CC BY-IGO). The West
                                     Bank's western edge is the 1949 armistice line (Green Line).
@@ -336,6 +338,46 @@ def region_overrides() -> None:
     print(f"  {out.relative_to(ROOT)}: {len(features)} areas")
 
 
+def osm_feature(ref: str):
+    """An OSM way or relation as an area (closed ways, multipolygons, boundaries) or as lines
+    (rivers: the relation's main stream, or all its ways when it has no roles), with its name."""
+    kind, _, osm_id = ref.partition("/")
+    osm = ET.fromstring(get(f"https://api.openstreetmap.org/api/0.6/{kind}/{osm_id}/full"))
+    nodes = {n.get("id"): (float(n.get("lon")), float(n.get("lat"))) for n in osm.iter("node")}
+    ways = {w.get("id"): [nodes[nd.get("ref")] for nd in w.iter("nd")] for w in osm.iter("way")}
+    if kind == "way":
+        coords = ways[osm_id]
+        tags = {t.get("k"): t.get("v") for t in next(w for w in osm.iter("way") if w.get("id") == osm_id).iter("tag")}
+        return (Polygon(coords) if coords[0] == coords[-1] else LineString(coords)), tags
+    roles, tags = osm_relation(int(osm_id))
+    if tags.get("type") in ("multipolygon", "boundary"):
+        return osm_area(int(osm_id))
+    main = roles.get("main_stream") or [l for ls in roles.values() for l in ls]
+    return ops.linemerge(main), tags
+
+
+def osm_places() -> None:
+    """The geometry of places.yaml entries taken from OpenStreetMap: "osm:<way|relation>/<id>"
+    (rivers, craters)."""
+    import yaml
+
+    sources = [p["geometry"] for p in yaml.safe_load((CONTENT / "places.yaml").read_text())["places"]]
+    features = []
+    for source in sources:
+        kind, _, arg = source.partition(":")
+        if kind == "osm":
+            print(f"fetching OSM {arg}")
+            geom, tags = osm_feature(arg)
+            name = tags.get("name")
+        else:
+            continue
+        features.append({"type": "Feature", "properties": {"source": source, "name": name},
+                         "geometry": rounded(geom.simplify(SIMPLIFY_DEG / 2))})
+    out = CONTENT / "osm_places.geojson"
+    out.write_text(collection(features, "OpenStreetMap contributors, ODbL 1.0"))
+    print(f"  {out.relative_to(ROOT)}: {len(features)} places, {out.stat().st_size // 1024} KB")
+
+
 COPERNICUS_DEM = "https://copernicus-dem-90m.s3.amazonaws.com/{name}/{name}.tif"
 # The elevation grids: name, ITM extent (minx, miny, maxx, maxy), cell size in meters, and how
 # many 90 m source cells are averaged per side before sampling. The detail grid covers Israel's
@@ -419,6 +461,7 @@ def main() -> int:
     isohyets()
     surroundings()
     palestine()
+    osm_places()
     elevation()
     return 0
 

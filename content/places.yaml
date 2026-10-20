@@ -1,5 +1,6 @@
 # The curriculum: the frame, anchor cities, natural regions, about 120 cities and
-# towns, and the districts.
+# towns, and the districts (tiers 0 to 3), then nature, infrastructure and heritage
+# (tiers 4 to 6).
 # Source of truth for WHAT is taught. Geometry is attached by tools/build_content.py.
 #
 # geometry sources:
@@ -14,6 +15,14 @@
 #   region:<key>        a game region from content/regions.yaml (official natural regions)
 #   district:<key>      a district, built from the official natural regions
 #                       (judea_samaria: the natural regions of Judea and Samaria)
+#   osm:<way|relation>/<id>  an OpenStreetMap way or relation: a river's main stream, or
+#                       a crater's length (OSM maps craters as a line along the valley)
+#   (osm: geometry comes from content/osm_places.geojson, which
+#   tools/fetch_sources.py downloads; points of tiers 4 to 6 are copied from the OSM
+#   object named in the comment beside them)
+#
+# tolerance_km: how close a tap must be for a well known place, when the type's
+#   default does not fit (a long ridge such as the Carmel).
 #
 # aliases: other accepted spellings for typed answers (niqqud, punctuation, spaces,
 #   final letters and doubled yod/vav are already ignored by the matcher).
@@ -1421,3 +1430,460 @@ places:
     hint: ההרים שממזרח לקו הירוק, משכם ועד חברון
     fact: אינו אחד משישת המחוזות, ומנוהל כאזור נפרד.
     aliases: [אזור יהודה והשומרון, יהודה והשומרון, הגדה המערבית, יוש]
+
+  # ===================== Tier 4: nature =====================
+  # ---------- Unit: mountains ----------
+  - id: mountain.hermon
+    type: mountain
+    unit: mountains
+    importance: 1
+    geometry: point:35.80361,33.3178     # OSM node 270913055, the peak in Israel's control
+    tolerance_km: 6
+    name: הר החרמון
+    hint: בקצה הצפוני של רמת הגולן, על הגבול עם סוריה ולבנון
+    fact: ההר הגבוה ביותר בשליטת ישראל, ובו אתר הסקי היחיד בארץ.
+    aliases: [החרמון, חרמון]
+  - id: mountain.meron
+    type: mountain
+    unit: mountains
+    importance: 1
+    geometry: point:35.41373,32.99778    # OSM node 275295939
+    name: הר מירון
+    hint: בגליל העליון, ממערב לצפת
+    fact: ההר הגבוה בגליל, כ-1,200 מטר מעל פני הים.
+    aliases: [מירון]
+  - id: mountain.carmel
+    type: mountain
+    unit: mountains
+    importance: 1
+    geometry: point:35.04014,32.72327    # OSM node 14074570133, the middle of the ridge
+    tolerance_km: 8
+    name: הר הכרמל
+    hint: רכס שמתחיל בחיפה ונמשך דרומה-מזרחה
+    fact: רכס שיורד מהים אל עמק יזרעאל. חיפה בנויה על מורדותיו.
+    aliases: [הכרמל, כרמל]
+  - id: mountain.tabor
+    type: mountain
+    unit: mountains
+    importance: 2
+    geometry: point:35.38962,32.68711    # OSM node 3663541539
+    name: הר תבור
+    hint: בגליל התחתון, בפינה הצפונית-מזרחית של עמק יזרעאל
+    fact: הר מעוגל ומבודד שמתנשא מעל העמק. על פסגתו כנסייה ומנזרים.
+    aliases: [תבור, התבור]
+  - id: mountain.gilboa
+    type: mountain
+    unit: mountains
+    importance: 2
+    geometry: point:35.41667,32.48333    # OSM node 278473300 (Mitzpe Gilboa), the middle of the ridge
+    tolerance_km: 6
+    name: הר הגלבוע
+    hint: בין עמק יזרעאל לעמק בית שאן
+    fact: לפי המקרא, כאן נפל המלך שאול בקרב עם הפלשתים.
+    aliases: [הגלבוע, גלבוע]
+  - id: mountain.arbel
+    type: mountain
+    unit: mountains
+    importance: 3
+    geometry: point:35.49994,32.82479    # OSM node 366510298
+    name: הר ארבל
+    hint: על החוף המערבי של הכנרת, מצפון לטבריה
+    fact: מצוק תלול שמתנשא כ-400 מטר מעל מי הכנרת.
+    aliases: [ארבל, הארבל]
+
+  # ---------- Unit: Negev highlands ----------
+  - id: crater.ramon
+    type: crater
+    unit: negev_highlands
+    importance: 1
+    geometry: osm:way/484922456          # the crater's length, from OSM
+    name: מכתש רמון
+    hint: במרכז הנגב, ליד מצפה רמון
+    fact: המכתש הגדול בעולם, כ-40 ק"מ אורכו. נוצר בסחיפה, לא בפגיעת מטאוריט.
+  - id: crater.gadol
+    type: crater
+    unit: negev_highlands
+    importance: 2
+    geometry: osm:way/484394320
+    name: המכתש הגדול
+    hint: בצפון הנגב, ליד ירוחם
+    fact: אחד משלושת המכתשים הגדולים בנגב. בקרקעיתו חול צבעוני.
+    confusables: [crater.katan]
+  - id: crater.katan
+    type: crater
+    unit: negev_highlands
+    importance: 2
+    geometry: osm:way/484395176
+    name: המכתש הקטן
+    hint: בצפון הנגב, מדרום-מזרח לדימונה
+    fact: הקטן מבין שלושת המכתשים, ומימיו יוצאים ממנו רק דרך נחל חתירה.
+  - id: mountain.ramon
+    type: mountain
+    unit: negev_highlands
+    importance: 3
+    geometry: point:34.6358,30.50226     # OSM node 12357694032
+    name: הר רמון
+    hint: בדרום-מערב הנגב, בקצה המערבי של מכתש רמון
+    fact: ההר הגבוה בנגב, 1,037 מטר מעל פני הים.
+
+  # ---------- Unit: streams ----------
+  - id: stream.yarkon
+    type: stream
+    unit: streams
+    importance: 1
+    geometry: osm:relation/8258801
+    name: נחל הירקון
+    hint: זורם מראש העין מערבה, ונשפך לים בצפון תל אביב
+    fact: הנחל של פארק הירקון. מעיינותיו נובעים בתל אפק, ליד ראש העין.
+    aliases: [הירקון, ירקון]
+  - id: stream.kishon
+    type: stream
+    unit: streams
+    importance: 1
+    geometry: osm:relation/9214713
+    name: נחל הקישון
+    hint: זורם לאורך עמק יזרעאל, ונשפך למפרץ חיפה
+    fact: מנקז את עמק יזרעאל. לפי שירת דבורה, כאן הובס סיסרא.
+    aliases: [הקישון, קישון]
+  - id: stream.alexander
+    type: stream
+    unit: streams
+    importance: 2
+    geometry: osm:relation/18050094
+    name: נחל אלכסנדר
+    hint: בשרון, נשפך לים מצפון לנתניה
+    fact: חיים בו צבי רכים גדולים, שאפשר לראות ליד גשר הצבים.
+    aliases: [אלכסנדר]
+  - id: stream.ayalon
+    type: stream
+    unit: streams
+    importance: 2
+    geometry: osm:relation/18050080
+    name: נחל איילון
+    hint: יורד מהרי ירושלים, ובתל אביב נשפך לירקון
+    fact: בתל אביב הוא זורם בתעלה בין נתיבי איילון.
+    aliases: [איילון]
+  - id: stream.sorek
+    type: stream
+    unit: streams
+    importance: 3
+    geometry: osm:relation/10336558
+    name: נחל שורק
+    hint: יורד מהרי ירושלים מערבה, ונשפך לים ליד פלמחים
+    fact: מסילת הרכבת הישנה לירושלים מטפסת לאורך ערוצו.
+    aliases: [שורק]
+  - id: stream.besor
+    type: stream
+    unit: streams
+    importance: 3
+    geometry: osm:relation/7958028
+    name: נחל הבשור
+    hint: בנגב המערבי, זורם אל רצועת עזה
+    fact: מהנחלים הגדולים בנגב. רוב השנה יבש, ובחורף זורם בשטפונות.
+    aliases: [הבשור, בשור]
+
+  # ---------- Unit: springs and nature reserves ----------
+  - id: stream.dan
+    type: stream
+    unit: springs
+    importance: 1
+    geometry: osm:relation/12659482
+    name: נחל דן
+    hint: בצפון עמק החולה, ליד הגבול עם לבנון
+    fact: המקור הגדול ביותר של הירדן. מעיינותיו נובעים בתל דן.
+    aliases: [הדן]
+    confusables: [stream.hermon]
+  - id: stream.hermon
+    type: stream
+    unit: springs
+    importance: 2
+    geometry: osm:relation/10323836
+    name: נחל חרמון
+    hint: יורד מהחרמון אל עמק החולה
+    fact: אחד משלושת מקורות הירדן. במורדו מפל הבניאס.
+    aliases: [הבניאס, בניאס, נחל בניאס]
+  - id: reserve.hula
+    type: reserve
+    unit: springs
+    importance: 2
+    geometry: point:35.59917,33.07843    # OSM way 318962819, the reserve
+    name: שמורת החולה
+    hint: בעמק החולה, מדרום לקריית שמונה
+    fact: שריד לאגם החולה ולביצות שיובשו בשנות ה-50. תחנה לציפורים נודדות.
+    aliases: [שמורת טבע החולה, אגם החולה]
+  - id: reserve.ein_gedi
+    type: reserve
+    unit: springs
+    importance: 1
+    geometry: point:35.37324,31.44466    # OSM relation 6076332, the reserve
+    name: עין גדי
+    hint: על חוף ים המלח, מצפון למצדה
+    fact: נווה מדבר עם מפלים, יעלים ושפנים, ממש מעל ים המלח.
+    aliases: [שמורת עין גדי, נחל דוד]
+  - id: reserve.ein_avdat
+    type: reserve
+    unit: springs
+    importance: 3
+    geometry: point:34.76486,30.82683    # OSM relation 13046860, the spring's pool
+    name: עין עבדת
+    hint: בנגב, בין שדה בוקר לעבדת
+    fact: קניון לבן וצר בנחל צין, עם מעיין ובריכות מים.
+    aliases: [שמורת עין עבדת]
+    confusables: [site.avdat]
+  - id: reserve.timna
+    type: reserve
+    unit: springs
+    importance: 2
+    geometry: point:34.98663,29.77281    # OSM relation 4729745, the Timna Valley reserve
+    name: פארק תמנע
+    hint: בערבה, כ-25 ק"מ מצפון לאילת
+    fact: מכרות נחושת עתיקים ועמודי שלמה, צוקי אבן חול ענקיים.
+    aliases: [תמנע, בקעת תמנע]
+    confusables: [airport.ramon]
+
+  # ===================== Tier 5: infrastructure =====================
+  # ---------- Unit: airports and ports ----------
+  - id: airport.ben_gurion
+    type: airport
+    unit: gateways
+    importance: 1
+    geometry: point:34.88092,32.00271    # OSM way 198356187
+    name: נמל התעופה בן גוריון
+    hint: ליד לוד, ממזרח לתל אביב
+    fact: שער הכניסה הראשי לישראל. רוב הטיסות לחו"ל יוצאות ממנו.
+    aliases: [נתב"ג, בן גוריון, שדה התעופה בן גוריון, נמל התעופה בן-גוריון]
+  - id: port.haifa
+    type: port
+    unit: gateways
+    importance: 1
+    geometry: point:35.03618,32.81932    # OSM relation 2690212, the port area
+    name: נמל חיפה
+    hint: במפרץ חיפה, למרגלות הכרמל
+    fact: אחד משני נמלי הסחורות הגדולים בישראל, ובו גם נמל הנוסעים.
+  - id: port.ashdod
+    type: port
+    unit: gateways
+    importance: 1
+    geometry: point:34.65543,31.83312    # OSM relation 18432567, the port area
+    name: נמל אשדוד
+    hint: בחוף הדרומי, בצפון העיר אשדוד
+    fact: נפתח ב-1965, ומשרת את מרכז הארץ ואת הדרום.
+  - id: port.eilat
+    type: port
+    unit: gateways
+    importance: 2
+    geometry: point:34.94086,29.53335    # OSM way 93576233, the port area
+    name: נמל אילת
+    hint: בקצה הדרומי, על מפרץ אילת
+    fact: הנמל היחיד של ישראל בים סוף, הפונה לאסיה ולאפריקה.
+  - id: airport.ramon
+    type: airport
+    unit: gateways
+    importance: 2
+    geometry: point:35.01082,29.72867    # OSM way 664123394
+    name: נמל התעופה רמון
+    hint: בערבה, כ-20 ק"מ מצפון לאילת
+    fact: נפתח ב-2019, במקום שדה התעופה שהיה בלב אילת.
+    aliases: [שדה התעופה רמון]
+
+  # ===================== Tier 6: heritage =====================
+  # ---------- Unit: heritage, Jerusalem and the center ----------
+  - id: site.jerusalem_old_city
+    type: site
+    unit: heritage_center
+    importance: 1
+    geometry: point:35.23195,31.77829    # OSM relation 5862586
+    name: העיר העתיקה בירושלים
+    hint: בלב ירושלים, מוקפת חומה
+    fact: מוקפת חומות מימי סולימאן, ובה הכותל, כנסיית הקבר והר הבית.
+    aliases: [העיר העתיקה, העיר העתיקה של ירושלים]
+  - id: site.masada
+    type: site
+    unit: heritage_center
+    importance: 1
+    geometry: point:35.35389,31.31564    # OSM way 32231475
+    name: מצדה
+    hint: על צוק מעל ים המלח, מדרום לעין גדי
+    fact: ארמון-מבצר של הורדוס, והמעוז האחרון של המרד הגדול ברומאים.
+    aliases: [מצדה העתיקה]
+  - id: site.jaffa
+    type: site
+    unit: heritage_center
+    importance: 2
+    geometry: point:34.75333,32.05382    # OSM way 819836745
+    name: יפו העתיקה
+    hint: בדרום תל אביב, על גבעה מעל הנמל
+    fact: מערי הנמל העתיקות בעולם. לפי המסורת, ממנה הפליג יונה.
+    aliases: [יפו]
+  - id: site.yad_vashem
+    type: site
+    unit: heritage_center
+    importance: 2
+    geometry: point:35.17491,31.77407    # OSM way 73989602
+    name: יד ושם
+    hint: במערב ירושלים, על הר הזיכרון
+    fact: המוסד הלאומי להנצחת השואה והגבורה.
+  - id: site.qumran
+    type: site
+    unit: heritage_center
+    importance: 2
+    geometry: point:35.45903,31.74106    # OSM way 611895589
+    name: קומראן
+    hint: בצפון-מערב ים המלח
+    fact: במערות שבצוקים שלידה נמצאו מגילות ים המלח.
+    aliases: [קומרן, חורבת קומראן]
+  - id: site.herodium
+    type: site
+    unit: heritage_center
+    importance: 3
+    geometry: point:35.24182,31.66561    # OSM node 431633653
+    name: הרודיון
+    hint: מדרום-מזרח לירושלים, בשולי מדבר יהודה
+    fact: הר דמוי חרוט שבנה הורדוס, ובו נמצא קברו.
+  - id: site.beit_guvrin
+    type: site
+    unit: heritage_center
+    importance: 3
+    geometry: point:34.89765,31.59791    # OSM node 2130368535
+    name: בית גוברין
+    hint: בשפלה, ממזרח לקריית גת
+    fact: מאות מערות שנחצבו בגיר הרך. אתר מורשת עולמית, יחד עם מרשה.
+    aliases: [בית גוברין מרשה, מרשה, גן לאומי בית גוברין]
+
+  # ---------- Unit: heritage, the coast and the valleys ----------
+  - id: site.caesarea
+    type: site
+    unit: heritage_coast
+    importance: 1
+    geometry: point:34.89245,32.50184    # OSM node 266828122
+    name: קיסריה העתיקה
+    hint: על חוף הים, בין חדרה לזיכרון יעקב
+    fact: עיר נמל שבנה הורדוס, ובה תיאטרון רומי שעדיין מופיעים בו.
+    aliases: [קיסריה, גן לאומי קיסריה]
+  - id: site.akko
+    type: site
+    unit: heritage_coast
+    importance: 1
+    geometry: point:35.07022,32.92213    # OSM way 816183673
+    name: עכו העתיקה
+    hint: בקצה הצפוני של מפרץ חיפה, בעיר עכו
+    fact: עיר צלבנית ועות'מאנית מוקפת חומות. אתר מורשת עולמית.
+    aliases: [העיר העתיקה של עכו, העיר העתיקה בעכו]
+  - id: site.bahai_gardens
+    type: site
+    unit: heritage_coast
+    importance: 2
+    geometry: point:34.98567,32.8135     # OSM way 34395280
+    name: הגנים הבהאיים
+    hint: על מורדות הכרמל, בחיפה
+    fact: מרכז האמונה הבהאית בעולם. 19 טרסות יורדות מהכרמל אל העיר.
+    aliases: [הגנים הבהאים, המקדש הבהאי, גני הבהאים]
+  - id: site.megiddo
+    type: site
+    unit: heritage_coast
+    importance: 2
+    geometry: point:35.18419,32.58543    # OSM way 394787428
+    name: תל מגידו
+    hint: בדרום-מערב עמק יזרעאל, מול ואדי ערה
+    fact: עיר עתיקה ששמרה על מעבר חשוב. ממנה בא השם ארמגדון.
+    aliases: [מגידו, תל מגדו]
+  - id: site.beit_shearim
+    type: site
+    unit: heritage_coast
+    importance: 3
+    geometry: point:35.1291,32.70352     # OSM way 1562985327
+    name: בית שערים
+    hint: ליד קריית טבעון, בין עמק יזרעאל לכרמל
+    fact: מערות קבורה יהודיות מימי התלמוד. אתר מורשת עולמית.
+  - id: site.tzippori
+    type: site
+    unit: heritage_coast
+    importance: 3
+    geometry: point:35.27964,32.75344    # OSM way 112585708, the theater
+    name: ציפורי
+    hint: בגליל התחתון, מצפון-מערב לנצרת
+    fact: כאן נחתמה המשנה. מפורסמת בפסיפס "המונה ליזה של הגליל".
+    aliases: [ציפורי העתיקה, גן לאומי ציפורי]
+
+  # ---------- Unit: heritage, the Galilee and the Golan ----------
+  - id: site.rosh_hanikra
+    type: site
+    unit: heritage_north
+    importance: 1
+    geometry: point:35.10444,33.09335    # OSM node 1291362997
+    name: ראש הנקרה
+    hint: בקצה הצפוני של החוף, על הגבול עם לבנון
+    fact: נקרות שהים חצב בצוק הגיר הלבן. רכבל יורד אליהן.
+    aliases: [נקרות ראש הנקרה]
+  - id: site.capernaum
+    type: site
+    unit: heritage_north
+    importance: 1
+    geometry: point:35.57545,32.88045    # OSM way 551062314
+    name: כפר נחום
+    hint: על החוף הצפוני של הכנרת
+    fact: עיירה עתיקה ובה בית כנסת מאבן לבנה. כאן פעל ישו בגליל.
+  - id: site.nimrod
+    type: site
+    unit: heritage_north
+    importance: 2
+    geometry: point:35.71488,33.25273    # OSM node 679416359
+    name: מבצר נמרוד
+    hint: בצפון רמת הגולן, על מורדות החרמון
+    fact: מבצר מימי הביניים ששמר על הדרך מהגליל לדמשק.
+    aliases: [מצודת נמרוד, נמרוד]
+  - id: site.gamla
+    type: site
+    unit: heritage_north
+    importance: 2
+    geometry: point:35.74058,32.9024     # OSM node 1596307984
+    name: גמלא
+    hint: ברמת הגולן, מצפון-מזרח לכנרת
+    fact: עיר יהודית על רכס תלול שנפלה בידי הרומאים. מעליה מקננים נשרים.
+    aliases: [שמורת גמלא]
+  - id: site.hazor
+    type: site
+    unit: heritage_north
+    importance: 2
+    geometry: point:35.56878,33.01788    # OSM way 230115066
+    name: תל חצור
+    hint: בגליל העליון, מצפון לראש פינה
+    fact: העיר הכנענית הגדולה בארץ. אתר מורשת עולמית.
+    aliases: [גן לאומי תל חצור]
+  - id: site.belvoir
+    type: site
+    unit: heritage_north
+    importance: 3
+    geometry: point:35.52153,32.59561    # OSM way 121527147
+    name: כוכב הירדן
+    hint: על הרכס מעל עמק הירדן, מצפון לבית שאן
+    fact: מבצר צלבני שמשקיף על עמק הירדן. נקרא גם בלוואר.
+    aliases: [בלוואר, מבצר כוכב הירדן]
+
+  # ---------- Unit: heritage, the Negev ----------
+  - id: site.avdat
+    type: site
+    unit: heritage_negev
+    importance: 1
+    geometry: point:34.77311,30.79438    # OSM relation 5927348, the national park
+    name: עבדת
+    hint: בנגב, מדרום לשדה בוקר
+    fact: עיר נבטית על דרך הבשמים. אתר מורשת עולמית.
+    aliases: [עבדת העתיקה, גן לאומי עבדת]
+  - id: site.mamshit
+    type: site
+    unit: heritage_negev
+    importance: 2
+    geometry: point:35.06484,31.02402    # OSM way 1289330699
+    name: ממשית
+    hint: בנגב, ממזרח לדימונה
+    fact: הקטנה בערי הנבטים בנגב, והשמורה שבהן.
+    aliases: [גן לאומי ממשית]
+  - id: site.shivta
+    type: site
+    unit: heritage_negev
+    importance: 2
+    geometry: point:34.63093,30.88136    # OSM way 89820160
+    name: שבטה
+    hint: בנגב המערבי, ליד הגבול עם מצרים
+    fact: עיר נבטית וביזנטית, ובה שלוש כנסיות.

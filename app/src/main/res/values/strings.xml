@@ -83,6 +83,15 @@
     <string name="progress_regions">אזורים</string>
     <string name="progress_percent">%1$d%%</string>
     <string name="progress_region_practiced">%1$d מתוך %2$d מקומות בתרגול</string>
+    <string name="progress_themes">טבע, נמלים ומורשת</string>
+    <string name="progress_themes_note">מגיעים אחרי הערים והאזורים, בסדר הזה.</string>
+    <string name="progress_theme_known">%1$d מתוך %2$d ידועים</string>
+    <string name="progress_theme_description">%1$s: %2$d מתוך %3$d מקומות ידועים, %4$d בתרגול</string>
+    <string name="theme_core">ערים ואזורים</string>
+    <string name="theme_nature">טבע</string>
+    <string name="theme_infrastructure">נמלים ושדות תעופה</string>
+    <string name="theme_heritage">מורשת</string>
+    <string name="stats_theme">%1$s: %2$d בתרגול, %3$d ידועים, מתוך %4$d</string>
     <string name="progress_region_description">%1$s: %2$d אחוז, %3$d מתוך %4$d מקומות בתרגול</string>
     <string name="progress_error_title">סטייה ממוצעת בערים לפי יום (ק״מ)</string>
     <string name="progress_error_empty">הגרף יופיע אחרי יומיים של אימון.</string>

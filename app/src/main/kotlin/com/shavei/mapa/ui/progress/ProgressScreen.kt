@@ -38,9 +38,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shavei.mapa.R
+import com.shavei.mapa.content.Theme
 import com.shavei.mapa.learning.LearningStats
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.RegionScore
+import com.shavei.mapa.learning.ThemeScore
 import com.shavei.mapa.ui.formatDate
 import com.shavei.mapa.ui.formatKm
 import java.time.Instant
@@ -79,6 +81,15 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: 
                 )
             }
             items(state.regions, key = { it.region.id }) { RegionRow(it) }
+            item {
+                Text(
+                    stringResource(R.string.progress_themes),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(stringResource(R.string.progress_themes_note), style = MaterialTheme.typography.bodyMedium)
+            }
+            items(state.themes, key = { it.theme.name }) { ThemeRow(it) }
         }
     }
 }
@@ -203,8 +214,11 @@ private fun StatsCard(state: ProgressState) {
     val lines = statsLines(stats)
     val context = LocalContext.current
     val title = stringResource(R.string.stats_title)
+    val themeLines = state.themes.map {
+        stringResource(R.string.stats_theme, themeName(it.theme), it.practiced, it.known, it.places)
+    }
     val shareText = (
-        listOf(stringResource(R.string.stats_share_header, state.appVersion), title) + lines +
+        listOf(stringResource(R.string.stats_share_header, state.appVersion), title) + lines + themeLines +
             listOf(stringResource(R.string.map_test_title)) + mapTestLines(state)
         ).joinToString("\n")
     val chooserTitle = stringResource(R.string.stats_share)
@@ -255,6 +269,43 @@ private fun RegionRow(score: RegionScore) {
         }
         LinearProgressIndicator(
             progress = { score.score.toFloat() },
+            modifier = Modifier.fillMaxWidth().height(8.dp),
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            drawStopIndicator = {},
+        )
+        Text(
+            stringResource(R.string.progress_region_practiced, score.practiced, score.places),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun themeName(theme: Theme): String = stringResource(
+    when (theme) {
+        Theme.CORE -> R.string.theme_core
+        Theme.NATURE -> R.string.theme_nature
+        Theme.INFRASTRUCTURE -> R.string.theme_infrastructure
+        Theme.HERITAGE -> R.string.theme_heritage
+    },
+)
+
+/** A part of the curriculum after the cities: the share of its places known, and how many are in practice. */
+@Composable
+private fun ThemeRow(score: ThemeScore) {
+    val name = themeName(score.theme)
+    val description = stringResource(R.string.progress_theme_description, name, score.known, score.places, score.practiced)
+    Column(
+        Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = description },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.progress_theme_known, score.known, score.places), style = MaterialTheme.typography.titleMedium)
+        }
+        LinearProgressIndicator(
+            progress = { if (score.places == 0) 0f else score.known.toFloat() / score.places },
             modifier = Modifier.fillMaxWidth().height(8.dp),
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
             drawStopIndicator = {},

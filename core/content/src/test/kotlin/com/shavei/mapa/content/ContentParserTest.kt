@@ -22,6 +22,9 @@ class ContentParserTest {
         assertEquals(19, byType[PlaceType.REGION])
         assertEquals(7, byType[PlaceType.DISTRICT])
         assertEquals(118, byType[PlaceType.CITY])
+        assertEquals(22, content.places.count { it.type.theme == Theme.NATURE })
+        assertEquals(5, content.places.count { it.type.theme == Theme.INFRASTRUCTURE })
+        assertEquals(22, content.places.count { it.type.theme == Theme.HERITAGE })
         assertEquals(content.places.size, content.places.map { it.id }.toSet().size)
         assertTrue(content.places.all { it.name.isNotBlank() && it.fact.isNotBlank() && it.hint.isNotBlank() })
     }
@@ -40,16 +43,18 @@ class ContentParserTest {
                 PlaceType.CITY -> assertIs<Shape.Point>(p.shape, p.id)
                 PlaceType.SEA, PlaceType.LAKE, PlaceType.COUNTRY, PlaceType.REGION, PlaceType.DISTRICT ->
                     assertIs<Shape.Area>(p.shape, p.id)
-                PlaceType.RIVER -> assertIs<Shape.Lines>(p.shape, p.id)
+                PlaceType.RIVER, PlaceType.STREAM, PlaceType.CRATER -> assertIs<Shape.Lines>(p.shape, p.id)
+                PlaceType.MOUNTAIN, PlaceType.RESERVE, PlaceType.AIRPORT, PlaceType.PORT, PlaceType.SITE ->
+                    assertIs<Shape.Point>(p.shape, p.id)
             }
         }
     }
 
     @Test
-    fun citiesAreOnLandAndInsideHomeView() {
+    fun pointsAreOnLandAndInsideHomeView() {
         val land = Shape.Area(assertNotNull(content.map.layer("land")).polygons)
         val home = content.map.home
-        for (p in content.places.filter { it.type == PlaceType.CITY }) {
+        for (p in content.places.filter { it.shape is Shape.Point }) {
             val at = (p.shape as Shape.Point).at
             assertTrue(land.distanceTo(at) < 300.0, "${p.id} should be on land")
             assertTrue(at.x in home.minX..home.maxX && at.y in home.minY..home.maxY, "${p.id} in home view")
@@ -83,7 +88,31 @@ class ContentParserTest {
         val med = content.place("sea.mediterranean")!!.shape as Shape.Area
         assertTrue(med.contains(MapPoint(telAviv.x - 5_000, telAviv.y)), "the sea is just west of Tel Aviv")
         assertEquals(listOf("frame", "anchors", "regions_main", "center", "south_coast", "sharon", "north"), content.unitOrder.take(7))
-        assertEquals("districts", content.unitOrder.last())
+        // The core first, then nature, infrastructure and heritage, never mixed in one unit.
+        val themes = content.unitOrder.map { unit -> content.places.filter { it.unit == unit }.map { it.type.theme }.toSet().single() }
+        assertEquals(themes.sorted(), themes)
+        assertEquals("districts", content.unitOrder[themes.indexOfFirst { it != Theme.CORE } - 1])
+    }
+
+    @Test
+    fun natureSitesAndPortsAreWhereExpected() {
+        fun at(id: String) = (content.place(id)!!.shape as Shape.Point).at
+        fun shape(id: String) = content.place(id)!!.shape
+        val deadSea = shape("lake.dead_sea")
+        assertTrue(deadSea.distanceTo(at("site.masada")) < 6_000.0, "Masada over the Dead Sea (its shore has receded)")
+        assertTrue(deadSea.distanceTo(at("reserve.ein_gedi")) < 3_000.0, "Ein Gedi on its shore")
+        assertTrue(shape("crater.ramon").distanceTo(at("city.mitzpe_ramon")) < 4_000.0, "Mitzpe Ramon on the crater's rim")
+        assertTrue(at("port.eilat").distanceTo(at("city.eilat")) < 5_000.0, "Eilat's port by the city")
+        assertTrue(shape("sea.gulf_of_eilat").distanceTo(at("port.eilat")) < 1_000.0, "on the gulf")
+        assertTrue(shape("sea.mediterranean").distanceTo(at("port.ashdod")) < 1_000.0, "Ashdod's port on the sea")
+        val sea = shape("sea.mediterranean")
+        assertTrue((shape("stream.yarkon") as Shape.Lines).lines.any { line ->
+            val c = line.coords
+            sea.distanceTo(MapPoint(c[0], c[1])) < 1_500.0 || sea.distanceTo(MapPoint(c[c.size - 2], c[c.size - 1])) < 1_500.0
+        }, "the Yarkon reaches the sea")
+        assertTrue(shape("stream.yarkon").distanceTo(at("city.tel_aviv")) < 5_000.0, "through Tel Aviv")
+        assertEquals(8_000.0, content.place("mountain.carmel")!!.toleranceMeters)
+        assertEquals(null, content.place("mountain.tabor")!!.toleranceMeters)
     }
 
     @Test

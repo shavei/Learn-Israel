@@ -61,7 +61,7 @@ class PlayerExperienceTest {
             compose.onNodeWithText("יציאה").performClick()
 
             // Only the Mediterranean was found, so only it has a card.
-            waitForText("1 מתוך 153 מקומות בתרגול")
+            waitForText("1 מתוך 202 מקומות בתרגול")
             // The placement test is not a day of practice: no streak and no reminder offer yet.
             compose.onNodeWithText("אימון היום יתחיל רצף").assertExists()
             assertTrue(compose.onAllNodes(hasText("תזכורת יומית?")).fetchSemanticsNodes().isEmpty())
@@ -106,6 +106,10 @@ class PlayerExperienceTest {
             Screenshots.save(scenario, "c3-progress")
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("גוש דן", substring = true))
             Screenshots.save(scenario, "c4-progress-regions")
+            // After the regions: nature, ports and heritage, not started yet.
+            compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("מורשת: 0 מתוך 22", substring = true))
+            compose.onNode(hasContentDescription("טבע: 0 מתוך 22", substring = true)).assertExists()
+            Screenshots.save(scenario, "c4b-progress-themes")
             compose.onNodeWithText("חזרה").performClick()
             // Practiced today already: home offers another session.
             waitForText("אימון נוסף")
