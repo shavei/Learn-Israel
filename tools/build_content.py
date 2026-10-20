@@ -61,6 +61,22 @@ ASSETS = ROOT / "app" / "src" / "main" / "assets"
 WINDOW = box(32.6, 28.4, 37.2, 34.2)
 NEIGHBORS = ["LBN", "SYR", "JOR", "EGY", "SAU"]
 
+# Beyond the window. The map data stops at WINDOW, whose edges are slanted on the Israeli
+# grid, and the app paints what lies past them so the edge of the data never shows: land all
+# round, except the open Mediterranean to the northwest, from where the Sinai coast meets the
+# west edge to where the Lebanese coast meets the north edge. Both reach a little under the
+# map data, so no seam shows.
+OUTER = box(15.0, 15.0, 55.0, 45.0)
+COAST_ON_WEST_EDGE = 31.058  # latitude
+COAST_ON_NORTH_EDGE = 35.631  # longitude
+EDGE_OVERLAP = 0.02  # degrees
+# The coast north of the window, roughly (lon, lat): Lebanon, Syria and the Gulf of Iskenderun,
+# then west along Turkey. Only its southern end is ever on screen.
+COAST_NORTH_OF_WINDOW = [
+    (35.73, 34.33), (35.82, 34.44), (35.97, 34.63), (35.88, 34.89), (35.94, 35.18), (35.92, 35.36),
+    (35.77, 35.52), (35.85, 35.85), (35.95, 36.08), (36.17, 36.59), (35.3, 36.7), (34.6, 36.8), (33.9, 36.3),
+]
+
 # Simplification tolerance in meters, per layer.
 SIMPLIFY = {
     "land": 40, "neighbors": 120, "lakes": 30, "rivers": 60, "seas": 120, "green_line": 40, "regions": 150,
@@ -129,6 +145,21 @@ def encode_polygons(geom, min_area=2e5) -> list[list[list[int]]]:
         for p in polygons(geom)
         if p.area >= min_area
     ]
+
+
+def beyond_window():
+    """The land and the sea past the edges of the window, on the grid (see OUTER)."""
+    minx, miny, maxx, maxy = WINDOW.bounds
+    inner = box(minx + EDGE_OVERLAP, miny + EDGE_OVERLAP, maxx - EDGE_OVERLAP, maxy - EDGE_OVERLAP)
+    sea = Polygon([
+        (minx + EDGE_OVERLAP, COAST_ON_WEST_EDGE), (minx + EDGE_OVERLAP, maxy - EDGE_OVERLAP),
+        (COAST_ON_NORTH_EDGE, maxy - EDGE_OVERLAP), (COAST_ON_NORTH_EDGE, maxy), *COAST_NORTH_OF_WINDOW,
+        (OUTER.bounds[0], COAST_NORTH_OF_WINDOW[-1][1]), (OUTER.bounds[0], COAST_ON_WEST_EDGE),
+    ])
+    # Densified first, since lines of longitude and latitude curve on the grid: finely along
+    # the window, where it shows, and coarsely far out of view.
+    land = Polygon(shapely.segmentize(OUTER.exterior, 2.0).coords, [shapely.segmentize(inner.exterior, 0.25).coords])
+    return project(land), project(shapely.segmentize(sea, 0.25))
 
 
 def encode_lines(geom) -> list[list[int]]:
@@ -507,12 +538,15 @@ def main() -> int:
     window_itm = project(WINDOW)
     detail = next(g for g in json.loads((ROOT / "content" / "elevation.json").read_text())["grids"] if g["name"] == "detail")
     terrain_bytes, terrain = israel_terrain(detail, land)
+    beyond_land, beyond_sea = beyond_window()
     map_json = {
         "version": 1,
         "crs": "EPSG:2039",
         "window": [round(v) for v in window_itm.bounds],
         "home": [round(minx), round(miny), round(maxx), round(maxy)],
         "layers": [
+            {"id": "beyond_land", "polygons": encode_polygons(beyond_land)},
+            {"id": "beyond_sea", "polygons": encode_polygons(beyond_sea)},
             {"id": "neighbors", "polygons": [r for g in neighbor_geoms.values() for r in encode_polygons(g)]},
             {"id": "gaza", "polygons": encode_polygons(gaza_itm)},
             {"id": "land", "polygons": encode_polygons(land)},

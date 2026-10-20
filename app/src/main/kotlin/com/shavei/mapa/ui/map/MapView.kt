@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -229,6 +230,10 @@ fun MapView(
         drawRect(colors.sea)
 
         inMapSpace(camera, origin) { px ->
+            // Past the edges of the map data: land all round and the open sea to the northwest,
+            // so the edge of the data never shows as a slanted box.
+            drawPath(layers.beyondLand, colors.neighbor)
+            drawPath(layers.beyondSea, colors.sea)
             // The ground: flat colors, then the style's terrain over it, fading in when it first loads.
             drawPath(layers.neighbors, colors.neighbor)
             drawPath(layers.gaza, colors.gaza)
@@ -239,8 +244,11 @@ fun MapView(
                     for (tile in terrainLayers.tiles) drawTile(tile, origin, terrain.fade)
                 }
             }
-            drawPath(layers.neighbors, colors.border, style = Stroke(width = px))
-            drawPath(layers.gaza, colors.border, style = Stroke(width = px))
+            // Borders only, not the edge of the data, which the neighbors' outline runs along too.
+            clipPath(layers.window) {
+                drawPath(layers.neighbors, colors.border, style = Stroke(width = px))
+                drawPath(layers.gaza, colors.border, style = Stroke(width = px))
+            }
             drawPath(layers.land, colors.border, style = Stroke(width = 1.5f * px))
             drawPath(
                 layers.regions, colors.regionOutline,
@@ -382,6 +390,10 @@ private inline fun DrawScope.inMapSpace(camera: MapCamera, origin: MapPoint, blo
 }
 
 private class BaseLayers(
+    /** The map data's window, a little inside its edges: the hole in [beyondLand]. */
+    val window: Path,
+    val beyondLand: Path,
+    val beyondSea: Path,
     val neighbors: Path,
     val gaza: Path,
     val land: Path,
@@ -394,8 +406,12 @@ private class BaseLayers(
         fun build(map: MapData, origin: MapPoint): BaseLayers {
             fun polys(id: String) = polygonsPath(map.layer(id)?.polygons.orEmpty(), origin)
             fun lines(id: String) = linesPath(map.layer(id)?.lines.orEmpty(), origin)
+            val holes = map.layer("beyond_land")?.polygons.orEmpty().flatMap { it.rings.drop(1) }
+            val window = if (holes.isEmpty()) Path().apply { addRect(Rect(-1e7f, -1e7f, 1e7f, 1e7f)) }
+            else Path().apply { for (ring in holes) { addFlat(ring, origin); close() } }
             return BaseLayers(
-                polys("neighbors"), polys("gaza"), polys("land"), polys("lakes"), lines("rivers"), lines("regions"), lines("green_line"),
+                window,
+                polys("beyond_land"), polys("beyond_sea"), polys("neighbors"), polys("gaza"), polys("land"), polys("lakes"), lines("rivers"), lines("regions"), lines("green_line"),
             )
         }
     }
