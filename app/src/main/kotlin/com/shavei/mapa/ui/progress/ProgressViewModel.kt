@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.data.Motivation
+import com.shavei.mapa.learning.AnswerTally
 import com.shavei.mapa.learning.Facet
 import com.shavei.mapa.learning.LearnedConfusables
 import com.shavei.mapa.learning.LearningStats
@@ -45,12 +46,21 @@ data class ProgressState(
     val motivation: Motivation? = null,
     /** Pairs this player mixes up, learned from missed taps, the most confused first. */
     val mixedPairs: List<MixedPair> = emptyList(),
+    /** Places this player misses most when finding them on the map, the most missed first. */
+    val hardest: List<HardPlace> = emptyList(),
 )
+
+/** A place by name and how finding it has gone. */
+data class HardPlace(val name: String, val tally: AnswerTally)
 
 /** Two places by name, mixed up [count] times. */
 data class MixedPair(val first: String, val second: String, val count: Int)
 
 const val HISTORY_DAYS = 30
+
+/** The progress screen lists this many of the places missed most, each answered at least [HARD_MIN_ANSWERS] times. */
+const val HARD_PLACES = 5
+const val HARD_MIN_ANSWERS = 3
 
 class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
     private val _state = MutableStateFlow(ProgressState())
@@ -68,6 +78,7 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
             val mapTests = app.progress.mapTests()
             val zone = ZoneId.systemDefault()
             val lastTest = mapTests.lastOrNull()?.let { Instant.ofEpochMilli(it.finishedAt).atZone(zone).toLocalDate() }
+            val records = app.progress.reviewRecords()
             _state.value = ProgressState(
                 loaded = true,
                 known = locate.values.count { isKnown(it.fsrs) },
@@ -77,7 +88,7 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                 regions = regionScores(app.content, mastery),
                 themes = themeScores(app.content, locate.keys, locate.filterValues { isKnown(it.fsrs) }.keys),
                 errorByDay = cityErrors.entries.sortedBy { it.key }.takeLast(HISTORY_DAYS).map { it.key to it.value.average() },
-                stats = LearningStats.of(app.progress.reviewRecords(), app.content, now, zone),
+                stats = LearningStats.of(records, app.content, now, zone),
                 mapTests = mapTests,
                 mapTestNext = MapTest.nextDue(daysPlayed.minOrNull(), lastTest),
                 appVersion = app.progress.appVersion,
@@ -87,6 +98,11 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                     val second = app.content.place(pair.second) ?: return@mapNotNull null
                     MixedPair(first.name, second.name, pair.count)
                 },
+                hardest = AnswerTally.of(records)
+                    .filter { (k, t) -> k.facet == Facet.LOCATE && t.asked >= HARD_MIN_ANSWERS && t.recentMissRate > 0 }
+                    .entries.sortedWith(compareByDescending<Map.Entry<*, AnswerTally>> { it.value.recentMissRate }.thenByDescending { it.value.wrong })
+                    .take(HARD_PLACES)
+                    .mapNotNull { (k, t) -> app.content.place(k.placeId)?.let { HardPlace(it.name, t) } },
             )
         }
     }

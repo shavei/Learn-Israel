@@ -222,6 +222,9 @@
 
     <string name="confusables_title">מקומות שמתבלבלים ביניהם</string>
     <string name="confusables_note">לפי הלחיצות שלכם. כשתכירו את שניהם, הם יחזרו בזוגות, אחד אחרי השני.</string>
+    <string name="hardest_title">מקומות שקשה לכם למצוא</string>
+    <string name="hardest_note">לפי עשר התשובות האחרונות על כל מקום. בתרגול נוסף הם יחזרו קודם.</string>
+    <string name="hardest_place">%1$s: %2$d נכונות, %3$d קרובות, %4$d שגויות</string>
     <string name="confusables_pair">%1$s ו%2$s: %3$d פעמים</string>
 
     <string name="settings_title">הגדרות</string>

@@ -10,6 +10,7 @@ import com.shavei.mapa.data.AnswerSource
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Achievement
 import com.shavei.mapa.learning.Answer
+import com.shavei.mapa.learning.AnswerTally
 import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.learning.Facet
@@ -160,6 +161,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                         },
                     ),
                     learnedConfusables = LearnedConfusables.of(app.progress.confusions()),
+                    tallies = AnswerTally.of(app.progress.reviewRecords()),
                 )
             }
             if (kind == SessionKind.BLITZ || kind == SessionKind.ROAD_TRIP) _ui.value = SessionUi.Ready else advance()

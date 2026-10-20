@@ -11,6 +11,7 @@ import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
 import com.shavei.mapa.learning.fsrs.FsrsCard
 import com.shavei.mapa.learning.fsrs.FsrsScheduler
+import com.shavei.mapa.learning.fsrs.MINUTE_MS
 import com.shavei.mapa.learning.fsrs.Rating
 import kotlin.random.Random
 import kotlin.test.Test
@@ -254,6 +255,50 @@ class SessionEngineTest {
         for ((placeId, qs) in asked.groupBy { it.place.id }) {
             assertEquals(1, qs.map { it.facet }.toSet().size, "$placeId was asked with more than one skill")
         }
+    }
+
+    /**
+     * Another session right after the daily one: nothing is due, today's new places are
+     * used up, everything was answered minutes ago, and three places are still in their
+     * learning steps. A player who keeps landing close but not close enough on those three
+     * no longer gets them in turn for the rest of the session.
+     */
+    @Test
+    fun learningPlacesDoNotFillAnotherSession() {
+        fun play(reviewPlaces: Int): List<Question> {
+            val cards = (0 until reviewPlaces).associate {
+                key(it) to StudyCard(FsrsCard(CardState.REVIEW, null, 4.0, 5.0, due = now + 3 * DAY_MS, lastReview = now - 15 * MINUTE_MS))
+            } + (9 until 12).associate {
+                key(it) to StudyCard(FsrsCard(CardState.LEARNING, 1, 1.0, 6.0, due = now + 5 * MINUTE_MS, lastReview = now - 5 * MINUTE_MS))
+            }
+            val e = engine(cards, newToday = 20)
+            val asked = mutableListOf<Question>()
+            while (true) {
+                val q = e.next() ?: break
+                asked += q
+                val at = q.place.label
+                // Close but outside the tolerance on the three in learning (HARD), right on the rest.
+                val miss = if (q.key in (9 until 12).map { key(it) }) 15_000.0 else 0.0
+                e.submit(q, Response.Tap(MapPoint(at.x, at.y + miss)), 6_000)
+                now += 20_000
+            }
+            return asked
+        }
+
+        val asked = play(reviewPlaces = 9)
+        val counts = asked.groupingBy { it.key }.eachCount()
+        assertTrue(counts.values.all { it <= SessionConfig().maxAsksPerCard }, "no place more than 4 times: $counts")
+        assertEquals(12, counts.size, "the other learned places come in between")
+        // Each learning place waits for at least two other questions before it comes back.
+        for (k in (9 until 12).map { key(it) }) {
+            val at = asked.indices.filter { asked[it].key == k }
+            assertTrue(at.zipWithNext().all { (a, b) -> b - a >= 3 }, "$k at $at")
+        }
+
+        // With no other place to ask, the session ends once each has had its turns.
+        val alone = play(reviewPlaces = 0)
+        assertTrue(alone.groupingBy { it.key }.eachCount().values.all { it <= 4 })
+        assertTrue(alone.size <= 12)
     }
 
     @Test
