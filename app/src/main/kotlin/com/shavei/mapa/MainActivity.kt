@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -100,7 +101,8 @@ private fun App(app: MapaApplication, settings: Settings) {
     }
 
     fun startSession(kind: SessionKind) {
-        app.settings.update { it.copy(onboarded = true) }
+        // The pre-test comes before the choice on the welcome screen, which stays until then.
+        if (kind != SessionKind.MAP_TEST) app.settings.update { it.copy(onboarded = true) }
         sessionKind = kind
         visit++
         screen = Screen.SESSION
@@ -111,16 +113,25 @@ private fun App(app: MapaApplication, settings: Settings) {
         screen = next
     }
 
+    fun home() {
+        screen = if (app.settings.current.onboarded) Screen.HOME else Screen.ONBOARDING
+    }
+
     if (screen != Screen.HOME && screen != Screen.ONBOARDING && screen != Screen.LOADING) {
-        BackHandler { screen = Screen.HOME }
+        BackHandler { home() }
     }
     when (screen) {
         Screen.LOADING -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-        Screen.ONBOARDING -> OnboardingScreen(
-            app.content,
-            onStart = { startSession(SessionKind.DAILY) },
-            onPlacement = { startSession(SessionKind.PLACEMENT) },
-        )
+        Screen.ONBOARDING -> {
+            val mapTestDone by produceState(false, visit) { value = app.progress.mapTests().isNotEmpty() }
+            OnboardingScreen(
+                app.content,
+                mapTestDone = mapTestDone,
+                onStart = { startSession(SessionKind.DAILY) },
+                onPlacement = { startSession(SessionKind.PLACEMENT) },
+                onMapTest = { startSession(SessionKind.MAP_TEST) },
+            )
+        }
         Screen.HOME -> {
             val vm: HomeViewModel = viewModel(factory = viewModelFactory { initializer { HomeViewModel(app) } })
             HomeScreen(
@@ -128,6 +139,7 @@ private fun App(app: MapaApplication, settings: Settings) {
                 onStartSession = { extra -> startSession(if (extra) SessionKind.EXTRA else SessionKind.DAILY) },
                 onProgress = { open(Screen.PROGRESS) },
                 onSettings = { open(Screen.SETTINGS) },
+                onMapTest = { startSession(SessionKind.MAP_TEST) },
             )
         }
         Screen.SESSION -> {
@@ -135,14 +147,14 @@ private fun App(app: MapaApplication, settings: Settings) {
                 key = "session-$visit",
                 factory = viewModelFactory { initializer { SessionViewModel(app, sessionKind) } },
             )
-            SessionScreen(app.content, vm, settings.showGreenLine, onExit = { screen = Screen.HOME })
+            SessionScreen(app.content, vm, settings.showGreenLine, onExit = { home() })
         }
         Screen.PROGRESS -> {
             val vm: ProgressViewModel = viewModel(
                 key = "progress-$visit",
                 factory = viewModelFactory { initializer { ProgressViewModel(app) } },
             )
-            ProgressScreen(vm, onBack = { screen = Screen.HOME })
+            ProgressScreen(vm, onBack = { screen = Screen.HOME }, onMapTest = { startSession(SessionKind.MAP_TEST) })
         }
         Screen.SETTINGS -> SettingsScreen(
             settings,

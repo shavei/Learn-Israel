@@ -54,6 +54,7 @@ fun HomeScreen(
     onStartSession: (extraPractice: Boolean) -> Unit,
     onProgress: () -> Unit,
     onSettings: () -> Unit,
+    onMapTest: () -> Unit,
 ) {
     LaunchedEffect(Unit) { viewModel.refresh() }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -112,6 +113,7 @@ fun HomeScreen(
         ) {
             if (state.loaded) {
                 if (state.offerReminder) ReminderOffer(state.reminderMinutes, viewModel::answerReminderOffer)
+                if (state.offerMapTest) MapTestOffer(onMapTest, viewModel::snoozeMapTest)
                 val hasWork = state.dueNow + state.newAvailable > 0
                 Text(
                     if (hasWork) stringResource(R.string.home_due, state.dueNow, state.newAvailable)
@@ -134,6 +136,21 @@ private fun StreakLine(state: HomeState) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(text, style = MaterialTheme.typography.titleSmall)
         if (streak.freezes > 0) Text(stringResource(R.string.home_freezes, streak.freezes), style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/** The post-test (docs/08-measurement.md): offered, never forced; "later" asks again in a few days. */
+@Composable
+private fun MapTestOffer(onTake: () -> Unit, onLater: () -> Unit) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(stringResource(R.string.map_test_offer_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.map_test_offer_body))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onTake) { Text(stringResource(R.string.map_test_take)) }
+                TextButton(onClick = onLater) { Text(stringResource(R.string.map_test_later)) }
+            }
+        }
     }
 }
 

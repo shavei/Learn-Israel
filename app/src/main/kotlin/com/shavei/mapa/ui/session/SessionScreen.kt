@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -51,6 +52,7 @@ import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.Place
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
+import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.Relation
 import com.shavei.mapa.learning.Response
@@ -67,7 +69,6 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val camera = rememberMapCamera(content.map)
     val colors = LocalMapPalette.current
-    val placement = viewModel.kind == SessionKind.PLACEMENT
 
     var topPx by remember { mutableFloatStateOf(0f) }
     var bottomPx by remember { mutableFloatStateOf(0f) }
@@ -109,7 +110,14 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 TextButton(onClick = onExit) { Text(stringResource(R.string.quit)) }
             }
             val ask = ui as? SessionUi.Ask
-            if (ask != null) PromptCard(ask.question, ask.number, placement)
+            if (ask != null) {
+                val counter = when (viewModel.kind) {
+                    SessionKind.PLACEMENT -> stringResource(R.string.placement_counter, ask.number)
+                    SessionKind.MAP_TEST -> stringResource(R.string.map_test_counter, ask.number, viewModel.mapTestSize ?: 0)
+                    else -> stringResource(R.string.ask_counter, ask.number)
+                }
+                PromptCard(ask.question, counter)
+            }
         }
         // Scrolls rather than covering the map when the system font is very large.
         val maxBottom = (LocalConfiguration.current.screenHeightDp * 0.5f).dp
@@ -135,14 +143,11 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
 }
 
 @Composable
-private fun PromptCard(question: Question, number: Int, placement: Boolean) {
+private fun PromptCard(question: Question, counter: String) {
     Card(Modifier.fillMaxWidth()) {
         // Read as one announcement when a new question appears.
         Column(Modifier.padding(16.dp).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
-            Text(
-                stringResource(if (placement) R.string.placement_counter else R.string.ask_counter, number),
-                style = MaterialTheme.typography.labelMedium,
-            )
+            Text(counter, style = MaterialTheme.typography.labelMedium)
             Text(promptText(question), style = MaterialTheme.typography.headlineSmall)
             val hint = (question as? Question.Locate)?.hint == true || (question as? Question.NameChoice)?.hint == true
             if (hint) {
@@ -281,7 +286,21 @@ private fun feedbackLines(answer: Answer, content: Content): List<String> {
 private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (summary.placement) {
+            val test = summary.mapTest
+            if (test != null) {
+                Text(stringResource(R.string.map_test_summary_title), style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.placement_summary_found, test.found, test.total))
+                Text(stringResource(R.string.map_test_median, formatKm(test.medianErrorMeters)))
+                val pre = summary.preTest
+                when {
+                    pre != null -> {
+                        Text(stringResource(R.string.map_test_before, pre.found, pre.total, formatKm(pre.medianErrorMeters)))
+                        val gain = test.found - pre.found
+                        if (gain > 0) Text(pluralStringResource(R.plurals.map_test_gain, gain, gain))
+                    }
+                    test.kind == MapTestKind.PRE -> Text(stringResource(R.string.map_test_pre_note))
+                }
+            } else if (summary.placement) {
                 Text(stringResource(R.string.placement_summary_title), style = MaterialTheme.typography.headlineSmall)
                 Text(stringResource(R.string.placement_summary_found, summary.correct, summary.answers))
                 Text(stringResource(R.string.placement_summary_note))
@@ -291,7 +310,7 @@ private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
                 Text(stringResource(R.string.summary_answers, summary.answers, percent))
                 Text(stringResource(R.string.summary_new, summary.newPlaces))
             }
-            summary.averageCityErrorMeters?.let { Text(stringResource(R.string.summary_error, formatKm(it))) }
+            if (test == null) summary.averageCityErrorMeters?.let { Text(stringResource(R.string.summary_error, formatKm(it))) }
             Button(onClick = onDone, Modifier.fillMaxWidth()) { Text(stringResource(R.string.summary_done)) }
         }
     }

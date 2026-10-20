@@ -97,8 +97,33 @@ What 1c simplified, on purpose:
 - Not yet: the screen reader mode built on Name It and Which Way, the Pin It
   tolerance multiplier and tap-then-confirm (doc 07), and the welcome-back flow.
 
-### 1d. Measurement
-- [ ] Local learning stats and pre/post map test
+### 1d. Measurement - built
+- [x] Pre/post map test: the same 20 places every time (two lakes, three anchors, four
+      natural regions, eleven cities from every part of the country), Pin It with no
+      feedback and no card changes, scored at the standard tolerance (4 km for a city)
+      with the median error. Optional on the welcome screen before anything else (the
+      pre-test); offered on home 30 days after the first practice and then monthly
+      (the post-test), with "later" asking again in 3 days
+- [x] Every answer logs what the stats and later parameter fitting need: the card's
+      state and due time before the answer, days since its last review, the
+      scheduler's predicted recall, whether a hint was shown, and the place a missed
+      tap was nearest to (database version 3; older answers keep these empty)
+- [x] Progress screen: map test results and the change since the first one, and
+      learning stats for the last 30 days: retention at due reviews against the 85 to
+      92 percent band, the scheduler's predicted recall for the same reviews, recall
+      after 30+ days without review, confusion rate with confusable twins, days
+      practiced in the last 7 and 30 days, and totals
+- [x] "Share results" sends the stats and map test results as text, so closed beta
+      testers can report them before any upload exists
+
+What 1d simplified, on purpose:
+- No upload and no dashboard: beta results come in through the share button. The
+  opt-in anonymous log upload stays in Phase 2.
+- The long-term retention probe uses ordinary reviews that came after 30+ days, not
+  extra probe questions. Calibration is shown as mean predicted vs actual recall, not
+  log loss. Engagement cohorts (D1, D7, D30) need many players, so they wait for the
+  upload; each player sees their own active days instead.
+- Practice time counts the time spent answering, not reading feedback.
 
 **Exit test:** closed beta; retention at review between 85 and 92 percent; pre/post
 test shows large gains; D7 retention benchmark agreed in advance.
@@ -135,9 +160,11 @@ test shows large gains; D7 retention benchmark agreed in advance.
 ## Next steps
 
 1. Install the APK from the README's download link on real phones and run the
-   playtest (see `docs/images/phase1c-flow.png` for the new screens).
+   playtest (see `docs/images/phase1c-flow.png` and `docs/images/phase1d-flow.png`
+   for the newest screens). Ask testers to take the map test on day one.
 2. Review the 1b content: region borders, Hebrew names, hints and facts.
 3. Tune tolerances, session size and the placement test from the playtest.
 4. Check the reminder on Android 13+ phones (notification permission) and after a
    reboot.
-5. Phase 1d: local learning stats and the pre/post map test.
+5. Agree the D7 retention benchmark before the closed beta, and collect results
+   through "Share results" (Phase 1 exit test).

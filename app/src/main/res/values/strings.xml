@@ -81,6 +81,43 @@
     <string name="progress_km">%1$s ק״מ</string>
     <string name="progress_known_explained">מקום ידוע הוא מקום שהזיכרון שלו יציב לשלושה שבועות לפחות.</string>
 
+    <string name="onboarding_map_test">מבחן מפה קצר לפני שמתחילים</string>
+    <string name="onboarding_map_test_note">20 מקומות, בלי משוב, כ־2 דקות. בעוד חודש תעשו אותו שוב ותראו כמה למדתם.</string>
+    <string name="onboarding_map_test_done">מבחן המפה נשמר. בעוד חודש נשווה.</string>
+
+    <string name="map_test_title">מבחן המפה</string>
+    <string name="map_test_counter">מבחן מפה · שאלה %1$d מתוך %2$d</string>
+    <string name="map_test_summary_title">סיום מבחן המפה</string>
+    <string name="map_test_median">סטייה חציונית: %1$s ק״מ</string>
+    <string name="map_test_before">בפעם הראשונה: %1$d מתוך %2$d, סטייה חציונית %3$s ק״מ</string>
+    <plurals name="map_test_gain">
+        <item quantity="one">מקום אחד יותר מבפעם הראשונה</item>
+        <item quantity="two">2 מקומות יותר מבפעם הראשונה</item>
+        <item quantity="many">%d מקומות יותר מבפעם הראשונה</item>
+        <item quantity="other">%d מקומות יותר מבפעם הראשונה</item>
+    </plurals>
+    <string name="map_test_pre_note">אחרי חודש של אימון נציע את אותו מבחן שוב, ותראו כמה למדתם.</string>
+    <string name="map_test_offer_title">חודש של אימון: כמה למדתם?</string>
+    <string name="map_test_offer_body">אותם 20 מקומות, כ־2 דקות, בלי משוב.</string>
+    <string name="map_test_take">למבחן המפה</string>
+    <string name="map_test_later">אחר כך</string>
+    <string name="map_test_pre_label">לפני האימון</string>
+    <string name="map_test_result">%1$s: %2$d מתוך %3$d, סטייה חציונית %4$s ק״מ</string>
+    <string name="map_test_change">מאז הפעם הראשונה: %1$d מקומות במקום %2$d</string>
+    <string name="map_test_next">המבחן הבא ייפתח ב־%1$s</string>
+    <string name="map_test_opens">המבחן ייפתח חודש אחרי האימון הראשון.</string>
+
+    <string name="stats_title">נתוני למידה, 30 הימים האחרונים</string>
+    <string name="stats_empty">הנתונים יופיעו אחרי האימון הראשון.</string>
+    <string name="stats_retention">נזכרתם ב־%1$d%% מהחזרות (%2$d חזרות). היעד: 85 עד 92 אחוז.</string>
+    <string name="stats_predicted">מנוע החזרות צפה %1$d%%</string>
+    <string name="stats_long_gap">אחרי חודש ויותר בלי חזרה: נזכרתם ב־%1$d מתוך %2$d</string>
+    <string name="stats_confusion">בלבול עם מקום דומה: %1$d%% מתוך %2$d תשובות</string>
+    <string name="stats_days">ימי אימון: %1$d ב־7 הימים האחרונים, %2$d ב־30</string>
+    <string name="stats_totals">סך הכול: %1$d אימונים, %2$d תשובות, %3$d דקות</string>
+    <string name="stats_share">שיתוף התוצאות</string>
+    <string name="stats_share_header">תוצאות מפה (גרסה %1$s)</string>
+
     <string name="settings_title">הגדרות</string>
     <string name="settings_session_length">אורך אימון</string>
     <string name="length_short">קצר, 10 שאלות</string>

@@ -15,6 +15,12 @@ learning directly, and make design decisions with experiments.
 | Confusion rate | Rate of tapping a known confusable instead of the target | Falls after interleaving |
 | Pre/post test | Same 20-item map test at onboarding (optional) and after 30 days | Large gain; this is our headline evidence |
 
+Phase 1d computes these on the device (`core/learning/.../Stats.kt` and `MapTest.kt`):
+retention counts reviews of cards in review that were due, the long-term probe uses
+reviews that came after 30+ days without one, and the pre/post test is the fixed
+20-place map test, taken without feedback. Players see them on the progress screen and
+can share them as text.
+
 The FSRS model's own prediction error (log loss / calibration of predicted vs actual
 recall) tells us how well the scheduler fits map learning, and guides parameter
 fitting.

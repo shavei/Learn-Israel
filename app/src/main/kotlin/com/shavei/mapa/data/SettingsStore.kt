@@ -20,6 +20,8 @@ data class Settings(
     val reminderOffered: Boolean = false,
     /** The welcome screen and the choice of placement test have been seen. */
     val onboarded: Boolean = false,
+    /** "Later" on the map test offer: not offered again before this local epoch day. */
+    val mapTestSnoozedUntilDay: Long = 0,
 )
 
 /** Small key/value preferences, kept in SharedPreferences and exposed as a flow. */
@@ -40,6 +42,7 @@ class SettingsStore(context: Context) {
             .putInt(REMINDER_MINUTES, next.reminderMinutes)
             .putBoolean(REMINDER_OFFERED, next.reminderOffered)
             .putBoolean(ONBOARDED, next.onboarded)
+            .putLong(MAP_TEST_SNOOZED, next.mapTestSnoozedUntilDay)
             .apply()
         _settings.value = next
     }
@@ -54,6 +57,7 @@ class SettingsStore(context: Context) {
             reminderMinutes = prefs.getInt(REMINDER_MINUTES, d.reminderMinutes),
             reminderOffered = prefs.getBoolean(REMINDER_OFFERED, d.reminderOffered),
             onboarded = prefs.getBoolean(ONBOARDED, d.onboarded),
+            mapTestSnoozedUntilDay = prefs.getLong(MAP_TEST_SNOOZED, d.mapTestSnoozedUntilDay),
         )
     }
 
@@ -68,5 +72,6 @@ class SettingsStore(context: Context) {
         const val REMINDER_MINUTES = "reminderMinutes"
         const val REMINDER_OFFERED = "reminderOffered"
         const val ONBOARDED = "onboarded"
+        const val MAP_TEST_SNOOZED = "mapTestSnoozedUntilDay"
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,10 +33,17 @@ import com.shavei.mapa.ui.map.rememberMapCamera
 /**
  * The first screen (docs/07-ux-accessibility-localization.md): one sentence, then play.
  * No sign-up and no permissions. Players who already know the country can take the
- * placement test instead of starting from the frame.
+ * placement test instead of starting from the frame. Before either, an optional map
+ * test measures what the player knows now, to compare with a month later.
  */
 @Composable
-fun OnboardingScreen(content: Content, onStart: () -> Unit, onPlacement: () -> Unit) {
+fun OnboardingScreen(
+    content: Content,
+    mapTestDone: Boolean,
+    onStart: () -> Unit,
+    onPlacement: () -> Unit,
+    onMapTest: () -> Unit,
+) {
     val camera = rememberMapCamera(content.map)
     var bottomPx by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(bottomPx) { camera.setFramePadding(0f, bottomPx) }
@@ -66,6 +74,16 @@ fun OnboardingScreen(content: Content, onStart: () -> Unit, onPlacement: () -> U
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (mapTestDone) {
+                Text(stringResource(R.string.onboarding_map_test_done), style = MaterialTheme.typography.bodyMedium)
+            } else {
+                TextButton(onClick = onMapTest, Modifier.fillMaxWidth()) { Text(stringResource(R.string.onboarding_map_test)) }
+                Text(
+                    stringResource(R.string.onboarding_map_test_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
