@@ -29,28 +29,42 @@ jobs:
           name: mapa-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
-  # Every push to main republishes the APK at one fixed link (see README "Install").
+  # Every push to main publishes the APK as a new release and makes it the latest, so the
+  # fixed link https://github.com/<repo>/releases/latest/download/mapa.apk (README
+  # "Install") always serves a complete file. The release is created as a draft, which
+  # nobody can see, and made public only once the APK is uploaded: a download started
+  # while CI publishes gets the previous build, never a missing or half-uploaded file.
   publish-apk:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [android, content]
     runs-on: ubuntu-latest
+    # One publish at a time, in order, when merges come close together.
+    concurrency:
+      group: publish-apk
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: mapa-debug-apk
-      - name: Replace the latest-build release
+      - name: Publish the build as the latest release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           mv app-debug.apk mapa.apk
-          gh release delete latest-build --cleanup-tag --yes || true
-          gh release create latest-build mapa.apk \
+          tag="build-$GITHUB_RUN_NUMBER"
+          gh release create "$tag" mapa.apk --draft \
             --target "$GITHUB_SHA" \
-            --title "Latest build (#$GITHUB_RUN_NUMBER)" \
+            --title "Build #$GITHUB_RUN_NUMBER" \
             --notes "Debug build of main at $GITHUB_SHA, published automatically by CI. Install mapa.apk on an Android phone (8.0 or newer)."
+          gh release edit "$tag" --draft=false --latest
+          # Keep the five newest builds, and drop the old release that was replaced in place.
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | grep '^build-' | sort -t- -k2 -n -r | tail -n +6 \
+            | xargs -r -I{} gh release delete {} --cleanup-tag --yes
+          gh release delete latest-build --cleanup-tag --yes || true
 
   content:
     runs-on: ubuntu-latest
