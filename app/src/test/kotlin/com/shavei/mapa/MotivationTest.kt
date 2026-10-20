@@ -77,8 +77,11 @@ class MotivationTest {
         }
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("דרגה: מטייל/ת")
+            // Home shows how far the next rank is, too.
+            waitForText("עוד 18 מקומות ידועים לדרגת מדריך/ת טיולים")
             Screenshots.save(scenario, "d0-home-rank")
             compose.onNodeWithText("התקדמות").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasTestTag("progress")).fetchSemanticsNodes().isNotEmpty() }
             waitForText("עוד 18 מקומות ידועים לדרגת מדריך/ת טיולים")
             Screenshots.save(scenario, "d1-progress-rank")
 

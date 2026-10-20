@@ -27,6 +27,7 @@ data class HomeState(
     val known: Int = 0,
     /** Places at full LOCATE stability: drawn with a heavier outline, not just a stronger color. */
     val knownPlaces: Set<String> = emptySet(),
+    /** Places with at least one card due now. */
     val dueNow: Int = 0,
     val newAvailable: Int = 0,
     /** New places remain, but today's are used up at the chosen pace. */
@@ -78,7 +79,8 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
                 learned = locate.size,
                 known = locate.values.count { isKnown(it.fsrs) },
                 knownPlaces = locate.filterValues { isKnown(it.fsrs) }.keys,
-                dueNow = cards.values.count { it.fsrs.due <= now },
+                // Places, not cards: a place due on two facets is one place to review, as home counts everything else.
+                dueNow = cards.filterValues { it.fsrs.due <= now }.keys.map { it.placeId }.distinct().size,
                 newAvailable = minOf(notStarted, newLeftToday, config.maxNewPerSession),
                 newCapReached = notStarted > 0 && newLeftToday == 0,
                 newPerDay = config.maxNewPerDay,

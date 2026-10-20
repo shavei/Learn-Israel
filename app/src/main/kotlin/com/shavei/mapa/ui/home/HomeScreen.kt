@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -19,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,6 +35,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shavei.mapa.R
@@ -105,10 +109,16 @@ fun HomeScreen(
                 TextButton(onClick = onSettings) { Text(stringResource(R.string.home_settings)) }
             }
             if (state.loaded) {
-                Text(stringResource(R.string.home_known, state.known))
-                Text(stringResource(R.string.rank_line, rankName(Rank.of(state.known))))
-                Text(stringResource(R.string.home_learned, state.learned, state.total))
-                StreakLine(state)
+                KnownCounts(state)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(R.string.rank_line, rankName(Rank.of(state.known))),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    StreakLine(state)
+                }
+                RankProgress(state.known)
             }
         }
         Panel(
@@ -131,18 +141,25 @@ fun HomeScreen(
                 }
                 if (state.offerMapTest) MapTestOffer(onMapTest, viewModel::snoozeMapTest)
                 // Once a day is the minimum, not the limit: after it, as many sessions as the player likes.
-                val hasWork = state.dueNow + state.newAvailable > 0
+                val waiting = state.dueNow + state.newAvailable
+                val hasWork = waiting > 0
                 val practicedToday = state.streak.playedToday
+                // After the daily session one line says both: done for today, and what is left if they like.
                 if (practicedToday && hasWork) {
-                    Text(stringResource(R.string.home_daily_done), color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        pluralStringResource(R.plurals.home_daily_done, waiting, waiting),
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                    )
+                } else {
+                    Text(
+                        when {
+                            hasWork -> stringResource(R.string.home_due, state.dueNow, state.newAvailable)
+                            state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
+                            else -> stringResource(R.string.home_nothing_due)
+                        },
+                    )
                 }
-                Text(
-                    when {
-                        hasWork -> stringResource(R.string.home_due, state.dueNow, state.newAvailable)
-                        state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
-                        else -> stringResource(R.string.home_nothing_due)
-                    },
-                )
                 Button(onClick = { onStartSession(!hasWork) }, Modifier.fillMaxWidth()) {
                     Text(
                         stringResource(
@@ -181,6 +198,54 @@ fun HomeScreen(
             Text(stringResource(R.string.attribution), style = MaterialTheme.typography.labelSmall)
         }
     }
+}
+
+/**
+ * Places in learning and known, in one line. "Known" takes three weeks of stable memory,
+ * so for a new player the learning count leads and the line explains itself on request.
+ */
+@Composable
+private fun KnownCounts(state: HomeState) {
+    var explained by rememberSaveable { mutableStateOf(false) }
+    val learning = state.learned - state.known
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            if (state.known == 0) stringResource(R.string.home_counts_learning, learning, state.known, state.total)
+            else stringResource(R.string.home_counts_known, state.known, learning, state.total),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = { explained = !explained }) { Text(stringResource(R.string.home_known_what)) }
+    }
+    if (explained) {
+        Text(
+            stringResource(R.string.home_known_explained),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
+}
+
+/** How far the known places are toward the next rank. */
+@Composable
+private fun RankProgress(known: Int) {
+    val rank = Rank.of(known)
+    val next = rank.next
+    if (next == null) {
+        Text(stringResource(R.string.rank_top), style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    LinearProgressIndicator(
+        progress = { (known - rank.knownPlaces).toFloat() / (next.knownPlaces - rank.knownPlaces) },
+        modifier = Modifier.fillMaxWidth().height(6.dp),
+        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        drawStopIndicator = {},
+    )
+    Text(
+        stringResource(R.string.rank_next, next.knownPlaces - known, rankName(next)),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
