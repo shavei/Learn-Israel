@@ -128,8 +128,12 @@ What 1d simplified, on purpose:
 ### Map styles - built
 - [x] Three map styles in settings, each with a preview: standard (flat colors),
       relief (hypsometric tint under hillshading lit from the north-west) and
-      topographic (brown contour lines every 25 m on soft green, a heavier index line
-      every 100 m with its height written along it, as on a printed sheet)
+      topographic (thin brown contour lines on softly shaded green paper)
+- [x] Topographic contours are drawn as tiles for what is on screen, at the screen's
+      resolution, and the interval follows the zoom as on web maps (200 m with the
+      whole country in view, down to 10 m close up), so lines never crowd into a mass.
+      Index lines are the same thin line in a darker brown, with their height written
+      along them; on cliffs only the index lines remain
 - [x] Both terrain styles come from the Copernicus DEM GLO-90: a 100 m grid over
       Israel (sharper than a phone shows it at the home zoom) over a 300 m grid for
       the whole window. The phone draws each style into images once, off the main

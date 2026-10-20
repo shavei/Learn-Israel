@@ -242,7 +242,7 @@ private fun MapStyles(map: MapData, selected: MapStyle, onSelect: (MapStyle) -> 
                 val camera = remember(map) { MapCamera(frame, map.window) }
                 // A small picture of just this frame, made once: the previews never build a whole style.
                 val preview by produceState<TerrainLayers?>(null, terrain, style, palette) {
-                    value = terrain?.preview(style, palette, frame.expandedBy(PREVIEW_MARGIN))?.let { TerrainLayers(listOf(it), emptyList()) }
+                    value = terrain?.preview(style, palette, frame.expandedBy(PREVIEW_MARGIN))
                 }
                 MapView(
                     map, camera,

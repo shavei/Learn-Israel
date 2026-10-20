@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shavei.mapa.content.ContourLabel
+import com.shavei.mapa.content.Contours
 import com.shavei.mapa.content.MapData
 import com.shavei.mapa.data.MapStyle
 import com.shavei.mapa.geo.Bounds
@@ -141,6 +142,13 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         ((center.y - p.y) * scale + size.height / 2).toFloat(),
     )
 
+    /** The part of the map on screen. */
+    fun view(): Bounds {
+        val a = toMap(Offset.Zero)
+        val b = toMap(Offset(size.width.toFloat(), size.height.toFloat()))
+        return Bounds(minOf(a.x, b.x), minOf(a.y, b.y), maxOf(a.x, b.x), maxOf(a.y, b.y))
+    }
+
     fun toMap(o: Offset) = MapPoint(
         center.x + (o.x - size.width / 2) / scale,
         center.y - (o.y - size.height / 2) / scale,
@@ -214,18 +222,14 @@ fun MapView(
             val fade = terrain.fade
             terrain.layers?.let { terrainLayers ->
                 clipPath(layers.ground) {
-                    for (tile in terrainLayers.tiles) {
-                        withTransform({
-                            translate((tile.minX - origin.x).toFloat(), (tile.maxY - origin.y).toFloat())
-                            scale(tile.cell.toFloat(), -tile.cell.toFloat(), pivot = Offset.Zero)
-                        }) {
-                            drawImage(
-                                tile.image,
-                                dstSize = IntSize(tile.image.width, tile.image.height),
-                                alpha = fade,
-                                filterQuality = FilterQuality.Low,
-                            )
-                        }
+                    for (tile in terrainLayers.tiles) drawTile(tile, origin, fade)
+                }
+                // Contour lines for what is on screen, at the screen's resolution.
+                terrainLayers.contours?.let { contours ->
+                    contours.version // redraw as tiles arrive
+                    val view = camera.view()
+                    clipPath(layers.ground) {
+                        for (tile in contours.visible(view, Contours.levelFor(camera.scale))) drawTile(tile, origin, fade)
                     }
                 }
                 drawPath(layers.neighbors, colors.terrainWash, alpha = fade)
@@ -287,6 +291,16 @@ fun MapView(
     }
 }
 
+/** Draws a terrain image where it lies, inside [inMapSpace]. */
+private fun DrawScope.drawTile(tile: TerrainTile, origin: MapPoint, alpha: Float) {
+    withTransform({
+        translate((tile.minX - origin.x).toFloat(), (tile.maxY - origin.y).toFloat())
+        scale(tile.cell.toFloat(), -tile.cell.toFloat(), pivot = Offset.Zero)
+    }) {
+        drawImage(tile.image, dstSize = IntSize(tile.image.width, tile.image.height), alpha = alpha, filterQuality = FilterQuality.Low)
+    }
+}
+
 /** What the current style draws over the flat ground, and how far it has faded in (0 to 1). */
 private class TerrainLayer(val layers: TerrainLayers?, val fade: Float)
 
@@ -325,9 +339,12 @@ private class HeightLabels(private val measurer: TextMeasurer, private val color
 
     fun draw(scope: DrawScope, labels: List<ContourLabel>, camera: MapCamera, alpha: Float) = with(scope) {
         if (labels.isEmpty()) return@with
+        // Only the darker index lines of this zoom carry heights (the labels exist every 100 m).
+        val every = maxOf(100, Contours.levels[Contours.levelFor(camera.scale)].index)
         val spacing = 96.dp.toPx()
         val placed = ArrayList<Offset>()
         for (label in labels) {
+            if (label.elevation % every != 0) continue
             val at = camera.toScreen(MapPoint(label.x, label.y))
             if (at.x !in 0f..size.width || at.y !in 0f..size.height) continue
             if (placed.any { (it - at).getDistanceSquared() < spacing * spacing }) continue

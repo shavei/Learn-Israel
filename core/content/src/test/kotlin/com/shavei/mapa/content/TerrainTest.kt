@@ -86,21 +86,66 @@ class TerrainTest {
         assertTrue(brightness(slope(30, 0, -30)) < brightness(flat), "shaded slope")
     }
 
+    private val brown = ContourStyle(line = 0xFF806040.toInt(), indexLine = 0xFF402010.toInt())
+
+    /** A slope rising [metersPerCell] to the east on a 100 m grid, 600 cells wide. */
+    private fun ramp(metersPerCell: Double, base: Int = 300): ElevationGrid {
+        val info = ElevationInfo("t", 0.0, 60_000.0, 100.0, 600, 600)
+        return ElevationGrid(info, ShortArray(600 * 600) { (base + (it % 600) * metersPerCell).toInt().toShort() })
+    }
+
     @Test
-    fun topographicLinesFallOnContourLevels() {
-        val paper = 0xFFFFFFFF.toInt()
-        val style = TopoStyle(paper, line = 0xFF000000.toInt(), indexLine = 0xFF000000.toInt(), interval = 25, index = 4, smoothing = 0)
-        // A ramp rising 10 m a cell to the east: a line every 2.5 cells.
-        val info = ElevationInfo("t", 0.0, 100.0, 100.0, 40, 1)
-        val ramp = ElevationGrid(info, ShortArray(40) { (300 + 10 * it).toShort() })
-        val pixels = Terrain.render(ramp, style)
-        val dark = pixels.indices.filter { (pixels[it] and 0xFF) < 0x80 }
-        // 300 m at column 0, 325 at 2.5, 350 at 5, ...: dark pixels sit next to those columns.
-        assertTrue(dark.isNotEmpty())
-        for (col in dark) assertTrue(((300 + 10 * col) % 25).let { it <= 5 || it >= 20 }, "column $col")
-        // Flat ground between levels stays paper.
-        val flat = ElevationGrid(info, ShortArray(40) { 312 })
-        assertTrue(Terrain.render(flat, style).all { it == paper })
+    fun theIntervalFollowsTheZoom() {
+        // About 150 m per pixel shows the whole country: tile level 1, a line every 100 m.
+        assertEquals(1, Contours.levelFor(1 / 150.0))
+        assertEquals(ContourLevel(100, 500), Contours.levels[1])
+        assertEquals(3, Contours.levelFor(1 / 40.0))
+        assertEquals(ContourLevel(20, 100), Contours.levels[3])
+        assertEquals(Contours.MAX_LEVEL, Contours.levelFor(1.0))
+        assertEquals(0, Contours.levelFor(1 / 10_000.0))
+    }
+
+    @Test
+    fun linesAreThinAndSitOnTheirHeights() {
+        // 2 m a cell = 0.64 m a pixel at level 3 (32 m a pixel): a 20 m line every 31 pixels.
+        val grid = ramp(2.0)
+        val tile = Contours.tile(grid, 10_000.0, 50_000.0, 3, brown)
+        val row = (0 until Contours.TILE_SIZE).map { tile[100 * Contours.TILE_SIZE + it] ushr 24 }
+        val lines = row.indices.filter { row[it] > 0 }
+        assertTrue(lines.isNotEmpty())
+        // Each line is at most 2 pixels wide.
+        val runs = lines.zipWithNext().count { (a, b) -> b != a + 1 } + 1
+        assertTrue(lines.size <= runs * 2, "$lines")
+        // ...and every 31 pixels or so.
+        assertTrue(runs in 7..9, "$runs lines")
+    }
+
+    @Test
+    fun indexLinesAreDarkerNotThicker() {
+        val grid = ramp(2.0)
+        val tile = Contours.tile(grid, 10_000.0, 50_000.0, 3, brown)
+        val colors = tile.filter { it ushr 24 > 0 }.map { it and 0xFFFFFF }.toSet()
+        assertTrue(0x402010 in colors && 0x806040 in colors)
+        val row = 100 * Contours.TILE_SIZE
+        val width = { color: Int -> (0 until Contours.TILE_SIZE).count { tile[row + it] ushr 24 > 0 && tile[row + it] and 0xFFFFFF == color } }
+        // Over 8 lines, 2 are index lines (every 100 m), with the same width per line as the rest.
+        assertTrue(width(0x402010) * 3 <= width(0x806040) + 2)
+    }
+
+    @Test
+    fun onCliffsOnlyTheIndexLinesRemain() {
+        // 60 m a cell = 15 m a pixel at level 3: minor lines would be 1.3 px apart.
+        val grid = ramp(60.0, base = -10_000)
+        val tile = Contours.tile(grid, 10_000.0, 50_000.0, 3, brown)
+        val drawn = tile.filter { it ushr 24 > 0 }.map { it and 0xFFFFFF }.toSet()
+        assertEquals(setOf(0x402010), drawn)
+    }
+
+    @Test
+    fun flatGroundHasNoLines() {
+        val info = ElevationInfo("t", 0.0, 60_000.0, 100.0, 600, 600)
+        val flat = ElevationGrid(info, ShortArray(600 * 600) { 312 })
+        assertTrue(Contours.tile(flat, 10_000.0, 50_000.0, 3, brown).all { it == 0 })
     }
 
     @Test

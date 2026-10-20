@@ -133,7 +133,7 @@
     <string name="map_style_relief">תבליט</string>
     <string name="map_style_relief_note">הרים ועמקים בהצללה</string>
     <string name="map_style_topographic">קווי גובה</string>
-    <string name="map_style_topographic_note">קו כל 25 מטר</string>
+    <string name="map_style_topographic_note">קו כל 10 עד 200 מטר, לפי הזום</string>
     <string name="settings_green_line">הקו הירוק</string>
     <string name="settings_green_line_note">קו שביתת הנשק של 1949, כשכבה נוספת על המפה</string>
     <string name="settings_theme">ערכת צבעים</string>

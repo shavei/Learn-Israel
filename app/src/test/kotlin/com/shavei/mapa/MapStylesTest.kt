@@ -1,5 +1,6 @@
 package com.shavei.mapa
 
+import android.os.Looper
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
@@ -25,6 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -53,6 +55,21 @@ class MapStylesTest {
         }
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
+        waitForContours()
+    }
+
+    private var scenario: ActivityScenario<MainActivity>? = null
+
+    /** Draws the screen (which asks for the contour tiles in view) and waits until they have arrived. */
+    private fun waitForContours() {
+        scenario?.onActivity { Screenshots.draw(it) }
+        compose.waitUntil(timeoutMillis = 30_000) {
+            // Tiles arrive through the main looper, which Robolectric runs only when asked.
+            shadowOf(Looper.getMainLooper()).idle()
+            app.terrain.ready(app.settings.current.mapStyle, LightMapPalette)?.contours?.isIdle != false &&
+                app.terrain.ready(app.settings.current.mapStyle, DarkMapPalette)?.contours?.isIdle != false
+        }
+        compose.waitForIdle()
     }
 
     /** Pinches the map open around its middle, as a player zooming in on the hills. */
@@ -63,12 +80,13 @@ class MapStylesTest {
         }
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
+        waitForContours()
     }
 
     @Test
     fun chooseEachStyleInSettings() {
         app.settings.update { it.copy(onboarded = true, reminderOffered = true) }
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+        ActivityScenario.launch(MainActivity::class.java).also { scenario = it }.use { scenario ->
             waitForText("הגדרות")
             compose.onNodeWithText("הגדרות").performClick()
             waitForStyles()
@@ -103,7 +121,7 @@ class MapStylesTest {
     @Test
     fun stylesHaveTheirOwnDarkDesign() {
         app.settings.update { it.copy(onboarded = true, reminderOffered = true, theme = ThemeChoice.DARK, mapStyle = MapStyle.RELIEF) }
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+        ActivityScenario.launch(MainActivity::class.java).also { scenario = it }.use { scenario ->
             waitForText("התחילו אימון יומי")
             settle(DarkMapPalette)
             assertNotNull(app.terrain.ready(MapStyle.RELIEF, DarkMapPalette))

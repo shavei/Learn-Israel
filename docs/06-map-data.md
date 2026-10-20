@@ -60,8 +60,9 @@ How the map is built:
   (box-averaged to 270 m first) and 100 m over Israel's home view with 12 km to spare
   (`content/elevation_coarse.bin`, `content/elevation_detail.bin`, described by
   `content/elevation.json`; each row stored as differences from the cell before, which
-  compresses three times better). The app draws the relief and the contour lines from
-  them on the phone. `tools/build_content.py` places the heights written along the
+  compresses three times better). The app draws the relief from them on the phone,
+  and the contour lines as tiles for what is on screen, with the interval set by the
+  zoom (core/content `Contours`). `tools/build_content.py` places the heights written along the
   index contours (`contour_labels.json`), traced on the detail grid after the same
   smoothing the app applies, so each label sits on its line.
 
