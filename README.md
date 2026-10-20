@@ -8,7 +8,8 @@ people actually remember.
 > name them (choice, then typed), and relate them ("which is further north?"),
 > scheduled by spaced repetition (FSRS). Onboarding with a placement test, a progress
 > screen with region percentages, a daily streak and reminder, settings, and dark
-> mode. See the [roadmap](docs/09-roadmap.md).
+> mode. A 20-place map test before the first session and a month later, and local
+> learning stats you can share. See the [roadmap](docs/09-roadmap.md).
 
 ## Install on your phone
 
@@ -19,6 +20,8 @@ Open it on an Android phone (8.0 or newer) and allow installing from your browse
 asked. Installing a newer build updates the app and keeps your progress.
 
 ![Phase 1c: welcome, placement test, home with the reminder offer, progress, settings in dark mode, and the dark map with the Green Line](docs/images/phase1c-flow.png)
+
+![Phase 1d: the map test (no feedback between questions), its summary, the post-test offer a month later, and the progress screen with map test results and learning stats](docs/images/phase1d-flow.png)
 
 ## The idea in one paragraph
 
@@ -69,7 +72,7 @@ The design is built on the most robust findings in learning science:
 | `app/` | Android app (Kotlin, Jetpack Compose, Room): map renderer, onboarding, home, session, progress and settings screens, daily reminder |
 | `core/geo/` | Pure Kotlin geometry on the Israeli TM grid: distances, point in polygon, shapes |
 | `core/content/` | Place and map models, parser for the generated assets |
-| `core/learning/` | FSRS scheduler (port of py-fsrs), tap grading, session engine, placement test, mastery and region scores, streak |
+| `core/learning/` | FSRS scheduler (port of py-fsrs), tap grading, session engine, placement test, pre/post map test, learning stats, mastery and region scores, streak |
 | `content/places.yaml` | The curriculum: which places are taught, with Hebrew names, hints and facts |
 | `content/regions.yaml` | Which official natural regions make up each of the game's 19 regions |
 | `content/natural_regions.geojson` | Official natural regions (CBS; Ministry of Agriculture for Judea and Samaria): the land's outline, the regions and the districts |

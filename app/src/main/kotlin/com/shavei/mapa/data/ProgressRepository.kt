@@ -3,16 +3,37 @@ package com.shavei.mapa.data
 import com.shavei.mapa.learning.Answer
 import com.shavei.mapa.learning.CardKey
 import com.shavei.mapa.learning.Facet
+import com.shavei.mapa.learning.MapTestKind
+import com.shavei.mapa.learning.MapTestResult
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.Response
+import com.shavei.mapa.learning.ReviewRecord
 import com.shavei.mapa.learning.StudyCard
 import com.shavei.mapa.learning.fsrs.CardState
+import com.shavei.mapa.learning.fsrs.DAY_MS
 import com.shavei.mapa.learning.fsrs.FsrsCard
+import com.shavei.mapa.learning.fsrs.FsrsScheduler
+import com.shavei.mapa.learning.fsrs.Rating
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-class ProgressRepository(private val dao: ProgressDao, private val appVersion: String) {
+/** Where an answer was given. Only practice answers make a day of practice. */
+enum class AnswerSource {
+    PRACTICE,
+
+    /** Only the places found get a card. */
+    PLACEMENT,
+
+    /** Measures without teaching: no card changes. */
+    MAP_TEST,
+}
+
+class ProgressRepository(
+    private val dao: ProgressDao,
+    val appVersion: String,
+    private val scheduler: FsrsScheduler = FsrsScheduler(),
+) {
 
     suspend fun cards(): Map<CardKey, StudyCard> = dao.cards().associate {
         CardKey(it.placeId, Facet.valueOf(it.facet)) to
@@ -30,6 +51,34 @@ class ProgressRepository(private val dao: ProgressDao, private val appVersion: S
 
     suspend fun lastDayPlayed(zone: ZoneId = ZoneId.systemDefault()): LocalDate? = dao.lastPracticeTime()?.let { day(it, zone) }
 
+    /** True once the player has seen any feedback: a map test from then on is a post-test. */
+    suspend fun hasAnsweredWithFeedback(): Boolean = dao.hasAnsweredWithFeedback()
+
+    /** Every logged answer, for the learning stats. */
+    suspend fun reviewRecords(): List<ReviewRecord> = dao.reviews().map {
+        ReviewRecord(
+            placeId = it.placeId,
+            facet = Facet.valueOf(it.facet),
+            practice = it.mode != PLACEMENT && it.mode != MAP_TEST,
+            sessionId = it.sessionId,
+            at = it.timestamp,
+            rating = Rating.entries.first { r -> r.value == it.rating },
+            responseMs = it.responseMs,
+            dueReview = it.stateBefore == CardState.REVIEW.value && it.dueBefore != null && it.dueBefore <= it.timestamp,
+            elapsedDays = it.elapsedDays,
+            predictedRecall = it.predictedRecall,
+            tappedNear = it.tappedNear,
+        )
+    }
+
+    suspend fun mapTests(): List<MapTestResult> = dao.mapTests().map {
+        MapTestResult(MapTestKind.valueOf(it.kind), it.finishedAt, it.found, it.total, it.medianErrorMeters)
+    }
+
+    suspend fun saveMapTest(result: MapTestResult, sessionId: String) {
+        dao.insert(MapTestEntity(sessionId, result.kind.name, result.finishedAt, result.found, result.total, result.medianErrorMeters))
+    }
+
     /** Pin It errors grouped by local day, in day order. */
     suspend fun locateErrorsByDay(zone: ZoneId = ZoneId.systemDefault()): Map<LocalDate, List<LocateError>> =
         dao.locateErrors().groupBy { day(it.timestamp, zone) }
@@ -37,13 +86,18 @@ class ProgressRepository(private val dao: ProgressDao, private val appVersion: S
     private fun day(at: Long, zone: ZoneId) = Instant.ofEpochMilli(at).atZone(zone).toLocalDate()
 
     /**
-     * Saves an answer and the card it changed. In the [placement] test only places the
-     * player found get a card; the rest stay new, but every answer is logged.
+     * Saves an answer and the card it changed. In the placement test only places the
+     * player found get a card, and the map test changes none; every answer is logged.
      */
-    suspend fun save(answer: Answer, sessionId: String, placement: Boolean = false) {
+    suspend fun save(answer: Answer, sessionId: String, source: AnswerSource = AnswerSource.PRACTICE) {
         val key = answer.question.key
         val c = answer.after
-        if (!placement || answer.grade.isCorrect) {
+        val saveCard = when (source) {
+            AnswerSource.PRACTICE -> true
+            AnswerSource.PLACEMENT -> answer.grade.isCorrect
+            AnswerSource.MAP_TEST -> false
+        }
+        if (saveCard) {
             dao.upsert(
                 CardEntity(
                     key.placeId, key.facet.name, c.fsrs.state.value, c.fsrs.step, c.fsrs.stability, c.fsrs.difficulty,
@@ -52,11 +106,16 @@ class ProgressRepository(private val dao: ProgressDao, private val appVersion: S
             )
         }
         val tap = (answer.response as? Response.Tap)?.at
+        val before = answer.before?.fsrs?.takeIf { !it.isNew }
         dao.insert(
             ReviewEntity(
                 placeId = key.placeId,
                 facet = key.facet.name,
-                mode = if (placement) "PLACEMENT" else mode(answer.question),
+                mode = when (source) {
+                    AnswerSource.PRACTICE -> mode(answer.question)
+                    AnswerSource.PLACEMENT -> PLACEMENT
+                    AnswerSource.MAP_TEST -> MAP_TEST
+                },
                 sessionId = sessionId,
                 timestamp = answer.at,
                 rating = answer.grade.rating.value,
@@ -70,6 +129,16 @@ class ProgressRepository(private val dao: ProgressDao, private val appVersion: S
                 },
                 responseMs = answer.responseMs,
                 appVersion = appVersion,
+                stateBefore = before?.state?.value,
+                dueBefore = before?.due,
+                elapsedDays = before?.lastReview?.let { (answer.at - it).toDouble() / DAY_MS },
+                predictedRecall = before?.let { scheduler.retrievability(it, answer.at) },
+                hint = when (val q = answer.question) {
+                    is Question.Locate -> q.hint
+                    is Question.NameChoice -> q.hint
+                    else -> false
+                },
+                tappedNear = answer.tappedNear?.id,
             ),
         )
     }
@@ -79,5 +148,10 @@ class ProgressRepository(private val dao: ProgressDao, private val appVersion: S
         is Question.NameChoice -> "NAME_CHOICE"
         is Question.NameTyped -> "NAME_TYPED"
         is Question.Relate -> "RELATE"
+    }
+
+    private companion object {
+        const val PLACEMENT = "PLACEMENT"
+        const val MAP_TEST = "MAP_TEST"
     }
 }

@@ -4,8 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
 import com.shavei.mapa.content.PlaceType
+import com.shavei.mapa.data.AnswerSource
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
+import com.shavei.mapa.learning.MapTest
+import com.shavei.mapa.learning.MapTestKind
+import com.shavei.mapa.learning.MapTestResult
 import com.shavei.mapa.learning.PlacementTest
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.QuestionSource
@@ -32,6 +36,9 @@ data class SessionSummary(
     val averageCityErrorMeters: Double?,
     /** The placement test, where [correct] places were found and seeded. */
     val placement: Boolean = false,
+    /** The map test's score, and for a post-test the pre-test to compare it with. */
+    val mapTest: MapTestResult? = null,
+    val preTest: MapTestResult? = null,
 )
 
 enum class SessionKind {
@@ -42,6 +49,9 @@ enum class SessionKind {
 
     /** The optional placement test at onboarding. */
     PLACEMENT,
+
+    /** The pre/post map test: 20 fixed places, no feedback, no card changes. */
+    MAP_TEST,
 }
 
 class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) : ViewModel() {
@@ -52,14 +62,27 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     private lateinit var engine: QuestionSource
     private var askedAt = 0L
     private var number = 0
+    private var mapTestKind = MapTestKind.PRE
+
+    private val source = when (kind) {
+        SessionKind.PLACEMENT -> AnswerSource.PLACEMENT
+        SessionKind.MAP_TEST -> AnswerSource.MAP_TEST
+        else -> AnswerSource.PRACTICE
+    }
+
+    /** Questions in the map test, shown as "question 3 of 20"; null in other sessions. */
+    val mapTestSize: Int? = if (kind == SessionKind.MAP_TEST) MapTest.ITEMS.size else null
 
     init {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            engine = if (kind == SessionKind.PLACEMENT) {
-                PlacementTest(app.content, app.scheduler)
-            } else {
-                SessionEngine(
+            engine = when (kind) {
+                SessionKind.PLACEMENT -> PlacementTest(app.content, app.scheduler)
+                SessionKind.MAP_TEST -> {
+                    if (app.progress.hasAnsweredWithFeedback()) mapTestKind = MapTestKind.POST
+                    MapTest(app.content)
+                }
+                else -> SessionEngine(
                     content = app.content,
                     scheduler = app.scheduler,
                     initialCards = app.progress.cards(),
@@ -93,12 +116,14 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         val ui = _ui.value as? SessionUi.Ask ?: return
         if (!accepts(ui.question)) return
         val answer = engine.submit(ui.question, response, System.currentTimeMillis() - askedAt)
-        _ui.value = SessionUi.Feedback(answer, ui.number)
-        viewModelScope.launch { app.progress.save(answer, sessionId, placement = kind == SessionKind.PLACEMENT) }
+        viewModelScope.launch { app.progress.save(answer, sessionId, source) }
+        // The map test measures and does not teach: straight on to the next place.
+        if (kind == SessionKind.MAP_TEST) advance() else _ui.value = SessionUi.Feedback(answer, ui.number)
     }
 
     private fun advance() {
         val q = engine.next()
+        if (q == null && kind == SessionKind.MAP_TEST) return finishMapTest()
         _ui.value = when {
             q == null -> SessionUi.Finished(summary())
             q is Question.Locate && q.isNew -> SessionUi.Discover(q, number + 1)
@@ -110,6 +135,16 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         number++
         askedAt = System.currentTimeMillis()
         _ui.value = SessionUi.Ask(q, number)
+    }
+
+    private fun finishMapTest() {
+        val result = (engine as MapTest).result(mapTestKind) ?: return
+        _ui.value = SessionUi.Loading
+        viewModelScope.launch {
+            val pre = app.progress.mapTests().firstOrNull { it.kind == MapTestKind.PRE }
+            app.progress.saveMapTest(result, sessionId)
+            _ui.value = SessionUi.Finished(summary().copy(mapTest = result, preTest = pre.takeIf { result.kind == MapTestKind.POST }))
+        }
     }
 
     private fun summary(): SessionSummary {

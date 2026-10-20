@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.ContentParser
 import com.shavei.mapa.data.MIGRATION_1_2
+import com.shavei.mapa.data.MIGRATION_2_3
 import com.shavei.mapa.data.MapaDatabase
 import com.shavei.mapa.data.ProgressRepository
 import com.shavei.mapa.data.SettingsStore
@@ -21,13 +22,13 @@ class MapaApplication : Application() {
     val scheduler: FsrsScheduler by lazy { FsrsScheduler() }
 
     val database: MapaDatabase by lazy {
-        Room.databaseBuilder(this, MapaDatabase::class.java, "mapa.db").addMigrations(MIGRATION_1_2).build()
+        Room.databaseBuilder(this, MapaDatabase::class.java, "mapa.db").addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 
     val settings: SettingsStore by lazy { SettingsStore(this) }
 
     val progress: ProgressRepository by lazy {
-        ProgressRepository(database.progressDao(), BuildConfigInfo.versionName(this))
+        ProgressRepository(database.progressDao(), BuildConfigInfo.versionName(this), scheduler)
     }
 }
 

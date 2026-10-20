@@ -5,15 +5,19 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.shavei.mapa.data.MIGRATION_1_2
+import com.shavei.mapa.data.MIGRATION_2_3
 import com.shavei.mapa.data.MapaDatabase
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Phase 0 players keep their progress: the v1 database opens as v2 with LOCATE cards. */
+/** Phase 0 players keep their progress: the v1 database opens as v3 with LOCATE cards. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class MigrationTest {
@@ -39,7 +43,7 @@ class MigrationTest {
         }
 
         val room = Room.databaseBuilder(context, MapaDatabase::class.java, "migration-test.db")
-            .addMigrations(MIGRATION_1_2).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3).allowMainThreadQueries().build()
         val cards = room.progressDao().cards()
         assertEquals(1, cards.size)
         with(cards.single()) {
@@ -49,6 +53,14 @@ class MigrationTest {
             assertEquals(0, struggles)
         }
         assertEquals(1, room.progressDao().countIntroducedSince(0))
+        // Version 3 adds the learning stats fields, empty for answers logged before.
+        with(room.progressDao().reviews().single()) {
+            assertEquals("LOCATE", mode)
+            assertNull(stateBefore)
+            assertNull(predictedRecall)
+            assertFalse(hint)
+        }
+        assertTrue(room.progressDao().mapTests().isEmpty())
         room.close()
     }
 }

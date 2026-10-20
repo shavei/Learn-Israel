@@ -1,5 +1,6 @@
 package com.shavei.mapa.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -31,7 +32,10 @@ data class ReviewEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val placeId: String,
     val facet: String,
-    /** The question type: LOCATE, NAME_CHOICE, NAME_TYPED, RELATE, or PLACEMENT for the placement test. */
+    /**
+     * The question type: LOCATE, NAME_CHOICE, NAME_TYPED, RELATE, or PLACEMENT and
+     * MAP_TEST for the two tests, which are not practice.
+     */
     val mode: String,
     val sessionId: String,
     val timestamp: Long,
@@ -43,6 +47,30 @@ data class ReviewEntity(
     val answer: String?,
     val responseMs: Long,
     val appVersion: String,
+    // The fields below arrived in version 3; answers logged before then have them null.
+    /** The card's FSRS state before this answer, null for a new card. */
+    val stateBefore: Int? = null,
+    /** When the card was due before this answer: earlier than [timestamp] means a due review. */
+    val dueBefore: Long? = null,
+    /** Days since the card's last review, null for a new card. */
+    val elapsedDays: Double? = null,
+    /** The scheduler's recall probability at the time of the answer, null for a new card. */
+    val predictedRecall: Double? = null,
+    @ColumnInfo(defaultValue = "0") val hint: Boolean = false,
+    /** For a missed tap: the known place it was nearest to. */
+    val tappedNear: String? = null,
+)
+
+/** One finished pre/post map test (docs/08-measurement.md); its answers are in reviews. */
+@Entity(tableName = "map_tests")
+data class MapTestEntity(
+    @PrimaryKey val sessionId: String,
+    /** PRE or POST. */
+    val kind: String,
+    val finishedAt: Long,
+    val found: Int,
+    val total: Int,
+    val medianErrorMeters: Double,
 )
 
 @Dao
@@ -63,17 +91,30 @@ interface ProgressDao {
      */
     @Query(
         """SELECT COUNT(*) FROM (SELECT placeId FROM reviews GROUP BY placeId
-            HAVING MIN(CASE WHEN mode != 'PLACEMENT' THEN timestamp END) >= :since
+            HAVING MIN(CASE WHEN mode NOT IN ('PLACEMENT', 'MAP_TEST') THEN timestamp END) >= :since
             AND MAX(mode = 'PLACEMENT' AND rating >= 3) = 0)""",
     )
     suspend fun countIntroducedSince(since: Long): Int
 
-    /** When every practice answer was given (the placement test is not practice). */
-    @Query("SELECT timestamp FROM reviews WHERE mode != 'PLACEMENT' ORDER BY timestamp")
+    /** When every practice answer was given (the placement and map tests are not practice). */
+    @Query("SELECT timestamp FROM reviews WHERE mode NOT IN ('PLACEMENT', 'MAP_TEST') ORDER BY timestamp")
     suspend fun practiceTimes(): List<Long>
 
-    @Query("SELECT MAX(timestamp) FROM reviews WHERE mode != 'PLACEMENT'")
+    @Query("SELECT MAX(timestamp) FROM reviews WHERE mode NOT IN ('PLACEMENT', 'MAP_TEST')")
     suspend fun lastPracticeTime(): Long?
+
+    /** Any answer with feedback, the placement test included: after one, a map test is no longer a pre-test. */
+    @Query("SELECT EXISTS(SELECT 1 FROM reviews WHERE mode != 'MAP_TEST')")
+    suspend fun hasAnsweredWithFeedback(): Boolean
+
+    @Query("SELECT * FROM reviews ORDER BY timestamp")
+    suspend fun reviews(): List<ReviewEntity>
+
+    @Insert
+    suspend fun insert(test: MapTestEntity)
+
+    @Query("SELECT * FROM map_tests ORDER BY finishedAt")
+    suspend fun mapTests(): List<MapTestEntity>
 
     /** Distance errors of Pin It answers, for the history of average error. */
     @Query("SELECT placeId, timestamp, errorMeters FROM reviews WHERE mode = 'LOCATE' AND errorMeters IS NOT NULL ORDER BY timestamp")
@@ -82,7 +123,7 @@ interface ProgressDao {
 
 data class LocateError(val placeId: String, val timestamp: Long, val errorMeters: Double)
 
-@Database(entities = [CardEntity::class, ReviewEntity::class], version = 2, exportSchema = false)
+@Database(entities = [CardEntity::class, ReviewEntity::class, MapTestEntity::class], version = 3, exportSchema = false)
 abstract class MapaDatabase : RoomDatabase() {
     abstract fun progressDao(): ProgressDao
 }
@@ -113,5 +154,22 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         )
         db.execSQL("DROP TABLE `reviews`")
         db.execSQL("ALTER TABLE `reviews_new` RENAME TO `reviews`")
+    }
+}
+
+/** Phase 1d: what the learning stats need on every answer, and the map test results. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `reviews` ADD COLUMN `stateBefore` INTEGER")
+        db.execSQL("ALTER TABLE `reviews` ADD COLUMN `dueBefore` INTEGER")
+        db.execSQL("ALTER TABLE `reviews` ADD COLUMN `elapsedDays` REAL")
+        db.execSQL("ALTER TABLE `reviews` ADD COLUMN `predictedRecall` REAL")
+        db.execSQL("ALTER TABLE `reviews` ADD COLUMN `hint` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `reviews` ADD COLUMN `tappedNear` TEXT")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `map_tests` (`sessionId` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                "`finishedAt` INTEGER NOT NULL, `found` INTEGER NOT NULL, `total` INTEGER NOT NULL, " +
+                "`medianErrorMeters` REAL NOT NULL, PRIMARY KEY(`sessionId`))",
+        )
     }
 }
