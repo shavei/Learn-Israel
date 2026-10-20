@@ -173,9 +173,9 @@
 
     <string name="settings_title">הגדרות</string>
     <string name="settings_session_length">אורך אימון</string>
-    <string name="length_short">קצר, 10 שאלות</string>
-    <string name="length_normal">רגיל, 15 שאלות</string>
-    <string name="length_long">ארוך, 25 שאלות</string>
+    <string name="length_short">קצר, 10 עד 18 שאלות</string>
+    <string name="length_normal">רגיל, 15 עד 23 שאלות</string>
+    <string name="length_long">ארוך, 25 עד 33 שאלות</string>
     <string name="settings_pace">קצב מקומות חדשים</string>
     <string name="pace_normal">רגיל, עד 20 ביום</string>
     <string name="pace_fast">מהיר, עד 40 ביום</string>
