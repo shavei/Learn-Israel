@@ -171,6 +171,28 @@ class SessionEngineTest {
     }
 
     @Test
+    fun extraPracticeSessionsInARowGoThroughEveryLearnedPlace() {
+        // Forty solid places and twenty young ones, none due: a player past today's new places.
+        val many = testContent(60)
+        val cards = many.places.withIndex().associate { (i, p) ->
+            val card = if (i < 40) {
+                StudyCard(FsrsCard(CardState.REVIEW, null, 40.0, 5.0, due = now + 30 * DAY_MS, lastReview = now - 3 * DAY_MS))
+            } else {
+                StudyCard(FsrsCard(CardState.REVIEW, null, 2.0, 5.0, due = now + DAY_MS, lastReview = now - DAY_MS))
+            }
+            CardKey(p.id, Facet.LOCATE) to card
+        }.toMutableMap()
+        val asked = mutableSetOf<String>()
+        repeat(5) {
+            val e = SessionEngine(many, scheduler, cards, 20, SessionConfig(strengthenWeakest = true), { now }, Random(1))
+            play(e).forEach { asked += it.place.id }
+            cards.keys.toList().forEach { k -> e.card(k)?.let { cards[k] = it } }
+            now += 5 * 60_000
+        }
+        assertEquals(many.places.map { it.id }.toSet(), asked, "missing: ${many.places.map { it.id } - asked}")
+    }
+
+    @Test
     fun namingUnlocksAfterAWeekOfStableLocatingAndStartsAsMultipleChoice() {
         assertNull(engine(mapOf(key(0) to reviewed(6.5, 4.0)), newToday = 20).next(), "not yet at 6.5 days")
         val e = engine(mapOf(key(0) to reviewed(7.5, 4.0)), newToday = 20)
