@@ -142,8 +142,17 @@ class SessionEngine(
                 if (eligible(key)) question(key, now)?.let { return it }
             }
 
+            // Extra practice goes round every place in review before any comes back: those
+            // answered in the last few hours wait, so the weakest-first order never keeps
+            // to the same young places and leaves the older ones out.
             cards.filter { (k, c) -> c.isReview && (c.fsrs.due <= now || config.strengthenWeakest) && eligible(k) }
-                .entries.sortedWith(compareBy({ scheduler.retrievability(it.value.fsrs, now) }, { it.value.stability }))
+                .entries.sortedWith(
+                    compareBy(
+                        { config.strengthenWeakest && practicedRecently(it.value, now) },
+                        { scheduler.retrievability(it.value.fsrs, now) },
+                        { it.value.stability },
+                    ),
+                )
                 .firstNotNullOfOrNull { e -> question(e.key, now)?.also { planContrast(e.key) } }
                 ?.let { return it }
 
@@ -318,6 +327,10 @@ class SessionEngine(
         }
         return newPlacesThisSession < budget
     }
+
+    /** Answered within [SessionConfig.sameDayGapMs]: in this sitting of sessions, most likely. */
+    private fun practicedRecently(card: StudyCard, now: Long): Boolean =
+        card.fsrs.lastReview?.let { now - it < config.sameDayGapMs } ?: false
 
     /**
      * A young place (stability under [SAME_DAY_MAX_STABILITY] days) last answered in an
