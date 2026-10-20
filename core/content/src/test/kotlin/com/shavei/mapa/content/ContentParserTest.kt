@@ -34,6 +34,10 @@ class ContentParserTest {
         val regions = content.places.filter { it.type == PlaceType.REGION }.map { it.id.removePrefix("region.") }.toSet()
         for (city in content.places.filter { it.type == PlaceType.CITY }) assertTrue(city.region in regions, city.id)
         assertEquals("gush_dan", content.place("city.tel_aviv")?.region)
+        // Nature and heritage count toward a region too; a line by the middle of its course.
+        for (p in content.places.filter { it.type.theme != Theme.CORE }) assertTrue(p.region in regions, p.id)
+        assertEquals("judean_desert", content.place("site.masada")?.region)
+        assertEquals("negev", content.place("crater.ramon")?.region)
     }
 
     @Test

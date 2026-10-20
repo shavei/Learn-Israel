@@ -57,7 +57,10 @@ data class Place(
     val aliases: List<String> = emptyList(),
     /** Places players tend to mix up with this one; practiced side by side. */
     val confusables: List<String> = emptyList(),
-    /** For a place drawn as a point: the key of the natural region it lies in (`region.<key>` is that region's place). */
+    /**
+     * For a point, a stream or a crater: the key of the natural region it lies in (a line:
+     * at the middle of its course). `region.<key>` is that region's place.
+     */
     val region: String? = null,
     /** How close a tap must be once the place is well known, when its type's default does not fit (a long ridge). */
     val toleranceMeters: Double? = null,

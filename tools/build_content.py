@@ -469,6 +469,8 @@ def main() -> int:
                 course = ops.linemerge(lines(course)) if lines(course) else course
                 geometry["lines"] = encode_lines(course)
                 label = line_label(course)
+            # A stream or a crater counts toward the region at the middle of its course.
+            region = min(region_geoms, key=lambda k: region_geoms[k].distance(label))
         else:
             errors.append(f"{p['id']}: unknown geometry source {p['geometry']}")
             continue
