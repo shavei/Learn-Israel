@@ -21,6 +21,9 @@
 | 15 | Where do Map Builder and Trace It live? (2026-10-20) | Both in the daily session, as another way to find a known region or line, and as rounds from home | They share the LOCATE card with Pin It; a home round brings no new places |
 | 16 | What is one Map Builder question? (2026-10-20) | One shape per question, dragged into place | One card per question, as in the rest of the session; a whole-puzzle round can come later |
 | 17 | Which lines can Trace It ask for? (2026-10-20) | The Jordan and all 8 streams, the Dan and the Hermon included | The craters stay Pin It only; the highways join Trace It when they are added |
+| 18 | What can free play ask? (2026-10-20) | Only places past their learning steps, for Blitz and Road Trip alike | Free play never teaches a new place; Blitz needs 4 learned places, Road Trip a trip of 3 stops |
+| 19 | Does a road trip count fully for the scheduler? (2026-10-20) | No: the same reduced weight as Blitz (a miss always, a success only when due within 2 days) | Playing for fun never pushes reviews far ahead; a road trip still catches places being forgotten |
+| 20 | Written trips or trips planned from the player's places? (2026-10-20) | Planned on the spot from learned places | Every player gets trips from the first days; written story trips (Ben Gurion to Eilat) can come later, once players know tiers 4 to 6 |
 
 ## Still open
 

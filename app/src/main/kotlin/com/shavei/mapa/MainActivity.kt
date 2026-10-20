@@ -151,6 +151,8 @@ private fun App(app: MapaApplication, settings: Settings) {
                 onSettings = { open(Screen.SETTINGS) },
                 onMapTest = { startSession(SessionKind.MAP_TEST) },
                 onDrill = { drill -> startSession(if (drill == Drill.BUILD) SessionKind.BUILD else SessionKind.TRACE) },
+                onBlitz = { startSession(SessionKind.BLITZ) },
+                onRoadTrip = { startSession(SessionKind.ROAD_TRIP) },
             )
         }
         Screen.SESSION -> {

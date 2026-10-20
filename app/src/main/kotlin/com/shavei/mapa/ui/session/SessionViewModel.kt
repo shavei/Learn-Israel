@@ -1,12 +1,15 @@
 package com.shavei.mapa.ui.session
 
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
+import com.shavei.mapa.content.Place
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.data.AnswerSource
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Answer
+import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.MapTest
@@ -16,6 +19,7 @@ import com.shavei.mapa.learning.PlacementTest
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.QuestionSource
 import com.shavei.mapa.learning.Response
+import com.shavei.mapa.learning.RoadTrip
 import com.shavei.mapa.learning.SessionConfig
 import com.shavei.mapa.learning.SessionEngine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,9 +29,14 @@ import java.util.UUID
 
 sealed interface SessionUi {
     data object Loading : SessionUi
+    /** Free play before it starts: what the round is (and for Road Trip, where it starts). */
+    data object Ready : SessionUi
     data class Discover(val question: Question.Locate, val number: Int) : SessionUi
-    /** [score] is the points earned so far in this session. */
-    data class Ask(val question: Question, val number: Int, val score: Int) : SessionUi
+    /**
+     * [score] is the points earned so far in this session. In a blitz, which has no
+     * feedback card, [last] is the answer just given, shown on the map under the next question.
+     */
+    data class Ask(val question: Question, val number: Int, val score: Int, val last: Answer? = null) : SessionUi
     data class Feedback(val answer: Answer, val number: Int) : SessionUi
     data class Finished(val summary: SessionSummary) : SessionUi
 }
@@ -45,6 +54,10 @@ data class SessionSummary(
     /** The map test's score, and for a post-test the pre-test to compare it with. */
     val mapTest: MapTestResult? = null,
     val preTest: MapTestResult? = null,
+    /** A blitz: the time ran out. */
+    val blitz: Boolean = false,
+    /** A road trip: its stops, from the start. */
+    val trip: List<Place> = emptyList(),
 )
 
 enum class SessionKind {
@@ -64,6 +77,12 @@ enum class SessionKind {
 
     /** A Trace It round from home: the Jordan and the streams the player has met. */
     TRACE,
+
+    /** Free play: a minute of Pin It on learned places, as many as the player can find. */
+    BLITZ,
+
+    /** Free play: a chain of stops across the map, each found with Pin It. */
+    ROAD_TRIP,
 }
 
 class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) : ViewModel() {
@@ -79,11 +98,22 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     private val source = when (kind) {
         SessionKind.PLACEMENT -> AnswerSource.PLACEMENT
         SessionKind.MAP_TEST -> AnswerSource.MAP_TEST
+        SessionKind.BLITZ -> AnswerSource.BLITZ
+        SessionKind.ROAD_TRIP -> AnswerSource.ROAD_TRIP
         else -> AnswerSource.PRACTICE
     }
 
     /** Questions in the map test, shown as "question 3 of 20"; null in other sessions. */
     val mapTestSize: Int? = if (kind == SessionKind.MAP_TEST) MapTest.ITEMS.size else null
+
+    /** A road trip's stops, from the start; empty in other sessions and until it is planned. */
+    var trip: List<Place> = emptyList()
+        private set
+
+    private var blitz: Blitz? = null
+
+    /** A blitz's time left; null in other sessions. */
+    fun remainingMs(): Long? = blitz?.remainingMs()
 
     init {
         viewModelScope.launch {
@@ -93,6 +123,10 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                 SessionKind.MAP_TEST -> {
                     if (app.progress.hasAnsweredWithFeedback()) mapTestKind = MapTestKind.POST
                     MapTest(app.content)
+                }
+                SessionKind.BLITZ -> Blitz(app.content, app.scheduler, app.progress.cards(), blitzDurationMs).also { blitz = it }
+                SessionKind.ROAD_TRIP -> app.progress.cards().let { cards ->
+                    RoadTrip(app.scheduler, cards, RoadTrip.plan(app.content, cards)).also { trip = it.stops }
                 }
                 else -> SessionEngine(
                     content = app.content,
@@ -111,8 +145,18 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                     ),
                 )
             }
-            advance()
+            if (kind == SessionKind.BLITZ || kind == SessionKind.ROAD_TRIP) _ui.value = SessionUi.Ready else advance()
         }
+    }
+
+    /** Free play: the player is ready, and a blitz's clock starts. */
+    fun onStart() {
+        if (_ui.value == SessionUi.Ready) advance()
+    }
+
+    /** The blitz clock ran out: the open question goes unanswered. */
+    fun onTimeUp() {
+        if (kind == SessionKind.BLITZ && _ui.value is SessionUi.Ask) _ui.value = SessionUi.Finished(summary())
     }
 
     fun onDiscovered() {
@@ -140,26 +184,33 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     private inline fun answer(response: Response, accepts: (Question) -> Boolean) {
         val ui = _ui.value as? SessionUi.Ask ?: return
         if (!accepts(ui.question)) return
+        // A tap after the blitz clock ran out does not count.
+        if (blitz?.isOver == true) return onTimeUp()
         val answer = engine.submit(ui.question, response, System.currentTimeMillis() - askedAt)
         viewModelScope.launch { app.progress.save(answer, sessionId, source) }
-        // The map test measures and does not teach: straight on to the next place.
-        if (kind == SessionKind.MAP_TEST) advance() else _ui.value = SessionUi.Feedback(answer, ui.number)
+        when (kind) {
+            // The map test measures and does not teach: straight on to the next place.
+            SessionKind.MAP_TEST -> advance()
+            // A blitz runs against the clock: the next place at once, this answer shown on the map.
+            SessionKind.BLITZ -> advance(last = answer)
+            else -> _ui.value = SessionUi.Feedback(answer, ui.number)
+        }
     }
 
-    private fun advance() {
+    private fun advance(last: Answer? = null) {
         val q = engine.next()
         if (q == null && kind == SessionKind.MAP_TEST) return finishMapTest()
         _ui.value = when {
             q == null -> SessionUi.Finished(summary())
             q is Question.Locate && q.isNew -> SessionUi.Discover(q, number + 1)
-            else -> return ask(q)
+            else -> return ask(q, last)
         }
     }
 
-    private fun ask(q: Question) {
+    private fun ask(q: Question, last: Answer? = null) {
         number++
         askedAt = System.currentTimeMillis()
-        _ui.value = SessionUi.Ask(q, number, score())
+        _ui.value = SessionUi.Ask(q, number, score(), last)
     }
 
     private fun score(): Int = engine.answers.sumOf { it.grade.points }
@@ -185,6 +236,14 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             points = score(),
             maxPoints = answers.size * Grader.MAX_POINTS,
             placement = kind == SessionKind.PLACEMENT,
+            blitz = kind == SessionKind.BLITZ,
+            trip = trip,
         )
+    }
+
+    companion object {
+        /** How long a blitz lasts; tests shorten it. */
+        @VisibleForTesting
+        var blitzDurationMs = Blitz.DURATION_MS
     }
 }

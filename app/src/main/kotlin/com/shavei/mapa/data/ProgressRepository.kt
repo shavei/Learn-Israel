@@ -30,6 +30,10 @@ enum class AnswerSource {
 
     /** Measures without teaching: no card changes. */
     MAP_TEST,
+
+    /** Free play: Blitz and Road Trip, practice at a reduced weight (the engine decides what the card keeps). */
+    BLITZ,
+    ROAD_TRIP,
 }
 
 class ProgressRepository(
@@ -96,7 +100,7 @@ class ProgressRepository(
         val key = answer.question.key
         val c = answer.after
         val saveCard = when (source) {
-            AnswerSource.PRACTICE -> true
+            AnswerSource.PRACTICE, AnswerSource.BLITZ, AnswerSource.ROAD_TRIP -> true
             AnswerSource.PLACEMENT -> answer.grade.isCorrect
             AnswerSource.MAP_TEST -> false
         }
@@ -123,6 +127,7 @@ class ProgressRepository(
                     AnswerSource.PRACTICE -> mode(answer.question)
                     AnswerSource.PLACEMENT -> PLACEMENT
                     AnswerSource.MAP_TEST -> MAP_TEST
+                    AnswerSource.BLITZ, AnswerSource.ROAD_TRIP -> source.name
                 },
                 sessionId = sessionId,
                 timestamp = answer.at,

@@ -217,9 +217,26 @@ smaller releases, in order of learning value, each playable on its own.
   question; the Jordan and all 8 streams, craters Pin It only
 - Not yet: roads (with the highways), the coastline, and seas or neighbors in Map Builder
 
-### 2c. Free play: Blitz and Road Trip
-- [ ] Blitz: 60 seconds of Pin It on learned places, at reduced weight
-- [ ] Road Trip: a chain of stops drawn across the map
+### 2c. Free play: Blitz and Road Trip - built
+- [x] Blitz: 60 seconds of Pin It on learned places (past their learning steps), each
+      once in random order before any comes back; no feedback card, the next place comes
+      at once with the last answer shown faintly on the map and its points above the
+      question; the clock starts on "start" and a tap after it runs out does not count
+- [x] Road Trip: a chain of 5 stops through learned towns, lakes, mountains, reserves,
+      sites, ports and airports, planned on the spot: each leg 12 to 70 km, never turning
+      back by more than 75 degrees. The start is given; each further stop is a Pin It
+      question with full feedback, and the route draws from stop to stop as they are found
+- [x] Reduced weight for both (docs/04-learning-engine.md, "Free play"): a miss always
+      counts, a success only on a card due within 2 days, and only a place's first answer
+      in a round; a blitz never rates an answer EASY for speed
+- [x] Home offers both once places are learned: Blitz from 4 learned places, Road Trip
+      once a trip of at least 3 stops can be planned
+- [x] Answers are logged as BLITZ and ROAD_TRIP; they count as practice for the streak
+      and the stats, but not for the history of Pin It errors
+- Decided (doc 10): free play only on learned places; the same reduced weight for Road
+  Trip as for Blitz; trips are planned from the player's own places, not written by hand
+- Not yet: written trips with a story ("You land at Ben Gurion..."), trips along the
+  highways (with the highways), and a best Blitz score (points are not stored yet)
 
 ### 2d. Motivation
 - [ ] Achievements and ranks tied to places at high stability

@@ -12,6 +12,8 @@
     <string name="home_daily_done">האימון היומי הושלם. אפשר להמשיך ללמוד כמה שרוצים.</string>
     <string name="home_build">הרכבת המפה</string>
     <string name="home_trace">ציור נחלים</string>
+    <string name="home_blitz">בליץ</string>
+    <string name="home_trip">מסע בדרכים</string>
     <string name="home_new_cap">למדתם היום %1$d מקומות חדשים, כל מה שהקצב שבחרתם מאפשר. אפשר לשנות את הקצב בהגדרות, או לחזק מקומות שכבר למדתם.</string>
     <string name="attribution">נתוני מפה: הלמ״ס, משרד החקלאות, UN OCHA, GeoNames, © OpenStreetMap contributors, Copernicus DEM</string>
     <string name="discover_title">מקום חדש</string>
@@ -56,6 +58,26 @@
     <string name="trace_clear">מחיקה</string>
     <string name="trace_done">סיימתי</string>
     <string name="trace_counter">ציור נחלים · שאלה %1$d</string>
+    <string name="blitz_title">בליץ</string>
+    <string name="blitz_rules">דקה אחת: סמנו כמה שיותר מקומות שכבר למדתם. השעון לא עוצר בין שאלה לשאלה.</string>
+    <string name="blitz_go">התחילו!</string>
+    <string name="blitz_counter">בליץ · שאלה %1$d</string>
+    <string name="blitz_clock">נותרו %1$d שניות</string>
+    <string name="blitz_last">%1$s: %2$s נקודות</string>
+    <string name="blitz_summary_title">נגמר הזמן!</string>
+    <plurals name="blitz_summary_found">
+        <item quantity="one">מקום אחד נכון מתוך %2$d</item>
+        <item quantity="two">2 מקומות נכונים מתוך %2$d</item>
+        <item quantity="many">%1$d מקומות נכונים מתוך %2$d</item>
+        <item quantity="other">%1$d מקומות נכונים מתוך %2$d</item>
+    </plurals>
+    <string name="trip_title">מסע בדרכים</string>
+    <string name="trip_from">יוצאים מ־%1$s</string>
+    <string name="trip_rules">בכל תחנה סמנו על המפה את היעד הבא. הדרך תסומן על המפה בכל תחנה שתמצאו.</string>
+    <string name="trip_go">יוצאים לדרך</string>
+    <string name="trip_none">עדיין אין מספיק מקומות קרובים שלמדתם בשביל מסע. המשיכו באימון היומי.</string>
+    <string name="trip_counter">מסע בדרכים · תחנה %1$d מתוך %2$d</string>
+    <string name="trip_summary_title">הגעתם ליעד!</string>
     <string name="feedback_mean_distance">סטייה ממוצעת של %1$s ק״מ</string>
 
     <string name="back">חזרה</string>

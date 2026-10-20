@@ -34,7 +34,8 @@ data class ReviewEntity(
     val facet: String,
     /**
      * The question type: LOCATE, BUILD (Map Builder), TRACE (Trace It), NAME_CHOICE,
-     * NAME_TYPED, RELATE, or PLACEMENT and MAP_TEST for the two tests, which are not practice.
+     * NAME_TYPED, RELATE, BLITZ and ROAD_TRIP (free play, Pin It at a reduced weight), or
+     * PLACEMENT and MAP_TEST for the two tests, which are not practice.
      */
     val mode: String,
     val sessionId: String,

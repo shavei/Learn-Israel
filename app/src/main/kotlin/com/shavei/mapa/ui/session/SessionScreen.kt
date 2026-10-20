@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -70,6 +71,7 @@ import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
 import com.shavei.mapa.ui.theme.LocalMapPalette
 import com.shavei.mapa.ui.theme.MapPalette
+import kotlinx.coroutines.delay
 
 @Composable
 fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: Boolean, onExit: () -> Unit) {
@@ -101,14 +103,47 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 }
             }
             is SessionUi.Discover -> camera.ensureVisible(listOf(s.question.place.label), topPx, bottomPx)
+            // A road trip opens on the whole map with its start, and ends on the whole route.
+            SessionUi.Ready, is SessionUi.Finished -> {
+                camera.setFramePadding(topPx, 0f)
+                camera.reset()
+                viewModel.trip.takeIf { it.isNotEmpty() }?.let { trip ->
+                    camera.ensureVisible((if (s is SessionUi.Ready) trip.take(1) else trip).map { it.label }, topPx, bottomPx)
+                }
+            }
             is SessionUi.Feedback -> camera.ensureVisible(feedbackPoints(s.answer), topPx, bottomPx)
             else -> Unit
         }
     }
 
-    val decorations = when (val s = ui) {
+    // The blitz clock: shown above each question, and the round ends when it runs out.
+    var remainingMs by remember { mutableLongStateOf(viewModel.remainingMs() ?: 0L) }
+    val blitzRunning = viewModel.kind == SessionKind.BLITZ && ui is SessionUi.Ask
+    LaunchedEffect(blitzRunning) {
+        while (blitzRunning) {
+            remainingMs = viewModel.remainingMs() ?: 0L
+            if (remainingMs <= 0L) {
+                viewModel.onTimeUp()
+                break
+            }
+            delay(CLOCK_TICK_MS)
+        }
+    }
+
+    // A road trip draws its route through the stops found so far: on a question, up to the
+    // last stop; on its feedback, on to this one; at the end, the whole way.
+    val trip = viewModel.trip
+    val route = when (val s = ui) {
+        SessionUi.Ready -> trip.take(1)
+        is SessionUi.Ask -> trip.take(s.number)
+        is SessionUi.Feedback -> trip.take(s.number + 1)
+        is SessionUi.Finished -> trip
+        else -> emptyList()
+    }
+    val decorations = routeDecorations(route, colors) + when (val s = ui) {
         is SessionUi.Discover -> placeDecorations(s.question.place, colors)
-        is SessionUi.Ask -> askDecorations(s.question, colors)
+        // In a blitz the last answer stays on the map, faintly, under the next question.
+        is SessionUi.Ask -> s.last?.let { blitzDecorations(it, colors) }.orEmpty() + askDecorations(s.question, colors)
         is SessionUi.Feedback -> feedbackDecorations(s.answer, colors)
         else -> emptyList()
     }
@@ -178,8 +213,19 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
             Modifier.safeDrawingPadding().padding(12.dp).fillMaxWidth().align(Alignment.TopCenter)
                 .onGloballyPositioned { topPx = it.boundsInRoot().bottom },
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = onExit) { Text(stringResource(R.string.quit)) }
+                // The blitz clock stays out of the question's live region, so a screen reader
+                // does not announce every second; it can still be read on demand.
+                if (blitzRunning) {
+                    Text(
+                        stringResource(R.string.blitz_clock, ((remainingMs + 999) / 1000).toInt()),
+                        Modifier.testTag("blitz-clock"),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (remainingMs < CLOCK_WARNING_MS) colors.missText else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
             val ask = ui as? SessionUi.Ask
             if (ask != null) {
@@ -188,11 +234,18 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                     SessionKind.MAP_TEST -> stringResource(R.string.map_test_counter, ask.number, viewModel.mapTestSize ?: 0)
                     SessionKind.BUILD -> stringResource(R.string.build_counter, ask.number)
                     SessionKind.TRACE -> stringResource(R.string.trace_counter, ask.number)
+                    SessionKind.BLITZ -> stringResource(R.string.blitz_counter, ask.number)
+                    SessionKind.ROAD_TRIP -> stringResource(R.string.trip_counter, ask.number, trip.size - 1)
                     else -> stringResource(R.string.ask_counter, ask.number)
                 }
                 // The map test measures without feedback, so it shows no score.
                 val score = if (viewModel.kind == SessionKind.MAP_TEST) null else ask.score
-                PromptCard(ask.question, counter, score)
+                val note = when {
+                    ask.last != null -> blitzNote(ask.last)
+                    viewModel.kind == SessionKind.ROAD_TRIP -> trip.getOrNull(ask.number - 1)?.let { Note(stringResource(R.string.trip_from, it.name)) }
+                    else -> null
+                }
+                PromptCard(ask.question, counter, score, note)
             }
         }
         // Scrolls rather than covering the map when the system font is very large.
@@ -204,6 +257,7 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         ) {
             when (val s = ui) {
                 SessionUi.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                SessionUi.Ready -> ReadyCard(viewModel.kind, trip.firstOrNull(), viewModel::onStart)
                 is SessionUi.Discover -> DiscoverCard(s.question.place, viewModel::onDiscovered)
                 is SessionUi.Ask -> when (val q = s.question) {
                     is Question.NameChoice -> OptionsCard(q.options, viewModel::onChoose)
@@ -221,7 +275,7 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
 }
 
 @Composable
-private fun PromptCard(question: Question, counter: String, score: Int?) {
+private fun PromptCard(question: Question, counter: String, score: Int?, note: Note? = null) {
     Card(Modifier.fillMaxWidth()) {
         // Read as one announcement when a new question appears.
         Column(Modifier.padding(16.dp).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
@@ -236,6 +290,7 @@ private fun PromptCard(question: Question, counter: String, score: Int?) {
                     )
                 }
             }
+            note?.let { Text(it.text, style = MaterialTheme.typography.titleSmall, color = it.color ?: Color.Unspecified) }
             Text(promptText(question), style = MaterialTheme.typography.headlineSmall)
             val hint = when (question) {
                 is Question.Locate -> question.hint
@@ -331,6 +386,42 @@ private fun TraceCard(canFinish: Boolean, onClear: () -> Unit, onDone: () -> Uni
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onClear, enabled = canFinish) { Text(stringResource(R.string.trace_clear)) }
                 Button(onClick = onDone, enabled = canFinish, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.trace_done)) }
+            }
+        }
+    }
+}
+
+/** A line above a question: where a road trip leg starts, or how the last blitz answer went. */
+private data class Note(val text: String, val color: Color? = null)
+
+@Composable
+private fun blitzNote(last: Answer): Note {
+    val colors = LocalMapPalette.current
+    val color = when (last.grade.rating) {
+        Rating.GOOD, Rating.EASY -> colors.goodText
+        Rating.HARD -> colors.closeText
+        Rating.AGAIN -> colors.missText
+    }
+    return Note(stringResource(R.string.blitz_last, last.place.name, formatPoints(last.grade.points)), color)
+}
+
+/** Free play before it starts: the rules of a blitz, or a road trip's start. */
+@Composable
+private fun ReadyCard(kind: SessionKind, start: Place?, onStart: () -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (kind == SessionKind.BLITZ) {
+                Text(stringResource(R.string.blitz_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.blitz_rules), style = MaterialTheme.typography.titleMedium)
+                Button(onClick = onStart, Modifier.fillMaxWidth()) { Text(stringResource(R.string.blitz_go)) }
+            } else if (start != null) {
+                Text(stringResource(R.string.trip_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.trip_from, start.name), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.trip_rules))
+                Button(onClick = onStart, Modifier.fillMaxWidth()) { Text(stringResource(R.string.trip_go)) }
+            } else {
+                // Home offers a road trip only when one can be planned; this is the rare case it cannot.
+                Text(stringResource(R.string.trip_none), style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -450,6 +541,15 @@ private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
                     }
                     test.kind == MapTestKind.PRE -> Text(stringResource(R.string.map_test_pre_note))
                 }
+            } else if (summary.blitz) {
+                Text(stringResource(R.string.blitz_summary_title), style = MaterialTheme.typography.headlineSmall)
+                SummaryPoints(summary)
+                Text(pluralStringResource(R.plurals.blitz_summary_found, summary.correct, summary.correct, summary.answers))
+            } else if (summary.trip.isNotEmpty()) {
+                Text(stringResource(R.string.trip_summary_title), style = MaterialTheme.typography.headlineSmall)
+                SummaryPoints(summary)
+                Text(summary.trip.joinToString(" ← ") { it.name }, style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.placement_summary_found, summary.correct, summary.answers))
             } else if (summary.placement) {
                 Text(stringResource(R.string.placement_summary_title), style = MaterialTheme.typography.headlineSmall)
                 SummaryPoints(summary)
@@ -555,6 +655,31 @@ private fun feedbackDecorations(answer: Answer, colors: MapPalette): List<MapDec
         }
     }
 }
+
+/** A road trip's route: a line through the stops, each marked and named. */
+private fun routeDecorations(stops: List<Place>, colors: MapPalette): List<MapDecoration> {
+    if (stops.isEmpty()) return emptyList()
+    return listOf(MapDecoration.Drawing(stops.map { it.label }, colors.mastery)) +
+        stops.map { MapDecoration.Marker(it.label, colors.mastery, radiusPx = 7f) } +
+        stops.map { MapDecoration.Label(it.label, it.name) }
+}
+
+/** The last blitz answer, faint: where the place is and where the tap landed. */
+private fun blitzDecorations(answer: Answer, colors: MapPalette): List<MapDecoration> {
+    val tap = (answer.response as? Response.Tap)?.at ?: return emptyList()
+    val color = if (answer.grade.isCorrect) colors.good else colors.target
+    return buildList {
+        add(MapDecoration.Highlight(answer.place.shape, color, alpha = 0.3f))
+        if ((answer.grade.errorMeters ?: 0.0) > 0) add(MapDecoration.Connector(tap, answer.place.shape.nearestAnchor(tap), colors.tap))
+        add(MapDecoration.Marker(tap, colors.tap, radiusPx = 6f))
+    }
+}
+
+/** How often the blitz clock is checked. */
+private const val CLOCK_TICK_MS = 200L
+
+/** The blitz clock turns red for its last seconds. */
+private const val CLOCK_WARNING_MS = 10_000L
 
 /** A Trace It stroke that starts this close to the end of the last one (screen pixels) continues it. */
 private const val CONTINUE_PX = 60.0

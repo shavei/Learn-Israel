@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.PlaceType
+import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.ui.Panel
 import com.shavei.mapa.ui.formatTime
@@ -57,6 +58,8 @@ fun HomeScreen(
     onMapTest: () -> Unit,
     /** A Map Builder or Trace It round. */
     onDrill: (Drill) -> Unit,
+    onBlitz: () -> Unit,
+    onRoadTrip: () -> Unit,
 ) {
     LaunchedEffect(Unit) { viewModel.refresh() }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -155,6 +158,17 @@ fun HomeScreen(
                         }
                         OutlinedButton(onClick = { onDrill(Drill.TRACE) }, Modifier.weight(1f), enabled = state.tracePlaces > 0) {
                             Text(stringResource(R.string.home_trace))
+                        }
+                    }
+                }
+                // Free play on learned places.
+                if (state.freePlayPlaces > 0) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onBlitz, Modifier.weight(1f), enabled = state.freePlayPlaces >= Blitz.MIN_PLACES) {
+                            Text(stringResource(R.string.home_blitz))
+                        }
+                        OutlinedButton(onClick = onRoadTrip, Modifier.weight(1f), enabled = state.roadTripReady) {
+                            Text(stringResource(R.string.home_trip))
                         }
                     }
                 }

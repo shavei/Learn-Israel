@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
 import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.learning.Facet
+import com.shavei.mapa.learning.FreePlay
 import com.shavei.mapa.learning.MapTest
+import com.shavei.mapa.learning.RoadTrip
 import com.shavei.mapa.learning.SessionConfig
 import com.shavei.mapa.learning.Streak
 import com.shavei.mapa.learning.isKnown
@@ -34,6 +36,10 @@ data class HomeState(
     val buildPlaces: Int = 0,
     /** The Jordan and the streams in practice, for a Trace It round. */
     val tracePlaces: Int = 0,
+    /** Places past their learning steps, for free play: a blitz needs a few of them. */
+    val freePlayPlaces: Int = 0,
+    /** Learned places near enough to each other for a road trip. */
+    val roadTripReady: Boolean = false,
     /** placeId to 0..1 strength shown on the mastery map. */
     val mastery: Map<String, Double> = emptyMap(),
     val streak: Streak = Streak(0, 0, false),
@@ -80,6 +86,8 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
                 newPerDay = config.maxNewPerDay,
                 buildPlaces = locate.keys.count { app.content.place(it)?.type?.let(Drill::of) == Drill.BUILD },
                 tracePlaces = locate.keys.count { app.content.place(it)?.type?.let(Drill::of) == Drill.TRACE },
+                freePlayPlaces = FreePlay.learned(app.content, cards).size,
+                roadTripReady = RoadTrip.plan(app.content, cards).isNotEmpty(),
                 mastery = locate.mapValues { (_, c) -> app.scheduler.mastery(c.fsrs, now) },
                 streak = Streak.of(daysPlayed, today),
                 offerReminder = offerReminder,

@@ -94,10 +94,15 @@ review of a region, a district or a line is its Map Builder or Trace It question
 of the time; places still being learned, and struggling places, get Pin It. Home also
 offers a round of each, on the places of its kind the player has met.
 
-### 7. Road Trip (story mode, later)
-A narrative chain: "You land at Ben Gurion. Drive to the Dead Sea, then to Masada,
-then down to Eilat." Each stop is a Pin It question; the route draws across the map.
-Builds route knowledge on top of survey knowledge, and is great for tourists.
+### 7. Road Trip (free play)
+A chain of stops: "You start in Ashdod. Drive on to Rehovot, then Herzliya, Netanya and
+Hadera." Each stop after the start is a Pin It question with its feedback; the route
+draws across the map from stop to stop as they are found, and the summary shows the
+whole way. Trips are planned on the spot from the places the player has learned (towns,
+lakes, mountains, reserves, sites, ports and airports): five stops, each leg 12 to 70 km,
+keeping the road's direction. Builds route knowledge on top of survey knowledge, and is
+great for tourists. Written trips with a story ("You land at Ben Gurion. Drive to the
+Dead Sea, then to Masada, then down to Eilat") can come later.
 
 ### 8. Daily Challenge (social)
 Same 10 questions for everyone that day, Wordle style. Score = total km error. A
@@ -105,8 +110,11 @@ shareable emoji result (no spoilers). Drives word of mouth.
 
 ### 9. Blitz (free play)
 60 seconds, as many correct pins as possible, from places you have *already learned*
-only. Fun, fast, and still a valid retrieval: results feed the scheduler at a reduced
-weight because speed pressure changes the signal.
+only (past their learning steps), each once in random order before any comes back.
+There is no feedback card to stop the clock: the next place comes at once, with the
+last answer shown faintly on the map and its points above the question. Fun, fast, and
+still a valid retrieval: results feed the scheduler at a reduced weight because speed
+pressure changes the signal. Home offers it once 4 places are learned.
 
 ## Progression and structure
 
