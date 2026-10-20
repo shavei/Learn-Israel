@@ -53,7 +53,7 @@ Map answers are not binary. We convert error to an FSRS grade.
 d       = distance from tap to the place (km); a tap inside a city polygon is d = 0
 tol     = base tolerance x learning multiplier
           base: city, the Jordan, mountain and crater 4 km; site, reserve, port,
-          airport, stream and road 3 km (small targets, often next to a city);
+          airport and stream 3 km (small targets, often next to a city);
           a long ridge its own (the Carmel 8 km, the Hermon and the Gilboa 6 km);
           areas max(2 km, 10% of their size)
           multiplier by the LOCATE card's stability (how well the place is known):
@@ -76,7 +76,7 @@ target; precision is asked for once the memory is stable.
 Tap inside the polygon = Good (Easy with the speed/confidence rule). Outside: `d` is
 the distance to the polygon edge, `tol` scales with the square root of the area.
 
-### LOCATE on a line item (river, stream, road, crater) in Pin It
+### LOCATE on a line item (river, stream, crater; later roads) in Pin It
 "Tap anywhere on Route 90". Distance to the nearest segment, tolerance by line type.
 A crater is drawn in OpenStreetMap as a line along its floor, so it is graded as one.
 In Trace It: mean distance between the drawn path and the true line, graded by bands.

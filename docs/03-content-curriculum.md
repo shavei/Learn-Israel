@@ -80,12 +80,12 @@ Example units (each 4 to 10 places):
 | Negev | Dimona, Arad, Yeruham, Mitzpe Ramon, Rahat |
 | Arava and Eilat | Eilat, Yotvata, Ein Yahav |
 
-## Tiers 4 to 6: nature, infrastructure and heritage (55 items, built in Phase 2a)
+## Tiers 4 to 6: nature, infrastructure and heritage (49 items, built in Phase 2a)
 
 Taught after the core (tiers 0 to 3), in themed units. Each place type belongs to one
 theme, which the progress screen counts separately. Geometry: points copied from
 OpenStreetMap objects (named beside each place in `content/places.yaml`), rivers and
-craters from OSM ways and relations, highways as every main road with their number.
+craters from OSM ways and relations.
 
 **Tier 4, nature (22):**
 - *Mountains:* Hermon, Meron, the Carmel, Tabor, Gilboa, Arbel.
@@ -94,9 +94,7 @@ craters from OSM ways and relations, highways as every main road with their numb
 - *Springs and reserves:* the Dan and the Hermon stream (Banias), the Hula reserve,
   Ein Gedi, Ein Avdat, Timna Park.
 
-**Tier 5, infrastructure (11):**
-- *Highways:* Route 1, the coastal highway (2), the Trans-Israel Highway (6), Route 4,
-  Route 90, Route 40.
+**Tier 5, infrastructure (5):**
 - *Gateways:* Ben Gurion and Ramon airports; the ports of Haifa, Ashdod and Eilat.
 
 **Tier 6, heritage (22):**
@@ -111,7 +109,8 @@ craters from OSM ways and relations, highways as every main road with their numb
 Left out on purpose: the Jordan (already in the frame), the Hula and Jezreel valleys,
 the Jordan Valley and the Arava (already natural regions), Haifa airport (a kilometer
 from Haifa port), Tel Dan (beside the Dan springs), the Hasbani (mostly in Lebanon).
-Still to come: more nature reserves and valleys, Mount Carmel's and the Golan's sites,
+Still to come: the highways (Routes 1, 2, 4, 6, 40 and 90; left for later because the
+OSM servers that give a highway by its number were not answering), more nature reserves and valleys, Mount Carmel's and the Golan's sites,
 and a richer fact card for heritage sites.
 
 ## Tier 7: Deep cuts (open ended, 300+ items)

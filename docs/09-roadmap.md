@@ -174,23 +174,23 @@ Goal: more to learn after the cities, and more ways to practice it. Built as fiv
 smaller releases, in order of learning value, each playable on its own.
 
 ### 2a. Tiers 4 to 6 - built
-- [x] 55 new places after the core, in 11 themed units: 22 of nature (mountains,
-      craters, streams, springs and reserves), 11 of infrastructure (six highways, two
-      airports, three ports) and 22 heritage sites (docs/03-content-curriculum.md)
-- [x] Geometry from OpenStreetMap: rivers and craters by their way or relation,
-      highways as every main road with their number (from the Overpass API), points
+- [x] 49 new places after the core, in 10 themed units: 22 of nature (mountains,
+      craters, streams, springs and reserves), 5 of infrastructure (two airports, three
+      ports) and 22 heritage sites (docs/03-content-curriculum.md)
+- [x] Geometry from OpenStreetMap: rivers and craters by their way or relation, points
       copied from the OSM object named beside each place
 - [x] Each place type belongs to a theme (core, nature, infrastructure, heritage);
-      Name It offers names of the same kind first (roads with roads, sites with
-      reserves), then of the same theme
-- [x] Tolerances: 3 km for sites, reserves, ports, airports, streams and roads (small
+      Name It offers names of the same kind first (streams with streams, sites
+      with reserves), then of the same theme
+- [x] Tolerances: 3 km for sites, reserves, ports, airports and streams (small
       targets, often next to a city), 4 km for mountains and craters, and a tolerance
       of its own for a long ridge (the Carmel 8 km)
-- [x] A missed tap names the other road or site the player probably meant
+- [x] A missed tap names the other stream or site the player probably meant
 - [x] Progress screen and "Share results": places practiced and known in each theme,
       so the exit test can see who continues past Tier 3
 - [x] The placement test stays on the core; region percentages count cities only
 - [ ] Human review of the new names, hints and facts
+- [ ] The highways (Routes 1, 2, 4, 6, 40 and 90): left out for now
 
 ### 2b. Map Builder and Trace It
 - [ ] Map Builder: drag region and district shapes into place on the outline

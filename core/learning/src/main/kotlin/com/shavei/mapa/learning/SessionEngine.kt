@@ -291,7 +291,7 @@ class SessionEngine(
     /**
      * The place the player most likely meant when a tap missed: for a region or a
      * district, the one the tap fell in; otherwise a city, or a place of the same kind
-     * (another road, another site), within its own tolerance of the tap.
+     * (another stream, another site), within its own tolerance of the tap.
      */
     private fun nearestOtherPlace(target: Place, tap: Response.Tap): Place? {
         val areaKind = target.type == PlaceType.REGION || target.type == PlaceType.DISTRICT
@@ -311,8 +311,8 @@ class SessionEngine(
 
     /**
      * Places of one kind stand in for each other as wrong names: cities, regions,
-     * districts, the frame, mountains and craters, streams, reserves and sites, roads,
-     * and airports and ports.
+     * districts, the frame, mountains and craters, streams, reserves and sites, and
+     * airports and ports.
      */
     private val PlaceType.kind: PlaceType
         get() = when (this) {

@@ -15,7 +15,7 @@ import com.shavei.mapa.learning.fsrs.Rating
  * 2. If most are right, the other units of the core (the frame, regions and cities) in
  *    curriculum order: each unit's most important place, and a second one when the first
  *    is right. Three missed units in a row mean the player has reached the edge of what
- *    they know, and the test ends. Nature, roads and heritage are not tested: they come
+ *    they know, and the test ends. Nature, ports and heritage are not tested: they come
  *    after the core either way.
  *
  * A place found within its tolerance is seeded as if reviewed once with GOOD, straight

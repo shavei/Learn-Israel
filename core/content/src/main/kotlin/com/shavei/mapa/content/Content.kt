@@ -27,8 +27,6 @@ enum class PlaceType(val theme: Theme) {
     /** A nature reserve, a spring or an oasis. */
     RESERVE(Theme.NATURE),
 
-    /** A highway, by every road that carries its number. */
-    ROAD(Theme.INFRASTRUCTURE),
     AIRPORT(Theme.INFRASTRUCTURE),
     PORT(Theme.INFRASTRUCTURE),
 

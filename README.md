@@ -3,9 +3,9 @@
 An Android game, in Hebrew, that teaches the geography of Israel, built on the science of how
 people actually remember.
 
-> **Status:** Phase 2 in progress. A daily session on a blank map with 208 places
-> (the frame, 19 natural regions, 7 districts and 118 cities and towns, then 55
-> mountains, craters, streams, highways, ports and heritage sites): find them,
+> **Status:** Phase 2 in progress. A daily session on a blank map with 202 places
+> (the frame, 19 natural regions, 7 districts and 118 cities and towns, then 49
+> mountains, craters, streams, reserves, ports and heritage sites): find them,
 > name them (choice, then typed), and relate them ("which is further north?"),
 > scheduled by spaced repetition (FSRS). Onboarding with a placement test, a progress
 > screen with region percentages, a daily streak and reminder, settings, and dark
