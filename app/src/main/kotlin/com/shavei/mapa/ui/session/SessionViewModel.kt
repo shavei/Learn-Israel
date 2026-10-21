@@ -73,6 +73,8 @@ data class SessionSummary(
      */
     val blitzRecordBefore: BlitzRecord? = null,
     val blitzSaved: Boolean = false,
+    /** A blitz: every answer, in order, so the summary map shows each one as it was shown in play. */
+    val results: List<Answer> = emptyList(),
     /** A road trip: its stops, from the start. */
     val trip: List<Place> = emptyList(),
     /** Every place asked in this session, once each, in order: the summary map lights them up. */
@@ -405,6 +407,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             maxPoints = answers.size * Grader.MAX_POINTS,
             placement = kind == SessionKind.PLACEMENT,
             blitz = kind == SessionKind.BLITZ,
+            results = if (kind == SessionKind.BLITZ) answers.toList() else emptyList(),
             trip = trip,
             practiced = practiced,
             found = practiced.filter { p -> answers.any { it.place == p && it.grade.isCorrect } },

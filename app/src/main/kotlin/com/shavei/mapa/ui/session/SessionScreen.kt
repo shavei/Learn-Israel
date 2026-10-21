@@ -149,6 +149,10 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 viewModel.trip.takeIf { it.isNotEmpty() }?.let { trip ->
                     camera.ensureVisible((if (s is SessionUi.Ready) trip.take(1) else trip).map { it.label }, frameTop, frameBottom)
                 }
+                // A blitz ends on every place it asked and every tap, above the summary.
+                (s as? SessionUi.Finished)?.summary?.results?.takeIf { it.isNotEmpty() }?.let { results ->
+                    camera.ensureVisible(results.flatMap { feedbackPoints(it, content) }, frameTop, frameBottom)
+                }
             }
             is SessionUi.Feedback -> {
                 // Naming among places a few kilometers apart: close enough to tell them apart.
@@ -195,8 +199,11 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
             else -> blitzDecorations(s.last, colors)
         } + askDecorations(s.question, colors)
         is SessionUi.Feedback -> feedbackDecorations(s.answer, content, colors)
-        // The summary lights up the places of this session (a road trip shows its route instead).
-        is SessionUi.Finished -> if (s.summary.mapTest == null && trip.isEmpty()) {
+        // The summary lights up the places of this session (a road trip shows its route instead,
+        // and a blitz every answer as it was shown in play).
+        is SessionUi.Finished -> if (s.summary.results.isNotEmpty()) {
+            blitzSummaryDecorations(s.summary, colors)
+        } else if (s.summary.mapTest == null && trip.isEmpty()) {
             s.summary.practiced.map { MapDecoration.Highlight(it.shape, colors.mastery, alpha = 0.35f) }
         } else {
             emptyList()
@@ -905,13 +912,29 @@ private fun mapTestTapDecorations(answer: Answer, colors: MapPalette): List<MapD
 
 /** The last blitz answer, faint: where the place is and where the tap landed. */
 private fun blitzDecorations(answer: Answer, colors: MapPalette): List<MapDecoration> {
-    val tap = (answer.response as? Response.Tap)?.at ?: return emptyList()
     val color = if (answer.grade.isCorrect) colors.good else colors.target
-    return buildList {
-        add(MapDecoration.Highlight(answer.place.shape, color, alpha = 0.3f))
-        if ((answer.grade.errorMeters ?: 0.0) > 0) add(MapDecoration.Connector(tap, answer.place.shape.nearestAnchor(tap), colors.tap))
-        add(MapDecoration.Marker(tap, colors.tap, radiusPx = 6f))
-    }
+    return listOf(MapDecoration.Highlight(answer.place.shape, color, alpha = 0.3f)) + blitzTap(answer, colors)
+}
+
+/** Where a blitz tap landed, and a line from it to the place when it missed. */
+private fun blitzTap(answer: Answer, colors: MapPalette): List<MapDecoration> {
+    val tap = (answer.response as? Response.Tap)?.at ?: return emptyList()
+    return listOfNotNull(
+        MapDecoration.Connector(tap, answer.place.shape.nearestAnchor(tap), colors.tap).takeIf { (answer.grade.errorMeters ?: 0.0) > 0 },
+        MapDecoration.Marker(tap, colors.tap, radiusPx = 6f),
+    )
+}
+
+/**
+ * The end of a blitz: every place it asked, as its answers were shown in play, green where
+ * it was found and in the target color where it was missed, each tap with its line, and
+ * every place named (a missed one in the miss color, so the result never rests on color alone).
+ */
+private fun blitzSummaryDecorations(summary: SessionSummary, colors: MapPalette): List<MapDecoration> {
+    val places = summary.results.map { it.place }.distinct()
+    return places.map { p -> MapDecoration.Highlight(p.shape, if (p in summary.found) colors.good else colors.target) } +
+        summary.results.flatMap { blitzTap(it, colors) } +
+        places.map { p -> MapDecoration.Label(p.label, p.name, if (p in summary.found) null else colors.missText) }
 }
 
 /** Naming options closer together than this are viewed close up (map meters). */
