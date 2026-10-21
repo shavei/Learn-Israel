@@ -259,7 +259,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             } else {
                 null
             }
-            val motivation = app.progress.motivation(app.content, now)
+            val motivation = app.progress.motivation(app.content, now, sessionAnswers = summary.answers)
             val finished = _ui.value as? SessionUi.Finished ?: return@launch
             _ui.value = finished.copy(
                 summary = finished.summary.copy(

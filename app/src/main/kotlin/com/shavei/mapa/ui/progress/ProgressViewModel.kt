@@ -88,7 +88,7 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                 learned = locate.size,
                 total = app.content.places.size,
                 streak = Streak.of(daysPlayed, LocalDate.now()),
-                regions = regionScores(app.content, mastery),
+                regions = regionScores(app.content, mastery, locate.filterValues { isKnown(it.fsrs) }.keys),
                 themes = themeScores(app.content, locate.keys, locate.filterValues { isKnown(it.fsrs) }.keys),
                 errorByDay = cityErrors.entries.sortedBy { it.key }.takeLast(HISTORY_DAYS).map { it.key to it.value.average() },
                 stats = LearningStats.of(records, app.content, now, zone),

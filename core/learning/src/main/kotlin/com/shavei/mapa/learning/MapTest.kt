@@ -37,6 +37,8 @@ class MapTest(
 
     val size: Int get() = places.size
 
+    override val plannedTotal: Int get() = places.size
+
     override fun next(): Question? =
         places.getOrNull(_answers.size)?.let { Question.Locate(it, isNew = false, hint = false) }
 
@@ -63,13 +65,14 @@ class MapTest(
 
     companion object {
         /**
-         * Two lakes, three anchor cities, four natural regions and eleven cities from
-         * every part of the country (Tiers 0 to 3), mixed so neighbors are not asked in
-         * a row.
+         * Five anchor cities, four natural regions and eleven cities from every part of
+         * the country (Tiers 0 to 3), mixed so neighbors are not asked in a row. Nothing
+         * the blank map already shows: no sea, lake or river ([PAINTED_PREFIXES]), which
+         * are painted on it and would be found without knowing them.
          */
         val ITEMS = listOf(
             "city.haifa",
-            "lake.dead_sea",
+            "city.eilat",
             "city.netanya",
             "region.golan",
             "city.beersheba",
@@ -77,7 +80,7 @@ class MapTest(
             "region.shephelah",
             "city.ashdod",
             "city.karmiel",
-            "lake.kinneret",
+            "city.tel_aviv",
             "city.arad",
             "region.sharon",
             "city.rehovot",
@@ -89,6 +92,9 @@ class MapTest(
             "city.beit_shemesh",
             "city.kiryat_shmona",
         )
+
+        /** Places drawn on the blank map itself (in blue): never in the test. */
+        val PAINTED_PREFIXES = listOf("sea.", "lake.", "river.")
 
         /** Days between map tests, and from the first practice to the first post-test. */
         const val INTERVAL_DAYS = 30L

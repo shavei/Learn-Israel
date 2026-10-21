@@ -95,6 +95,15 @@ class SessionEngine(
     private val focusQueue: ArrayDeque<CardKey> by lazy { ArrayDeque(Focus.plan(cards, tallies, config.size)) }
     private val focusRetried = mutableSetOf<CardKey>()
 
+    /**
+     * Focused practice: the round's length ("question 3 of 10"), never more than
+     * [SessionConfig.size]. A full round keeps its length: a miss comes back in place of the
+     * last card not yet asked. A shorter one (few places met) grows by a miss's retry, up to
+     * [SessionConfig.size]. Null for the other sessions, whose length follows the answers.
+     */
+    override val plannedTotal: Int?
+        get() = if (config.focus) history.size + focusQueue.size + (if (current != null) 1 else 0) else null
+
     override val answers: List<Answer> get() = _answers
     fun card(key: CardKey): StudyCard? = cards[key]
     fun card(placeId: String, facet: Facet = Facet.LOCATE) = cards[CardKey(placeId, facet)]
@@ -121,9 +130,20 @@ class SessionEngine(
         val key = question.key
         val before = cards[key]
         val grade = grade(question, response, responseMs, firstReview = before == null, stability = before?.fsrs?.stability)
-        // Focused practice feeds only the answer log: the card keeps its schedule. A miss comes back once, at the end.
+        // Focused practice feeds only the answer log: the card keeps its schedule. A miss comes back once, at the end, within the round's length.
         if (config.focus && before != null) {
-            if (!grade.isCorrect && focusRetried.add(key)) focusQueue.addLast(key)
+            if (!grade.isCorrect && focusRetried.add(key)) {
+                if (history.size + 1 + focusQueue.size < config.size) {
+                    focusQueue.addLast(key)
+                } else {
+                    // A full round: planned cards not yet asked are never in focusRetried, and the last of them gives way.
+                    val lastPlanned = focusQueue.indexOfLast { it !in focusRetried }
+                    if (lastPlanned >= 0) {
+                        focusQueue.removeAt(lastPlanned)
+                        focusQueue.addLast(key)
+                    }
+                }
+            }
             history += key
             return Answer(question, response, grade, responseMs, before, before, now).also { _answers += it }
         }
@@ -356,9 +376,7 @@ class SessionEngine(
      * accuracy, so new places per session shrink when it drops, keeping success near 85%.
      */
     private fun canIntroduceNewPlace(): Boolean {
-        config.maxNewPerDay?.let { if (newIntroducedToday + newPlacesThisSession >= it) return false }
-        val inLearning = cards.count { (k, c) -> k.facet == Facet.LOCATE && !c.isReview }
-        if (inLearning >= config.maxInLearning) return false
+        if (!hasRoomForNewPlace(cards, newIntroducedToday + newPlacesThisSession, config)) return false
         val recent = _answers.takeLast(8)
         val budget = if (recent.size < 4) {
             config.maxNewPerSession
@@ -443,6 +461,43 @@ class SessionEngine(
         }
 
     companion object {
+        /**
+         * The first two gates on a new place ([canIntroduceNewPlace]), shared with the home
+         * screen: the daily limit after [introducedToday] new places, and fewer than
+         * [SessionConfig.maxInLearning] places still in their learning steps.
+         */
+        fun hasRoomForNewPlace(cards: Map<CardKey, StudyCard>, introducedToday: Int, config: SessionConfig): Boolean {
+            config.maxNewPerDay?.let { if (introducedToday >= it) return false }
+            return cards.count { (k, c) -> k.facet == Facet.LOCATE && !c.isReview } < config.maxInLearning
+        }
+
+        /**
+         * How many new places a session started now offers, as home promises them: none while
+         * [hasRoomForNewPlace] says no (the session would not bring any in), otherwise the
+         * places not yet started, up to the day's remaining limit and a session's share.
+         */
+        fun newPlacesOnOffer(content: Content, cards: Map<CardKey, StudyCard>, introducedToday: Int, config: SessionConfig): Int {
+            if (!hasRoomForNewPlace(cards, introducedToday, config)) return 0
+            val notStarted = content.places.count { CardKey(it.id, Facet.LOCATE) !in cards }
+            val leftToday = config.maxNewPerDay?.let { it - introducedToday } ?: notStarted
+            return minOf(notStarted, leftToday, config.maxNewPerSession).coerceAtLeast(0)
+        }
+
+        /**
+         * True when a session started at [now] with this [config] asks at least one
+         * question: home offers only a session that has one, never an empty one. It runs
+         * the engine itself, so the two cannot disagree.
+         */
+        fun hasQuestions(
+            content: Content,
+            scheduler: FsrsScheduler,
+            cards: Map<CardKey, StudyCard>,
+            introducedToday: Int,
+            config: SessionConfig,
+            now: Long,
+            tallies: Map<CardKey, AnswerTally> = emptyMap(),
+        ): Boolean = SessionEngine(content, scheduler, cards, introducedToday, config, { now }, Random(0), tallies = tallies).next() != null
+
         const val NAME_UNLOCK_DAYS = 7.0
         const val RELATE_UNLOCK_DAYS = 7.0
         const val TYPED_NAME_DAYS = 3.0

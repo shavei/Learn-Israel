@@ -140,14 +140,15 @@ class ProgressRepository(
 
     /**
      * The rank and the achievements now. An achievement earned for the first time is stored
-     * and kept from then on, even if a place in it later fades; the rank stays current.
+     * and kept from then on, even if a place in it later fades; the rank stays current. After
+     * a session, [sessionAnswers] is its number of answers: a session with none earns nothing.
      */
-    suspend fun motivation(content: Content, now: Long, zone: ZoneId = ZoneId.systemDefault()): Motivation {
+    suspend fun motivation(content: Content, now: Long, zone: ZoneId = ZoneId.systemDefault(), sessionAnswers: Int? = null): Motivation {
         val known = cards().filter { (k, c) -> k.facet == Facet.LOCATE && isKnown(c.fsrs) }.keys.mapTo(HashSet()) { it.placeId }
         val best = Streak.of(daysPlayed(zone), day(now, zone)).best
         val progress = Achievements.progress(content, known, reviewRecords(), best)
         val stored = dao.achievements().mapNotNull { e -> Achievement.entries.firstOrNull { it.name == e.id }?.let { it to e.unlockedAt } }.toMap()
-        val newly = progress.filter { (a, p) -> p.earned && a !in stored }.keys.toList()
+        val newly = Achievements.newlyEarned(progress, stored.keys, sessionAnswers)
         newly.forEach { dao.insert(AchievementEntity(it.name, now)) }
         return Motivation(Rank.of(known.size), known.size, progress, stored + newly.associateWith { now }, newly)
     }

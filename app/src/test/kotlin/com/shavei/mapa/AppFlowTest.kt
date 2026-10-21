@@ -39,42 +39,41 @@ class AppFlowTest {
     }
 
     @Test
-    fun firstSessionTeachesTheMediterranean() {
+    fun firstSessionTeachesTelAvivThenTheMediterranean() {
         waitForText("בואו נתחיל")
         screenshot("0-welcome")
 
         compose.onNodeWithText("בואו נתחיל").performClick()
-        // A fresh player starts with the frame: the Mediterranean is introduced first.
+        // A fresh player starts with the big three cities (docs/07): Tel Aviv first.
         waitForText("מקום חדש")
-        compose.onNodeWithText("הים התיכון").assertExists()
+        compose.onNodeWithText("תל אביב-יפו").assertExists()
         screenshot("2-discover")
 
         compose.onNodeWithText("הבנתי, בואו נתרגל").performClick()
-        waitForText("סמנו על המפה: הים התיכון")
+        waitForText("סמנו על המפה: תל אביב-יפו")
         compose.onNodeWithTag("score", useUnmergedTree = true).assertTextEquals("0 נקודות")
         screenshot("3-ask")
 
-        // Tap far out at sea, on the left edge of the map, middle height: inside it, full points.
+        // A deliberate miss far out at sea, on the left edge of the map: almost no points.
         compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
-        waitForText("מצוין!")
-        compose.onNodeWithTag("answer-points").assertTextEquals("5,000 נקודות")
-        screenshot("4-feedback")
-
-        compose.onNodeWithText("המשך").performClick()
-        // Next in the frame unit: the Gulf of Eilat, at the far south, kept visible above the card.
-        waitForText("מפרץ אילת")
-        screenshot("5-discover-south")
-
-        compose.onNodeWithText("הבנתי, בואו נתרגל").performClick()
-        waitForText("סמנו על המפה: מפרץ אילת")
-        compose.onNodeWithTag("score", useUnmergedTree = true).assertTextEquals("5,000 נקודות")
-        // A deliberate miss in the middle of the country, far from the gulf: almost no points.
-        compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.4f)) }
         waitForText("לא הפעם")
         val missPoints = compose.onNodeWithTag("answer-points").fetchSemanticsNode()
             .config[SemanticsProperties.Text].single().text.substringBefore(" ").replace(",", "").toInt()
         assertTrue("$missPoints points", missPoints < 100)
-        screenshot("6-miss")
+        screenshot("4-miss")
+
+        compose.onNodeWithText("המשך").performClick()
+        // Next, the sea beside it.
+        waitForText("הים התיכון")
+        screenshot("5-discover-sea")
+
+        compose.onNodeWithText("הבנתי, בואו נתרגל").performClick()
+        waitForText("סמנו על המפה: הים התיכון")
+        // The same tap, far out at sea: inside it, full points.
+        compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
+        waitForText("מצוין!")
+        compose.onNodeWithTag("answer-points").assertTextEquals("5,000 נקודות")
+        screenshot("6-feedback")
 
         compose.onNodeWithText("יציאה").performClick()
         waitForText("2 בלמידה · 0 ידועים · מתוך 209")
