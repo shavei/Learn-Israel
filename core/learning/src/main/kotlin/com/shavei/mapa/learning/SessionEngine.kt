@@ -484,6 +484,13 @@ class SessionEngine(
         }
 
         /**
+         * Places with at least one card due at [now]: a place due on two facets is one place
+         * to review. Home and the daily reminder both count this way.
+         */
+        fun duePlaces(cards: Map<CardKey, StudyCard>, now: Long): Int =
+            cards.filterValues { it.fsrs.due <= now }.keys.mapTo(HashSet()) { it.placeId }.size
+
+        /**
          * True when a session started at [now] with this [config] asks at least one
          * question: home offers only a session that has one, never an empty one. It runs
          * the engine itself, so the two cannot disagree.

@@ -17,6 +17,8 @@ import com.shavei.mapa.learning.fsrs.DAY_MS
 import com.shavei.mapa.reminder.BootReceiver
 import com.shavei.mapa.reminder.ReminderReceiver
 import com.shavei.mapa.reminder.Reminders
+import com.shavei.mapa.ui.home.HomeState
+import com.shavei.mapa.ui.home.HomeViewModel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -362,7 +364,7 @@ class ReminderSimulationTest {
         }
         // Another action does nothing; and with the reminder off, a restart sets nothing.
         alarmManager.cancelAll()
-        BootReceiver().onReceive(app, Intent(Intent.ACTION_TIME_CHANGED))
+        BootReceiver().onReceive(app, Intent(Intent.ACTION_LOCALE_CHANGED))
         assertTrue(alarms.scheduledAlarms.isEmpty())
         app.settings.update { it.copy(reminderOn = false) }
         BootReceiver().onReceive(app, Intent(Intent.ACTION_BOOT_COMPLETED))
@@ -373,5 +375,171 @@ class ReminderSimulationTest {
         shadowOf(Looper.getMainLooper()).idle()
         fire(theAlarm())
         assertReminder(posted(), newPlaces)
+    }
+
+    // --- fixes found by the review ---
+
+    private fun home(): HomeState {
+        val vm = HomeViewModel(app)
+        vm.refresh()
+        val deadline = System.currentTimeMillis() + 10_000
+        while (!vm.state.value.loaded && System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(20)
+        }
+        shadowOf(Looper.getMainLooper()).idle()
+        return vm.state.value.also { assertTrue("home loaded", it.loaded) }
+    }
+
+    @Test
+    fun i_theReminderCountsPlacesLikeHome() = runBlocking {
+        // Two places, each due on two facets: two places to review, not four cards.
+        val now = System.currentTimeMillis()
+        app.content.places.take(2).forEach { place ->
+            for (facet in listOf("LOCATE", "NAME")) {
+                dao.upsert(CardEntity(place.id, facet, CardState.REVIEW.value, null, 10.0, 5.0, now - 60_000, now - 10 * DAY_MS, 0))
+            }
+        }
+        finishDaily(now - DAY_MS)
+        turnOn(nowMinutes())
+        fire(theAlarm())
+        assertReminder(posted(), "2 מקומות מוכנים לחזרה")
+        assertEquals(2, home().dueNow)
+    }
+
+    @Test
+    fun j_newPlacesHeldBack_noReminderAboutNewPlaces() = runBlocking {
+        // Four places still in their first steps and not due: new ones wait, so there is nothing to do yet.
+        val now = System.currentTimeMillis()
+        app.content.places.take(4).forEach { place ->
+            dao.upsert(CardEntity(place.id, "LOCATE", CardState.LEARNING.value, 1, 1.0, 5.0, now + DAY_MS, now - DAY_MS, 0))
+        }
+        finishDaily(now - DAY_MS)
+        turnOn(nowMinutes())
+        fire(theAlarm())
+        assertNull(posted())
+        assertTrue(home().newWaitsForLearning)
+    }
+
+    @Test
+    fun k_tappingTheReminderOpensTheAppAsTheLauncherDoes() {
+        turnOn(nowMinutes())
+        fire(theAlarm())
+        val open = shadowOf(checkNotNull(posted()).contentIntent).savedIntent
+        assertEquals(Intent.ACTION_MAIN, open.action)
+        assertTrue(open.hasCategory(Intent.CATEGORY_LAUNCHER))
+        assertTrue(open.flags and Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED != 0)
+    }
+
+    @Test
+    fun l_finishingTodaysSessionTakesTheReminderAway() {
+        finishDaily(System.currentTimeMillis() - DAY_MS)
+        turnOn(nowMinutes())
+        fire(theAlarm())
+        assertReminder(posted(), newPlaces)
+        // The player opens the app from the launcher, not the reminder, and plays.
+        finishDaily()
+        assertTrue(home().doneToday)
+        assertNull(posted())
+    }
+
+    @Test
+    fun m_onlyTheReminderCategoryTurnedOff_itIsNoticedAndItsSettingsOpen() {
+        turnOn(nowMinutes())
+        // The player turns off the reminder's category in the phone's settings.
+        checkNotNull(notificationManager.getNotificationChannel("daily")).importance = NotificationManager.IMPORTANCE_NONE
+        assertFalse(Reminders.canNotify(app))
+        fire(theAlarm())
+        assertNull(posted())
+
+        Reminders.openSettings(app)
+        val opened = shadowOf(app).nextStartedActivity
+        assertEquals(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS, opened.action)
+        assertEquals("daily", opened.getStringExtra(android.provider.Settings.EXTRA_CHANNEL_ID))
+    }
+
+    @Test
+    fun n_theReminderCategoryExistsBeforeTheFirstReminder() {
+        assertNull(notificationManager.getNotificationChannel("daily"))
+        turnOn(nowMinutes() + 60)
+        assertNull(posted())
+        assertEquals("תזכורת יומית", checkNotNull(notificationManager.getNotificationChannel("daily")).name.toString())
+    }
+
+    @Test
+    fun o_anErrorWhileDecidingDoesNotCrashAndTomorrowIsSet() {
+        // A row the app cannot read (written by a newer version, say).
+        runBlocking { dao.upsert(CardEntity("city.haifa", "UNKNOWN_FACET", CardState.REVIEW.value, null, 10.0, 5.0, 0, 0, 0)) }
+        val at = nowMinutes()
+        turnOn(at)
+        fire(theAlarm())
+        assertNull(posted())
+        assertEquals(todayAt(at) + DAY_MS, theAlarm().triggerAtTime)
+        // A crash would reach the thread's handler just after finish(); tearDown checks it.
+        Thread.sleep(500)
+    }
+
+    @Test
+    fun p_aTimeZoneChange_movesTheAlarmToTheSameLocalTime() {
+        val at = nowMinutes() + 120
+        turnOn(at)
+        val before = theAlarm().triggerAtTime
+        // The player flies one hour east.
+        val zone = ZonedDateTime.now().offset.totalSeconds / 3600
+        TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.ofHours(zone + 1)))
+        app.sendBroadcast(Intent(Intent.ACTION_TIMEZONE_CHANGED))
+        shadowOf(Looper.getMainLooper()).idle()
+        val after = theAlarm().triggerAtTime
+        assertEquals(before - 60 * 60_000, after)
+        assertEquals(todayAt(at), after)
+    }
+
+    @Test
+    fun q_deliveredLateAfterMidnight_itStaysQuietAndTomorrowIsSet() {
+        val at = nowMinutes()
+        turnOn(at)
+        // Yesterday evening's alarm, held back by the system until today.
+        val late = Intent(app, ReminderReceiver::class.java).putExtra("at", todayAt(at) - DAY_MS)
+        notificationManager.cancelAll()
+        ReminderReceiver().onReceive(app, late)
+        // Time for a background post, had the receiver started one.
+        Thread.sleep(1_000)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertNull(posted())
+        assertEquals(todayAt(at) + DAY_MS, theAlarm().triggerAtTime)
+    }
+
+    @Test
+    fun r_aRestartJustAfterTheTime_keepsTodaysReminder() {
+        // The alarm for 10 minutes ago is still held back by the system when the app restarts.
+        val past = System.currentTimeMillis() - 10 * 60_000
+        val minutes = ZonedDateTime.now().minusMinutes(10).let { it.hour * 60 + it.minute }
+        app.settings.update { it.copy(onboarded = true, reminderOffered = true, reminderOn = true, reminderMinutes = minutes) }
+        app.getSharedPreferences("reminder", 0).edit().putLong("nextAt", past).commit()
+        app.onCreate()
+        assertEquals("kept, so it comes now", past, theAlarm().triggerAtTime)
+        fire(theAlarm())
+        assertReminder(posted(), newPlaces)
+        assertEquals(todayAt(minutes) + DAY_MS, theAlarm().triggerAtTime)
+
+        // Missed by hours (the phone was off): not sent late, the next one is tomorrow.
+        val longAgo = System.currentTimeMillis() - 5 * 60 * 60_000
+        val earlier = ZonedDateTime.now().minusHours(5).let { it.hour * 60 + it.minute }
+        app.settings.update { it.copy(reminderMinutes = earlier) }
+        app.getSharedPreferences("reminder", 0).edit().putLong("nextAt", longAgo).commit()
+        app.onCreate()
+        assertEquals(todayAt(earlier) + DAY_MS, theAlarm().triggerAtTime)
+    }
+
+    @Test
+    fun s_onButBlocked_homeOffersTheReminderAgain() {
+        // Restored from a backup onto a phone that has not allowed notifications.
+        finishDaily(System.currentTimeMillis() - DAY_MS)
+        app.settings.update { it.copy(onboarded = true, reminderOffered = true, reminderOn = true) }
+        shadowOf(app).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        assertTrue(home().offerReminder)
+        // Once notifications are allowed, it is not offered again.
+        shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        assertFalse(home().offerReminder)
     }
 }
