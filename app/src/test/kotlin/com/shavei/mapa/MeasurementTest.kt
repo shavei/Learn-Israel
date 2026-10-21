@@ -77,7 +77,8 @@ class MeasurementTest {
             Screenshots.save(scenario, "d2-map-test-summary")
 
             // Back on the welcome screen: the test is not onboarding, the choice is still to make.
-            compose.onNodeWithText("חזרה למפה").performClick()
+            // The button says where it leads.
+            compose.onNodeWithText("חזרה למסך הפתיחה").performClick()
             waitForText("מבחן המפה נשמר. בעוד חודש נשווה.")
             compose.onNodeWithText("בואו נתחיל").assertExists()
         }

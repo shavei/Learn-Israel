@@ -138,6 +138,9 @@ interface ProgressDao {
     @Query("SELECT * FROM map_tests ORDER BY finishedAt")
     suspend fun mapTests(): List<MapTestEntity>
 
+    @Query("DELETE FROM reviews WHERE sessionId = :sessionId AND mode = 'MAP_TEST'")
+    suspend fun deleteMapTestAnswers(sessionId: String)
+
     /** Distance errors of Pin It answers, for the history of average error. */
     @Query("SELECT placeId, timestamp, errorMeters FROM reviews WHERE mode = 'LOCATE' AND errorMeters IS NOT NULL ORDER BY timestamp")
     suspend fun locateErrors(): List<LocateError>

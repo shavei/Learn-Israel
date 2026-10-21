@@ -49,7 +49,7 @@ class PlayerExperienceTest {
 
             // No Discover card: the test asks straight away, starting with the frame.
             waitForText("סמנו על המפה: הים התיכון")
-            compose.onNodeWithText("בדיקת רמה · שאלה 1").assertExists()
+            compose.onNodeWithText("בדיקת רמה · שאלה 1 מתוך 20 לכל היותר").assertExists()
             Screenshots.save(scenario, "c1-placement-ask")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
             waitForText("מצוין!")
@@ -59,6 +59,8 @@ class PlayerExperienceTest {
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.4f)) }
             waitForText("לא הפעם")
             compose.onNodeWithText("יציאה").performClick()
+            waitForText("לצאת מבדיקת הרמה?")
+            compose.onNodeWithTag("leave-confirm").performClick()
 
             // Only the Mediterranean was found, so only it has a card.
             waitForText("1 בלמידה · 0 ידועים · מתוך 209")

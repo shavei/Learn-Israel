@@ -136,6 +136,9 @@ class ProgressRepository(
         dao.insert(MapTestEntity(sessionId, result.kind.name, result.finishedAt, result.found, result.total, result.medianErrorMeters))
     }
 
+    /** A map test left before its end: it is only kept whole, so its answers so far go too. */
+    suspend fun discardMapTest(sessionId: String) = dao.deleteMapTestAnswers(sessionId)
+
     /** Pin It errors grouped by local day, in day order. */
     suspend fun locateErrorsByDay(zone: ZoneId = ZoneId.systemDefault()): Map<LocalDate, List<LocateError>> =
         dao.locateErrors().groupBy { day(it.timestamp, zone) }

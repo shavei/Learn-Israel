@@ -13,9 +13,11 @@ import com.shavei.mapa.learning.Achievement
 import com.shavei.mapa.learning.Answer
 import com.shavei.mapa.learning.AnswerTally
 import com.shavei.mapa.learning.Blitz
+import com.shavei.mapa.learning.CardKey
 import com.shavei.mapa.learning.Drill
 import com.shavei.mapa.learning.Facet
 import com.shavei.mapa.learning.Focus
+import com.shavei.mapa.learning.FreePlay
 import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.LearnedConfusables
 import com.shavei.mapa.learning.MapTest
@@ -73,10 +75,16 @@ data class SessionSummary(
     val blitzSaved: Boolean = false,
     /** A road trip: its stops, from the start. */
     val trip: List<Place> = emptyList(),
+    /** Every place asked in this session, once each, in order: the summary map lights them up. */
+    val practiced: List<Place> = emptyList(),
+    /** The places answered right (in the placement test, the places found), once each. */
+    val found: List<Place> = emptyList(),
     /** Achievements earned for the first time in this session. */
     val newAchievements: List<Achievement> = emptyList(),
     /** The rank reached in this session, if it went up. */
     val newRank: Rank? = null,
+    /** Another round of the same kind can be planned now (shown once the answers are saved). */
+    val canPlayAgain: Boolean = false,
 )
 
 enum class SessionKind {
@@ -111,7 +119,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     private val _ui = MutableStateFlow<SessionUi>(SessionUi.Loading)
     val ui: StateFlow<SessionUi> = _ui
 
-    private val sessionId = UUID.randomUUID().toString()
+    private var sessionId = UUID.randomUUID().toString()
     private lateinit var engine: QuestionSource
     private var askedAt = 0L
     private var number = 0
@@ -134,9 +142,57 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     /** Questions in the map test, shown as "question 3 of 20"; null in other sessions. */
     val mapTestSize: Int? = if (kind == SessionKind.MAP_TEST) MapTest.ITEMS.size else null
 
+    /** A Map Builder or focus round: the places it starts with, before any miss comes back. */
+    private var roundPlaces = 0
+
+    /**
+     * How many questions the round is planned to take, for "question 3 of 10": the placement
+     * test at most, a Map Builder or focus round as planned so far (a miss comes back once and
+     * adds one). Null where the length is open (the daily session) or shown otherwise.
+     */
+    fun plannedTotal(number: Int): Int? = when (kind) {
+        SessionKind.PLACEMENT -> PlacementTest.MAX_QUESTIONS
+        SessionKind.BUILD, SessionKind.FOCUS -> {
+            val asked = HashSet<CardKey>()
+            // A first answer that leaves the card in its learning steps (Map Builder) or a
+            // first miss (focus) brings the place back once.
+            val repeats = engine.answers.count { a ->
+                asked.add(a.question.key) && if (kind == SessionKind.FOCUS) !a.grade.isCorrect else !a.after.isReview
+            }
+            // A Map Builder round stops at a usual session's length with its overtime.
+            val cap = if (kind == SessionKind.BUILD) app.settings.current.sessionLength.questions + SessionConfig().overtime else Int.MAX_VALUE
+            maxOf(number, minOf(roundPlaces + repeats, cap))
+        }
+        else -> null
+    }
+
+    /** The pre-test leads back to the welcome screen until the player has started, not to the map. */
+    val returnsToWelcome: Boolean get() = kind == SessionKind.MAP_TEST && !app.settings.current.onboarded
+
+    /** Leaving now loses something worth a question first: at least one answer, and not finished. */
+    fun leavingNeedsConfirm(): Boolean =
+        ::engine.isInitialized && engine.answers.isNotEmpty() && _ui.value !is SessionUi.Finished
+
+    /**
+     * The player left before the end. A map test is only kept whole, so its answers so far
+     * are deleted once saved; other sessions keep every answer.
+     */
+    fun onLeave() {
+        if (kind != SessionKind.MAP_TEST || !::engine.isInitialized || _ui.value is SessionUi.Finished) return
+        val previous = saving
+        saving = viewModelScope.launch {
+            previous?.join()
+            app.progress.discardMapTest(sessionId)
+        }
+    }
+
     /** A road trip's stops, from the start; empty in other sessions and until it is planned. */
     var trip: List<Place> = emptyList()
         private set
+
+    /** A road trip: whether each stop after the start was found, as far as answered. */
+    fun tripResults(): List<Boolean> =
+        if (trip.isEmpty() || !::engine.isInitialized) emptyList() else engine.answers.map { it.grade.isCorrect }
 
     private var blitz: Blitz? = null
 
@@ -144,6 +200,11 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     fun remainingMs(): Long? = blitz?.remainingMs()
 
     init {
+        start()
+    }
+
+    /** Plans the session (or a free play round, a Map Builder or a focus round again) and opens it. */
+    private fun start() {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val cards = app.progress.cards()
@@ -156,27 +217,68 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                 }
                 SessionKind.BLITZ -> Blitz(app.content, app.scheduler, cards, blitzDurationMs).also { blitz = it }
                 SessionKind.ROAD_TRIP -> RoadTrip(app.scheduler, cards, RoadTrip.plan(app.content, cards)).also { trip = it.stops }
-                else -> SessionEngine(
-                    content = app.content,
-                    scheduler = app.scheduler,
-                    initialCards = cards,
-                    newIntroducedToday = app.progress.newIntroducedToday(now),
-                    config = if (kind == SessionKind.FOCUS) {
-                        // Ten places and each miss once more: the overtime holds every miss.
-                        SessionConfig(size = Focus.SIZE, overtime = Focus.SIZE, focus = true)
-                    } else {
-                        SessionConfig(
-                            size = app.settings.current.sessionLength.questions,
-                            maxNewPerDay = app.settings.current.pace.newPerDay,
-                            strengthenWeakest = kind == SessionKind.EXTRA,
-                            drill = Drill.BUILD.takeIf { kind == SessionKind.BUILD },
-                        )
-                    },
-                    learnedConfusables = LearnedConfusables.of(app.progress.confusions()),
-                    tallies = AnswerTally.of(app.progress.reviewRecords()),
-                )
+                else -> {
+                    val tallies = AnswerTally.of(app.progress.reviewRecords())
+                    roundPlaces = when (kind) {
+                        SessionKind.FOCUS -> Focus.plan(cards, tallies).size
+                        SessionKind.BUILD -> cards.keys.count { k ->
+                            k.facet == Facet.LOCATE && app.content.place(k.placeId)?.type?.let(Drill::of) == Drill.BUILD
+                        }
+                        else -> 0
+                    }
+                    SessionEngine(
+                        content = app.content,
+                        scheduler = app.scheduler,
+                        initialCards = cards,
+                        newIntroducedToday = app.progress.newIntroducedToday(now),
+                        config = if (kind == SessionKind.FOCUS) {
+                            // Ten places and each miss once more: the overtime holds every miss.
+                            SessionConfig(size = Focus.SIZE, overtime = Focus.SIZE, focus = true)
+                        } else {
+                            SessionConfig(
+                                size = app.settings.current.sessionLength.questions,
+                                maxNewPerDay = app.settings.current.pace.newPerDay,
+                                strengthenWeakest = kind == SessionKind.EXTRA,
+                                drill = Drill.BUILD.takeIf { kind == SessionKind.BUILD },
+                            )
+                        },
+                        learnedConfusables = LearnedConfusables.of(app.progress.confusions()),
+                        tallies = tallies,
+                    )
+                }
             }
             if (kind == SessionKind.BLITZ || kind == SessionKind.ROAD_TRIP) _ui.value = SessionUi.Ready else advance()
+        }
+    }
+
+    /**
+     * Practice rounds and free play can be played again from their summary, when another
+     * round can be planned from the cards as they are now (a blitz needs a few learned places).
+     */
+    private suspend fun canPlayAgain(): Boolean {
+        val cards = app.progress.cards()
+        return when (kind) {
+            SessionKind.BUILD -> cards.keys.any { k -> k.facet == Facet.LOCATE && app.content.place(k.placeId)?.type?.let(Drill::of) == Drill.BUILD }
+            SessionKind.FOCUS -> Focus.plan(cards, AnswerTally.of(app.progress.reviewRecords())).isNotEmpty()
+            SessionKind.BLITZ -> FreePlay.learned(app.content, cards).size >= Blitz.MIN_PLACES
+            SessionKind.ROAD_TRIP -> RoadTrip.plan(app.content, cards).isNotEmpty()
+            else -> false
+        }
+    }
+
+    /** Another round of the same kind, planned afresh, once the last one has been saved. */
+    fun onPlayAgain() {
+        if ((_ui.value as? SessionUi.Finished)?.summary?.canPlayAgain != true) return
+        val previous = saving
+        _ui.value = SessionUi.Loading
+        viewModelScope.launch {
+            previous?.join()
+            sessionId = UUID.randomUUID().toString()
+            number = 0
+            saving = null
+            trip = emptyList()
+            blitz = null
+            start()
         }
     }
 
@@ -220,8 +322,9 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             app.progress.save(answer, sessionId, source)
         }
         when (kind) {
-            // The map test measures and does not teach: straight on to the next place.
-            SessionKind.MAP_TEST -> advance()
+            // The map test measures and does not teach: straight on to the next place, with
+            // the tap left on the map so the player sees it counted.
+            SessionKind.MAP_TEST -> advance(last = answer)
             // A blitz runs against the clock: the next place at once, this answer shown on the map.
             SessionKind.BLITZ -> advance(last = answer)
             else -> _ui.value = SessionUi.Feedback(answer, ui.number)
@@ -259,6 +362,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             _ui.value = finished.copy(
                 summary = finished.summary.copy(
                     newAchievements = motivation.newlyEarned,
+                    canPlayAgain = canPlayAgain(),
                     newRank = motivation.rank.takeIf { it > rankBefore },
                     blitzRecordBefore = recordBefore,
                     blitzSaved = summary.blitz,
@@ -290,6 +394,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     private fun summary(): SessionSummary {
         val answers = engine.answers
         val cityErrors = answers.filter { it.place.type == PlaceType.CITY }.mapNotNull { it.grade.errorMeters }
+        val practiced = answers.map { it.place }.distinct()
         return SessionSummary(
             answers = answers.size,
             correct = answers.count { it.grade.isCorrect },
@@ -300,6 +405,8 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             placement = kind == SessionKind.PLACEMENT,
             blitz = kind == SessionKind.BLITZ,
             trip = trip,
+            practiced = practiced,
+            found = practiced.filter { p -> answers.any { it.place == p && it.grade.isCorrect } },
         )
     }
 

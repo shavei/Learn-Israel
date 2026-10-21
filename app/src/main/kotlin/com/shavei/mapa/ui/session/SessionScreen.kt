@@ -1,6 +1,11 @@
 package com.shavei.mapa.ui.session
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,10 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,9 +36,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -58,6 +65,7 @@ import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.learning.Answer
 import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.MapTestKind
+import com.shavei.mapa.learning.MapTestResult
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.Relation
 import com.shavei.mapa.learning.center
@@ -80,36 +88,74 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val camera = rememberMapCamera(content.map)
     val colors = LocalMapPalette.current
+    val configuration = LocalConfiguration.current
+    // In landscape the cards stand in a side panel, so they never cover the place in question.
+    val landscape = configuration.screenWidthDp > configuration.screenHeightDp
 
     var topPx by remember { mutableFloatStateOf(0f) }
     var bottomPx by remember { mutableFloatStateOf(0f) }
+    var leftPx by remember { mutableFloatStateOf(0f) }
+    var rightPx by remember { mutableFloatStateOf(0f) }
+    var rootWidth by remember { mutableFloatStateOf(0f) }
+
+    // Leaving with answers given and the session not over is asked first: a stray back press
+    // should not end it. The map test is kept only whole, so leaving it discards it.
+    var confirmingLeave by rememberSaveable { mutableStateOf(false) }
+    fun leave() {
+        if (viewModel.leavingNeedsConfirm()) confirmingLeave = true else onExit()
+    }
+    BackHandler { leave() }
+    if (confirmingLeave && viewModel.leavingNeedsConfirm()) {
+        LeaveDialog(
+            viewModel.kind,
+            onStay = { confirmingLeave = false },
+            onLeave = {
+                confirmingLeave = false
+                viewModel.onLeave()
+                onExit()
+            },
+        )
+    }
 
     // Every question starts from the whole map, so the player works from the big picture.
     // Elsewhere the camera only pans when a place (or the tap) would hide under a card.
-    LaunchedEffect(ui, topPx, bottomPx) {
+    // In landscape the panel is at a side, and the map is framed beside it.
+    val frameTop = if (landscape) 0f else topPx
+    val frameBottom = if (landscape) 0f else bottomPx
+    LaunchedEffect(ui, frameTop, frameBottom, leftPx, rightPx) {
         when (val s = ui) {
             // Map Builder has buttons below the map: the whole board fits above them.
             is SessionUi.Ask -> when (val q = s.question) {
                 is Question.Build -> {
-                    camera.setFramePadding(topPx, bottomPx)
+                    camera.setFramePadding(frameTop, frameBottom, leftPx, rightPx)
                     camera.reset()
                 }
                 else -> {
-                    camera.setFramePadding(topPx, 0f)
+                    camera.setFramePadding(frameTop, 0f, leftPx, rightPx)
                     camera.reset()
-                    askedPoints(q).takeIf { it.isNotEmpty() }?.let { camera.ensureVisible(it, topPx, bottomPx) }
+                    val close = (q as? Question.NameChoice)?.let { closeOptions(it.options) }
+                    if (close != null) {
+                        camera.fit(close, frameTop, frameBottom, CLOSE_OPTIONS_VIEW_METERS)
+                    } else {
+                        askedPoints(q).takeIf { it.isNotEmpty() }?.let { camera.ensureVisible(it, frameTop, frameBottom) }
+                    }
                 }
             }
-            is SessionUi.Discover -> camera.ensureVisible(listOf(s.question.place.label), topPx, bottomPx)
+            is SessionUi.Discover -> camera.ensureVisible(listOf(s.question.place.label), frameTop, frameBottom)
             // A road trip opens on the whole map with its start, and ends on the whole route.
             SessionUi.Ready, is SessionUi.Finished -> {
-                camera.setFramePadding(topPx, 0f)
+                camera.setFramePadding(frameTop, 0f, leftPx, rightPx)
                 camera.reset()
                 viewModel.trip.takeIf { it.isNotEmpty() }?.let { trip ->
-                    camera.ensureVisible((if (s is SessionUi.Ready) trip.take(1) else trip).map { it.label }, topPx, bottomPx)
+                    camera.ensureVisible((if (s is SessionUi.Ready) trip.take(1) else trip).map { it.label }, frameTop, frameBottom)
                 }
             }
-            is SessionUi.Feedback -> camera.ensureVisible(feedbackPoints(s.answer), topPx, bottomPx)
+            is SessionUi.Feedback -> {
+                // Naming among places a few kilometers apart: close enough to tell them apart.
+                val close = (s.answer.question as? Question.NameChoice)?.let { closeOptions(it.options) }
+                if (close != null) camera.fit(close, frameTop, frameBottom, CLOSE_OPTIONS_VIEW_METERS)
+                else camera.ensureVisible(feedbackPoints(s.answer, content), frameTop, frameBottom)
+            }
             else -> Unit
         }
     }
@@ -128,8 +174,9 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         }
     }
 
-    // A road trip draws its route through the stops found so far: on a question, up to the
-    // last stop; on its feedback, on to this one; at the end, the whole way.
+    // A road trip draws its route through the stops so far: on a question, up to the last
+    // stop; on its feedback, on to this one; at the end, the whole way. A leg to a stop that
+    // was missed is only dashed: the route shows the trip as it went.
     val trip = viewModel.trip
     val route = when (val s = ui) {
         SessionUi.Ready -> trip.take(1)
@@ -138,20 +185,32 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         is SessionUi.Finished -> trip
         else -> emptyList()
     }
-    val decorations = routeDecorations(route, colors) + when (val s = ui) {
+    val decorations = routeDecorations(route, viewModel.tripResults(), colors) + when (val s = ui) {
         is SessionUi.Discover -> placeDecorations(s.question.place, colors)
-        // In a blitz the last answer stays on the map, faintly, under the next question.
-        is SessionUi.Ask -> s.last?.let { blitzDecorations(it, colors) }.orEmpty() + askDecorations(s.question, colors)
-        is SessionUi.Feedback -> feedbackDecorations(s.answer, colors)
+        is SessionUi.Ask -> when {
+            s.last == null -> emptyList()
+            // The map test leaves only the tap, so the player sees it counted, never the answer.
+            viewModel.kind == SessionKind.MAP_TEST -> mapTestTapDecorations(s.last, colors)
+            // In a blitz the last answer stays on the map, faintly, under the next question.
+            else -> blitzDecorations(s.last, colors)
+        } + askDecorations(s.question, colors)
+        is SessionUi.Feedback -> feedbackDecorations(s.answer, content, colors)
+        // The summary lights up the places of this session (a road trip shows its route instead).
+        is SessionUi.Finished -> if (s.summary.mapTest == null && trip.isEmpty()) {
+            s.summary.practiced.map { MapDecoration.Highlight(it.shape, colors.mastery, alpha = 0.35f) }
+        } else {
+            emptyList()
+        }
         else -> emptyList()
     }
     val asking = (ui as? SessionUi.Ask)?.question
 
-    // The open Map Builder shape: how far it is from its place.
+    // The open Map Builder shape: how far it is from its place. It can be placed once moved.
     val build = asking as? Question.Build
-    var offset by remember(build) {
-        mutableStateOf(build?.let { b -> b.place.shape.center.let { MapPoint(b.start.x - it.x, b.start.y - it.y) } } ?: MapPoint(0.0, 0.0))
+    val startOffset = remember(build) {
+        build?.let { b -> b.place.shape.center.let { MapPoint(b.start.x - it.x, b.start.y - it.y) } } ?: MapPoint(0.0, 0.0)
     }
+    var offset by remember(build) { mutableStateOf(startOffset) }
     val drag: MapDrag? = remember(build) {
         when {
             build != null -> object : MapDrag {
@@ -177,19 +236,12 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         else -> emptyList()
     }
 
-    Box(Modifier.fillMaxSize()) {
-        MapView(
-            content.map, camera, Modifier.fillMaxSize().testTag("map"), decorations + drillDecorations, showGreenLine,
-            description = stringResource(R.string.session_map_description),
-            onTap = if (asking is Question.Locate) viewModel::onTap else null,
-            onDrag = drag,
-        )
-        Column(
-            Modifier.safeDrawingPadding().padding(12.dp).fillMaxWidth().align(Alignment.TopCenter)
-                .onGloballyPositioned { topPx = it.boundsInRoot().bottom },
-        ) {
+    // The exit, the clock and the question.
+    val topContent: @Composable () -> Unit = {
+        // The summary has its own way back, below it.
+        if (ui !is SessionUi.Finished) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = onExit) { Text(stringResource(R.string.quit)) }
+                TextButton(onClick = ::leave) { Text(stringResource(R.string.quit)) }
                 // The blitz clock stays out of the question's live region, so a screen reader
                 // does not announce every second; it can still be read on demand.
                 if (blitzRunning) {
@@ -202,50 +254,123 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                     )
                 }
             }
-            val ask = ui as? SessionUi.Ask
-            if (ask != null) {
-                val counter = when (viewModel.kind) {
-                    SessionKind.PLACEMENT -> stringResource(R.string.placement_counter, ask.number)
-                    SessionKind.MAP_TEST -> stringResource(R.string.map_test_counter, ask.number, viewModel.mapTestSize ?: 0)
-                    SessionKind.BUILD -> stringResource(R.string.build_counter, ask.number)
-                    SessionKind.FOCUS -> stringResource(R.string.focus_counter, ask.number)
-                    SessionKind.BLITZ -> stringResource(R.string.blitz_counter, ask.number)
-                    SessionKind.ROAD_TRIP -> stringResource(R.string.trip_counter, ask.number, trip.size - 1)
-                    else -> stringResource(R.string.ask_counter, ask.number)
-                }
-                // The map test measures without feedback, so it shows no score.
-                val score = if (viewModel.kind == SessionKind.MAP_TEST) null else ask.score
-                val note = when {
-                    ask.last != null -> blitzNote(ask.last)
-                    viewModel.kind == SessionKind.ROAD_TRIP -> trip.getOrNull(ask.number - 1)?.let { Note(stringResource(R.string.trip_from, it.name)) }
-                    else -> null
-                }
-                PromptCard(ask.question, counter, score, note)
-            }
         }
-        // Scrolls rather than covering the map when the system font is very large.
-        val maxBottom = (LocalConfiguration.current.screenHeightDp * 0.5f).dp
-        Box(
-            Modifier.safeDrawingPadding().imePadding().padding(12.dp).fillMaxWidth().align(Alignment.BottomCenter)
-                .onGloballyPositioned { bottomPx = it.size.height + 24f }
-                .heightIn(max = maxBottom).verticalScroll(rememberScrollState()),
-        ) {
-            when (val s = ui) {
-                SessionUi.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                SessionUi.Ready -> ReadyCard(viewModel.kind, trip.firstOrNull(), viewModel::onStart)
-                is SessionUi.Discover -> DiscoverCard(s.question.place, viewModel::onDiscovered)
-                is SessionUi.Ask -> when (val q = s.question) {
-                    is Question.NameChoice -> OptionsCard(q.options, viewModel::onChoose)
-                    is Question.Relate -> OptionsCard(q.options, viewModel::onChoose)
-                    is Question.NameTyped -> TypingCard(s.number, viewModel::onType)
-                    is Question.Build -> BuildCard { viewModel.onMoved(offset.x, offset.y) }
-                    is Question.Locate -> Unit
-                }
-                is SessionUi.Feedback -> FeedbackCard(s.answer, content, viewModel::onContinue)
-                is SessionUi.Finished -> SummaryCard(s.summary, onExit)
+        val ask = ui as? SessionUi.Ask
+        if (ask != null) {
+            val total = viewModel.plannedTotal(ask.number) ?: 0
+            val counter = when (viewModel.kind) {
+                SessionKind.PLACEMENT -> stringResource(R.string.placement_counter, ask.number, total)
+                SessionKind.MAP_TEST -> stringResource(R.string.map_test_counter, ask.number, viewModel.mapTestSize ?: 0)
+                SessionKind.BUILD -> stringResource(R.string.build_counter, ask.number, total)
+                SessionKind.FOCUS -> stringResource(R.string.focus_counter, ask.number, total)
+                SessionKind.BLITZ -> stringResource(R.string.blitz_counter, ask.number)
+                SessionKind.ROAD_TRIP -> stringResource(R.string.trip_counter, ask.number, trip.size - 1)
+                else -> stringResource(R.string.ask_counter, ask.number)
+            }
+            // The map test measures without feedback, so it shows no score.
+            val score = if (viewModel.kind == SessionKind.MAP_TEST) null else ask.score
+            val note = when {
+                ask.last != null && viewModel.kind == SessionKind.MAP_TEST ->
+                    Note(stringResource(R.string.map_test_tap_noted), MaterialTheme.colorScheme.secondary)
+                ask.last != null -> blitzNote(ask.last)
+                viewModel.kind == SessionKind.ROAD_TRIP -> trip.getOrNull(ask.number - 1)?.let { Note(stringResource(R.string.trip_from, it.name)) }
+                else -> null
+            }
+            PromptCard(ask.question, counter, score, note)
+        }
+    }
+    // The card for the moment: discover, answer, feedback or the summary.
+    val bottomContent: @Composable BoxScope.() -> Unit = {
+        when (val s = ui) {
+            SessionUi.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+            SessionUi.Ready -> ReadyCard(viewModel.kind, trip.firstOrNull(), viewModel::onStart)
+            is SessionUi.Discover -> DiscoverCard(s.question.place, viewModel::onDiscovered)
+            is SessionUi.Ask -> when (val q = s.question) {
+                is Question.NameChoice -> OptionsCard(q.options, viewModel::onChoose)
+                is Question.Relate -> OptionsCard(q.options, viewModel::onChoose)
+                is Question.NameTyped -> TypingCard(s.number, viewModel::onType)
+                is Question.Build -> BuildCard(moved = offset != startOffset) { viewModel.onMoved(offset.x, offset.y) }
+                is Question.Locate -> Unit
+            }
+            is SessionUi.Feedback -> FeedbackCard(s.answer, content, viewModel::onContinue)
+            is SessionUi.Finished -> SummaryCard(
+                s.summary,
+                viewModel.kind,
+                doneLabel = stringResource(if (viewModel.returnsToWelcome) R.string.map_test_to_welcome else R.string.summary_done),
+                onDone = onExit,
+                onPlayAgain = viewModel::onPlayAgain.takeIf { s.summary.canPlayAgain },
+            )
+        }
+    }
+
+    Box(Modifier.fillMaxSize().onGloballyPositioned { rootWidth = it.size.width.toFloat() }) {
+        MapView(
+            content.map, camera, Modifier.fillMaxSize().testTag("map"), decorations + drillDecorations, showGreenLine,
+            description = stringResource(R.string.session_map_description),
+            onTap = if (asking is Question.Locate) viewModel::onTap else null,
+            onDrag = drag,
+        )
+        if (landscape) {
+            // One panel at the side (the start side, right in Hebrew), the map framed beside it.
+            Column(
+                Modifier.align(Alignment.TopStart).fillMaxHeight().fillMaxWidth(SIDE_PANEL_FRACTION)
+                    .onGloballyPositioned {
+                        val b = it.boundsInRoot()
+                        if (b.left > rootWidth / 2) {
+                            rightPx = rootWidth - b.left
+                            leftPx = 0f
+                        } else {
+                            leftPx = b.right
+                            rightPx = 0f
+                        }
+                    }
+                    .safeDrawingPadding().imePadding().padding(12.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                topContent()
+                Box(Modifier.fillMaxWidth()) { bottomContent() }
+            }
+        } else {
+            Column(
+                Modifier.safeDrawingPadding().padding(12.dp).fillMaxWidth().align(Alignment.TopCenter)
+                    .onGloballyPositioned { topPx = it.boundsInRoot().bottom },
+            ) {
+                topContent()
+            }
+            // Scrolls rather than covering the map when the system font is very large.
+            val maxBottom = (configuration.screenHeightDp * 0.5f).dp
+            Box(
+                Modifier.safeDrawingPadding().imePadding().padding(12.dp).fillMaxWidth().align(Alignment.BottomCenter)
+                    .onGloballyPositioned { bottomPx = it.size.height + 24f }
+                    .heightIn(max = maxBottom).verticalScroll(rememberScrollState()),
+            ) {
+                bottomContent()
             }
         }
     }
+}
+
+/** Asked before leaving a session that has answers and is not over. */
+@Composable
+private fun LeaveDialog(kind: SessionKind, onStay: () -> Unit, onLeave: () -> Unit) {
+    val (title, body) = when (kind) {
+        SessionKind.DAILY, SessionKind.EXTRA -> R.string.leave_title to R.string.leave_body
+        SessionKind.PLACEMENT -> R.string.leave_title_placement to R.string.leave_body_placement
+        SessionKind.MAP_TEST -> R.string.leave_title_map_test to R.string.leave_body_map_test
+        SessionKind.BLITZ -> R.string.leave_title_round to R.string.leave_body_blitz
+        SessionKind.BUILD, SessionKind.FOCUS, SessionKind.ROAD_TRIP -> R.string.leave_title_round to R.string.leave_body
+    }
+    AlertDialog(
+        onDismissRequest = onStay,
+        title = { Text(stringResource(title)) },
+        text = { Text(stringResource(body)) },
+        confirmButton = { TextButton(onClick = onStay, Modifier.testTag("leave-stay")) { Text(stringResource(R.string.leave_stay)) } },
+        dismissButton = {
+            TextButton(onClick = onLeave, Modifier.testTag("leave-confirm")) {
+                Text(stringResource(if (kind == SessionKind.MAP_TEST) R.string.leave_map_test else R.string.quit))
+            }
+        },
+    )
 }
 
 @Composable
@@ -253,14 +378,17 @@ private fun PromptCard(question: Question, counter: String, score: Int?, note: N
     Card(Modifier.fillMaxWidth()) {
         // Read as one announcement when a new question appears.
         Column(Modifier.padding(16.dp).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(counter, style = MaterialTheme.typography.labelMedium)
+            // The counter wraps within its own side; the score stays on one line, so at a large
+            // font their digits never run together.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(counter, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
                 if (score != null) {
                     Text(
                         stringResource(R.string.points, formatPoints(score)),
                         Modifier.testTag("score"),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
+                        softWrap = false,
                     )
                 }
             }
@@ -328,6 +456,7 @@ private fun TypingCard(number: Int, onSubmit: (String) -> Unit) {
                 onValueChange = { text = it },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag("name-input"),
+                label = { Text(stringResource(R.string.name_label)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done, autoCorrectEnabled = false),
                 keyboardActions = KeyboardActions(onDone = { if (text.isNotBlank()) onSubmit(text) }),
             )
@@ -338,13 +467,13 @@ private fun TypingCard(number: Int, onSubmit: (String) -> Unit) {
     }
 }
 
-/** Map Builder: the shape is dragged on the map; this confirms where it is. */
+/** Map Builder: the shape is dragged on the map; this confirms where it is, once it has [moved]. */
 @Composable
-private fun BuildCard(onPlace: () -> Unit) {
+private fun BuildCard(moved: Boolean, onPlace: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.build_help), style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onPlace, Modifier.fillMaxWidth()) { Text(stringResource(R.string.build_place)) }
+            Button(onClick = onPlace, Modifier.fillMaxWidth(), enabled = moved) { Text(stringResource(R.string.build_place)) }
         }
     }
 }
@@ -417,13 +546,24 @@ private fun FeedbackCard(answer: Answer, content: Content, onContinue: () -> Uni
             Text(title, style = MaterialTheme.typography.headlineSmall, color = color, fontWeight = FontWeight.Bold)
             PointsBar(answer.grade.points, color)
             for (line in feedbackLines(answer, content)) Text(line, style = MaterialTheme.typography.titleMedium)
-            Text(answer.place.fact)
+            // A relation is explained, with the fact of the right place: the card's own place
+            // may be the wrong pick, and its fact would read as a reason for it.
+            val q = answer.question
+            if (q is Question.Relate) {
+                Text(relationExplained(q), style = MaterialTheme.typography.titleMedium)
+                Text(q.correct.fact)
+            } else {
+                Text(answer.place.fact)
+            }
             Button(onClick = onContinue, Modifier.fillMaxWidth()) { Text(stringResource(R.string.feedback_continue)) }
         }
     }
 }
 
-/** The answer's points and a bar filled to them, as in GeoGuessr. */
+/**
+ * The answer's points and a bar filled to them, as in GeoGuessr. The fill starts flush in
+ * a visible track, so a few points read as the start of a bar rather than a stray dot.
+ */
 @Composable
 private fun PointsBar(points: Int, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -433,12 +573,27 @@ private fun PointsBar(points: Int, color: Color) {
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
-        LinearProgressIndicator(
-            progress = { points.toFloat() / Grader.MAX_POINTS },
-            modifier = Modifier.weight(1f).height(8.dp),
-            color = color,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            drawStopIndicator = {},
+        val fraction = (points.toFloat() / Grader.MAX_POINTS).coerceIn(0f, 1f)
+        Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(color.copy(alpha = 0.18f))) {
+            if (fraction > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).background(color))
+        }
+    }
+}
+
+/** Why the right answer is right: "Tel Aviv-Yafo is further north than Jerusalem". */
+@Composable
+private fun relationExplained(q: Question.Relate): String {
+    val other = q.options.firstOrNull { it != q.correct } ?: q.place
+    return when (val r = q.relation) {
+        is Relation.CloserTo -> stringResource(R.string.relate_explain_closer, q.correct.name, r.reference.name, other.name)
+        is Relation.Further -> stringResource(
+            when (r.direction) {
+                Relation.Direction.NORTH -> R.string.relate_explain_north
+                Relation.Direction.SOUTH -> R.string.relate_explain_south
+                Relation.Direction.EAST -> R.string.relate_explain_east
+                Relation.Direction.WEST -> R.string.relate_explain_west
+            },
+            q.correct.name, other.name,
         )
     }
 }
@@ -482,50 +637,104 @@ private fun feedbackLines(answer: Answer, content: Content): List<String> {
     }
 }
 
+/**
+ * The end of a session, fitting its kind: each shows only the lines that mean something
+ * there. Practice rounds and free play can be played again; one button leads back.
+ */
 @Composable
-private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
+private fun SummaryCard(
+    summary: SessionSummary,
+    kind: SessionKind,
+    doneLabel: String,
+    onDone: () -> Unit,
+    onPlayAgain: (() -> Unit)?,
+) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val test = summary.mapTest
-            if (test != null) {
-                Text(stringResource(R.string.map_test_summary_title), style = MaterialTheme.typography.headlineSmall)
-                Text(stringResource(R.string.placement_summary_found, test.found, test.total))
-                Text(stringResource(R.string.map_test_median, formatKm(test.medianErrorMeters)))
-                val pre = summary.preTest
-                when {
-                    pre != null -> {
-                        Text(stringResource(R.string.map_test_before, pre.found, pre.total, formatKm(pre.medianErrorMeters)))
-                        val gain = test.found - pre.found
-                        if (gain > 0) Text(pluralStringResource(R.plurals.map_test_gain, gain, gain))
+            val title = MaterialTheme.typography.headlineSmall
+            when {
+                test != null -> MapTestSummary(test, summary.preTest)
+                kind == SessionKind.BLITZ -> {
+                    Text(stringResource(R.string.blitz_summary_title), style = title)
+                    if (summary.answers == 0) {
+                        Text(stringResource(R.string.blitz_summary_none), style = MaterialTheme.typography.titleMedium)
+                    } else {
+                        SummaryPoints(summary)
+                        Text(pluralStringResource(R.plurals.blitz_summary_found, summary.correct, summary.correct, summary.answers))
                     }
-                    test.kind == MapTestKind.PRE -> Text(stringResource(R.string.map_test_pre_note))
+                    BlitzRecordLine(summary)
                 }
-            } else if (summary.blitz) {
-                Text(stringResource(R.string.blitz_summary_title), style = MaterialTheme.typography.headlineSmall)
-                SummaryPoints(summary)
-                Text(pluralStringResource(R.plurals.blitz_summary_found, summary.correct, summary.correct, summary.answers))
-                BlitzRecordLine(summary)
-            } else if (summary.trip.isNotEmpty()) {
-                Text(stringResource(R.string.trip_summary_title), style = MaterialTheme.typography.headlineSmall)
-                SummaryPoints(summary)
-                Text(summary.trip.joinToString(" ← ") { it.name }, style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.placement_summary_found, summary.correct, summary.answers))
-            } else if (summary.placement) {
-                Text(stringResource(R.string.placement_summary_title), style = MaterialTheme.typography.headlineSmall)
-                SummaryPoints(summary)
-                Text(stringResource(R.string.placement_summary_found, summary.correct, summary.answers))
-                Text(stringResource(R.string.placement_summary_note))
-            } else {
-                Text(stringResource(R.string.summary_title), style = MaterialTheme.typography.headlineSmall)
-                SummaryPoints(summary)
-                val percent = if (summary.answers == 0) 0 else summary.correct * 100 / summary.answers
-                Text(stringResource(R.string.summary_answers, summary.answers, percent))
-                Text(stringResource(R.string.summary_new, summary.newPlaces))
+                summary.trip.isNotEmpty() -> {
+                    // Only a trip that found every stop arrived.
+                    val arrived = summary.answers > 0 && summary.correct == summary.answers
+                    Text(stringResource(if (arrived) R.string.trip_summary_title else R.string.trip_summary_title_short), style = title)
+                    SummaryPoints(summary)
+                    Text(summary.trip.joinToString(" ← ") { it.name }, style = MaterialTheme.typography.titleMedium)
+                    Text(pluralStringResource(R.plurals.trip_summary_found, summary.correct, summary.correct, summary.answers))
+                }
+                summary.placement -> {
+                    Text(stringResource(R.string.placement_summary_title), style = title)
+                    SummaryPoints(summary)
+                    Text(stringResource(R.string.placement_summary_found, summary.correct, summary.answers))
+                    if (summary.found.isNotEmpty()) {
+                        Text(stringResource(R.string.placement_found_list, summary.found.joinToString(", ") { it.name }))
+                    }
+                    Text(stringResource(R.string.placement_summary_note))
+                }
+                kind == SessionKind.BUILD -> {
+                    Text(stringResource(R.string.build_summary_title), style = title)
+                    SummaryPoints(summary)
+                    Text(pluralStringResource(R.plurals.summary_found, summary.found.size, summary.found.size, summary.practiced.size))
+                }
+                else -> {
+                    Text(stringResource(if (kind == SessionKind.FOCUS) R.string.focus_summary_title else R.string.summary_title), style = title)
+                    SummaryPoints(summary)
+                    val percent = if (summary.answers == 0) 0 else summary.correct * 100 / summary.answers
+                    Text(stringResource(R.string.summary_answers, summary.answers, percent))
+                    // Focused practice only reviews: it never brings new places.
+                    if (kind != SessionKind.FOCUS) Text(stringResource(R.string.summary_new, summary.newPlaces))
+                }
             }
-            if (test == null) summary.averageCityErrorMeters?.let { Text(stringResource(R.string.summary_error, formatKm(it))) }
+            if (test == null && kind != SessionKind.BUILD) {
+                summary.averageCityErrorMeters?.let { Text(stringResource(R.string.summary_error, formatKm(it))) }
+            }
+            // A hard session (more misses than finds) ends on a kind word, not on the number alone.
+            if (test == null && !summary.placement && summary.answers > 0 && summary.correct * 2 < summary.answers) {
+                Text(stringResource(R.string.summary_kind), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Motivation(summary)
-            Button(onClick = onDone, Modifier.fillMaxWidth()) { Text(stringResource(R.string.summary_done)) }
+            if (onPlayAgain != null) {
+                OutlinedButton(onClick = onPlayAgain, Modifier.fillMaxWidth()) {
+                    Text(stringResource(if (kind == SessionKind.ROAD_TRIP) R.string.trip_again else R.string.play_again))
+                }
+            }
+            Button(onClick = onDone, Modifier.fillMaxWidth()) { Text(doneLabel) }
         }
+    }
+}
+
+/**
+ * The map test's score. A post-test is set beside the first one, the same places before
+ * the practice and now, and a lower score is framed as one moment, not a verdict.
+ */
+@Composable
+private fun MapTestSummary(test: MapTestResult, pre: MapTestResult?) {
+    Text(stringResource(R.string.map_test_summary_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.placement_summary_found, test.found, test.total))
+    Text(stringResource(R.string.map_test_median, formatKm(test.medianErrorMeters)))
+    when {
+        pre != null -> {
+            Text(stringResource(R.string.map_test_compare, test.total), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.map_test_before, pre.found, pre.total, formatKm(pre.medianErrorMeters)))
+            val gain = test.found - pre.found
+            when {
+                gain > 0 -> Text(pluralStringResource(R.plurals.map_test_gain, gain, gain), color = MaterialTheme.colorScheme.primary)
+                gain == 0 -> Text(stringResource(R.string.map_test_same))
+                else -> Text(stringResource(R.string.map_test_fewer), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        test.kind == MapTestKind.PRE -> Text(stringResource(R.string.map_test_pre_note))
     }
 }
 
@@ -609,19 +818,31 @@ private fun askDecorations(q: Question, colors: MapPalette): List<MapDecoration>
     }.orEmpty()
 }
 
+/**
+ * Naming options a few kilometers apart (Tel Aviv among its neighbors): their places, to view
+ * close up. Null when they are far enough apart to tell apart from the whole map.
+ */
+private fun closeOptions(options: List<Place>): List<MapPoint>? {
+    val points = options.map { it.label }
+    val spread = maxOf(points.maxOf { it.x } - points.minOf { it.x }, points.maxOf { it.y } - points.minOf { it.y })
+    return points.takeIf { spread < CLOSE_OPTIONS_METERS }
+}
+
 private fun askedPoints(q: Question): List<MapPoint> = when (q) {
     is Question.NameChoice -> listOf(q.place.label)
     is Question.NameTyped -> listOf(q.place.label)
     else -> emptyList()
 }
 
-private fun feedbackPoints(answer: Answer): List<MapPoint> = when (val r = answer.response) {
+private fun feedbackPoints(answer: Answer, content: Content): List<MapPoint> = when (val r = answer.response) {
     is Response.Tap -> listOf(r.at, answer.place.shape.nearestAnchor(r.at), answer.place.label)
     is Response.Moved -> answer.place.shape.center.let { listOf(it, MapPoint(it.x + r.dx, it.y + r.dy), answer.place.label) }
-    else -> (answer.question as? Question.Relate)?.options?.map { it.label } ?: listOf(answer.place.label)
+    is Response.Choice -> (answer.question as? Question.Relate)?.options?.map { it.label }
+        ?: listOfNotNull(answer.place.label, content.place(r.placeId)?.label)
+    else -> listOf(answer.place.label)
 }
 
-private fun feedbackDecorations(answer: Answer, colors: MapPalette): List<MapDecoration> {
+private fun feedbackDecorations(answer: Answer, content: Content, colors: MapPalette): List<MapDecoration> {
     val ok: Color = if (answer.grade.isCorrect) colors.good else colors.target
     val q = answer.question
     return when (val r = answer.response) {
@@ -649,17 +870,37 @@ private fun feedbackDecorations(answer: Answer, colors: MapPalette): List<MapDec
                 listOf(MapDecoration.Highlight(p.shape, color), MapDecoration.Label(p.label, p.name))
             } + listOfNotNull((q.relation as? Relation.CloserTo)?.reference?.let { MapDecoration.Label(it.label, it.name, colors.mastery) })
         } else {
-            listOf(MapDecoration.Highlight(q.place.shape, ok), MapDecoration.Label(q.place.label, q.place.name))
+            // A wrong name is shown where that place really is, as a missed tap names the place it hit.
+            val chosen = (r as? Response.Choice)?.placeId?.takeIf { !answer.grade.isCorrect }?.let { content.place(it) }
+            listOfNotNull(
+                chosen?.let { MapDecoration.Highlight(it.shape, colors.miss, alpha = 0.3f) },
+                MapDecoration.Highlight(q.place.shape, ok),
+                chosen?.let { MapDecoration.Label(it.label, it.name, colors.miss) },
+                MapDecoration.Label(q.place.label, q.place.name),
+            )
         }
     }
 }
 
-/** A road trip's route: a line through the stops, each marked and named. */
-private fun routeDecorations(stops: List<Place>, colors: MapPalette): List<MapDecoration> {
+/**
+ * A road trip's route through [stops], each marked and named: a solid leg to each stop
+ * found, a dashed one to a stop missed ([found] holds a stop's result once answered).
+ */
+private fun routeDecorations(stops: List<Place>, found: List<Boolean>, colors: MapPalette): List<MapDecoration> {
     if (stops.isEmpty()) return emptyList()
-    return listOf(MapDecoration.Drawing(stops.map { it.label }, colors.mastery)) +
-        stops.map { MapDecoration.Marker(it.label, colors.mastery, radiusPx = 7f) } +
-        stops.map { MapDecoration.Label(it.label, it.name) }
+    fun missed(i: Int) = found.getOrNull(i - 1) == false
+    val legs = (1 until stops.size).map { i ->
+        MapDecoration.Drawing(listOf(stops[i - 1].label, stops[i].label), if (missed(i)) colors.miss else colors.mastery, dashed = missed(i))
+    }
+    return legs +
+        stops.mapIndexed { i, p -> MapDecoration.Marker(p.label, if (missed(i)) colors.miss else colors.mastery, radiusPx = 7f) } +
+        stops.mapIndexed { i, p -> MapDecoration.Label(p.label, p.name, if (missed(i)) colors.missText else null) }
+}
+
+/** The map test's last tap, plain: it counted, with no sign of whether it was right. */
+private fun mapTestTapDecorations(answer: Answer, colors: MapPalette): List<MapDecoration> {
+    val tap = (answer.response as? Response.Tap)?.at ?: return emptyList()
+    return listOf(MapDecoration.Marker(tap, colors.tap, radiusPx = 7f))
 }
 
 /** The last blitz answer, faint: where the place is and where the tap landed. */
@@ -672,6 +913,15 @@ private fun blitzDecorations(answer: Answer, colors: MapPalette): List<MapDecora
         add(MapDecoration.Marker(tap, colors.tap, radiusPx = 6f))
     }
 }
+
+/** Naming options closer together than this are viewed close up (map meters). */
+private const val CLOSE_OPTIONS_METERS = 30_000.0
+
+/** At least this much of the map is shown around close naming options (map meters). */
+private const val CLOSE_OPTIONS_VIEW_METERS = 30_000.0
+
+/** The share of the screen's width the side panel takes in landscape. */
+private const val SIDE_PANEL_FRACTION = 0.42f
 
 /** How often the blitz clock is checked. */
 private const val CLOCK_TICK_MS = 200L
