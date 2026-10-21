@@ -51,7 +51,7 @@ class PlayerExperienceTest {
 
             // No Discover card: the test asks straight away, starting with the first places taught.
             waitForText("סמנו על המפה: תל אביב-יפו")
-            compose.onNodeWithText("בדיקת רמה · שאלה 1 מתוך 20 לכל היותר").assertExists()
+            compose.onNodeWithText("בדיקת רמה\u00A0· שאלה 1 מתוך 20 לכל היותר").assertExists()
             Screenshots.save(scenario, "c1-placement-ask")
             // Far out at sea: not Tel Aviv.
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }

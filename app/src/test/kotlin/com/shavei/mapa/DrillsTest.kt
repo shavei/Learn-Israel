@@ -77,7 +77,7 @@ class DrillsTest {
             compose.onNodeWithText("הרכבת המפה").performScrollTo().performClick()
 
             waitForText("גררו למקום: השרון")
-            waitForText("הרכבת המפה · שאלה 1 מתוך 1")
+            waitForText("הרכבת המפה\u00A0· שאלה 1 מתוך 1")
             Screenshots.save(scenario, "b1-build-start")
             // The shape has to be moved before it can be placed.
             compose.onNodeWithText("כאן המקום").assertIsNotEnabled()

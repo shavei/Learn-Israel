@@ -113,7 +113,7 @@ class HomeLayoutTest {
             Screenshots.save(scenario, "l5-home-modes")
 
             compose.onNodeWithText("אימון ממוקד").performClick()
-            waitForText("אימון ממוקד · שאלה")
+            waitForText("אימון ממוקד\u00A0· שאלה")
             compose.onNodeWithText("יציאה").performClick()
             waitForText("הסתרת דרכי התרגול")
             compose.onNodeWithText("בליץ").assertIsDisplayed()

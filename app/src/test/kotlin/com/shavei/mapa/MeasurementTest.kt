@@ -53,7 +53,7 @@ class MeasurementTest {
     /** Taps the middle of the map for every question until the summary shows. */
     private fun answerAllTwenty() {
         for (n in 1..MapTest.ITEMS.size) {
-            waitForText("מבחן מפה · שאלה $n מתוך 20")
+            waitForText("מבחן מפה\u00A0· שאלה $n מתוך 20")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.55f)) }
         }
         waitForText("סיום מבחן המפה")

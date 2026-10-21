@@ -86,7 +86,7 @@ class DailyHabitTest {
 
             // The same for the placement test, backed out of at its first question.
             compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
-            waitForText("בדיקת רמה · שאלה 1")
+            waitForText("בדיקת רמה\u00A0· שאלה 1")
             back(scenario)
             waitForText("מבחן מפה קצר לפני שמתחילים")
             Screenshots.save(scenario, "h1-welcome-after-back")
@@ -94,7 +94,7 @@ class DailyHabitTest {
 
             // One answer in the placement test, and the player is in.
             compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
-            waitForText("בדיקת רמה · שאלה 1")
+            waitForText("בדיקת רמה\u00A0· שאלה 1")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
             waitForText("המשך")
             // Leaving with an answer given is asked first.
