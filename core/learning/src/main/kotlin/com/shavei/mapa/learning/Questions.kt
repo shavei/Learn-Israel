@@ -81,6 +81,9 @@ data class Answer(
 interface QuestionSource {
     val answers: List<Answer>
 
+    /** How many questions the round holds, when that is known from the start (shown as "question 3 of 10"); else null. */
+    val plannedTotal: Int? get() = null
+
     /** The next question, or null when done. Repeats until the question is answered. */
     fun next(): Question?
 
