@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Mapa Promo</title>
+<link rel="stylesheet" href="fonts/local.css">
+<style>
+  :root { --sand:#F7F1E1; --blue:#1E5F8C; --deep:#123E5E; --ink:#2a2a2a; --orange:#E0703A; --green:#2E7D4F; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:1080px; height:1920px; overflow:hidden; background:var(--sand); font-family:'Heebo', sans-serif; }
+  #stage { position:relative; width:1080px; height:1920px; overflow:hidden; }
+  .layer, .bg { position:absolute; inset:0; }
+  .bg.sand { background: radial-gradient(1200px 900px at 80% 0%, #fff8e6 0%, var(--sand) 55%, #efe5cc 100%); }
+  .bg.blue { background: radial-gradient(1100px 1100px at 50% 30%, #2B76AB 0%, var(--blue) 45%, var(--deep) 100%); }
+  .bg .dots { position:absolute; inset:0; opacity:.18;
+    background-image: radial-gradient(circle, rgba(30,95,140,.55) 2px, transparent 2.5px); background-size:44px 44px; }
+  .bg.blue .dots { background-image: radial-gradient(circle, rgba(255,255,255,.5) 2px, transparent 2.5px); }
+  .el { position:absolute; will-change: transform, opacity; transform-origin:center center; }
+  .cap { left:60px; right:60px; top:130px; text-align:center; }
+  .cap h1 { font-size:96px; font-weight:900; color:var(--blue); line-height:1.05; letter-spacing:-1px; }
+  .cap p { font-size:46px; font-weight:500; color:#444; margin-top:22px; line-height:1.3; }
+  .mark { background: linear-gradient(transparent 62%, rgba(224,112,58,.38) 62%); padding:0 6px; }
+  .phone { width:632px; height:1322px; left:224px; top:540px; border-radius:64px; background:#17181c; padding:16px;
+           box-shadow: 0 50px 90px rgba(18,62,94,.28), 0 12px 30px rgba(0,0,0,.18); }
+  .phone .scr { position:relative; width:100%; height:100%; border-radius:50px; overflow:hidden; background:#ddd; }
+  .phone img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top; }
+  .phone .notch { position:absolute; top:26px; left:50%; width:26px; height:26px; margin-left:-13px; border-radius:50%; background:#0b0b0d; z-index:3; }
+  .ripple { width:120px; height:120px; margin:-60px 0 0 -60px; border-radius:50%; border:8px solid var(--orange); z-index:4; }
+  .tapdot { width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%; background:rgba(224,112,58,.85); z-index:4; box-shadow:0 0 0 6px rgba(255,255,255,.7); }
+  .hook { left:60px; right:60px; text-align:center; color:#fff; font-weight:900; }
+  .chip { display:inline-block; font-size:40px; font-weight:700; color:#fff; background:var(--orange); border-radius:999px; padding:10px 34px; }
+  .badge { font-size:44px; font-weight:800; color:#fff; background:var(--green); border-radius:28px; padding:14px 30px; box-shadow:0 18px 40px rgba(0,0,0,.2); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- backgrounds -->
+  <div class="bg sand" id="bgSand"><div class="dots"></div></div>
+  <div class="bg blue" id="bgHook"><div class="dots"></div></div>
+  <div class="bg blue" id="bgEnd"><div class="dots"></div></div>
+
+  <!-- S1: hook -->
+  <div class="el hook" id="h1" style="top:600px;font-size:108px">בטוחים שאתם</div>
+  <div class="el hook" id="h2" style="top:745px;font-size:108px">מכירים את</div>
+  <div class="el hook" id="h3" style="top:890px;font-size:112px;color:#FFD9A8;white-space:nowrap">המפה של ישראל?</div>
+  <div class="el hook" id="h4" style="top:1110px"><span class="chip">בואו נבדוק</span></div>
+
+  <!-- S2: find on a blank map -->
+  <div class="el cap" id="c2"><h1>סמנו על <span class="mark">מפה ריקה</span></h1><p>ערים, אזורים, הרים ונחלים</p></div>
+  <div class="el phone" id="p2"><div class="scr">
+    <div class="notch"></div>
+    <img src="shots/points_0.png" id="p2a">
+    <img src="shots/points_1.png" id="p2b">
+  </div></div>
+  <div class="el ripple" id="r2" style="left:288px;top:1135px"></div>
+  <div class="el tapdot" id="d2" style="left:288px;top:1135px"></div>
+  <div class="el badge" id="b2" style="left:600px;top:1350px">5,000 נקודות!</div>
+
+  <!-- S3: learn from misses -->
+  <div class="el cap" id="c3"><h1>טעיתם? <span class="mark">מעולה.</span></h1><p>קו למקום הנכון, המרחק בק״מ<br>ועובדה אחת שנשארת בראש</p></div>
+  <div class="el phone" id="p3"><div class="scr"><div class="notch"></div><img src="shots/points_2.png"></div></div>
+
+  <!-- S4: map builder -->
+  <div class="el cap" id="c4"><h1>הרכיבו את <span class="mark">המפה</span></h1><p>גררו כל אזור בדיוק למקומו</p></div>
+  <div class="el phone" id="p4"><div class="scr"><div class="notch"></div>
+    <img src="shots/drills_0.png" id="p4a"><img src="shots/drills_1.png" id="p4b"></div></div>
+
+  <!-- S5: free play -->
+  <div class="el cap" id="c5"><h1><span class="mark">בליץ</span> ומסע בדרכים</h1><p>דקה נגד השעון,<br>או מסלול עצירות ברחבי הארץ</p></div>
+  <div class="el phone" id="p5a"><div class="scr"><div class="notch"></div><img src="shots/free-play_0.png"></div></div>
+  <div class="el phone" id="p5b"><div class="scr"><div class="notch"></div><img src="shots/free-play_3.png"></div></div>
+
+  <!-- S6: spaced repetition and progress -->
+  <div class="el cap" id="c6"><h1>זוכרים <span class="mark">לתמיד</span></h1><p>כל מקום חוזר בדיוק לפני שתשכחו אותו.<br>202 מקומות, והמפה שלכם מתמלאת</p></div>
+  <div class="el phone" id="p6a"><div class="scr"><div class="notch"></div><img src="shots/motivation_0.png"></div></div>
+  <div class="el phone" id="p6b"><div class="scr"><div class="notch"></div><img src="shots/motivation_2.png"></div></div>
+
+  <!-- S7: map styles -->
+  <div class="el cap" id="c7"><h1>מפה <span class="mark">בתבליט</span></h1><p>וגם מצב כהה ללמידה בלילה</p></div>
+  <div class="el phone" id="p7a"><div class="scr"><div class="notch"></div><img src="shots/map-styles_2.png"></div></div>
+  <div class="el phone" id="p7b"><div class="scr"><div class="notch"></div><img src="shots/map-styles_3.png"></div></div>
+
+  <!-- S8: call to action -->
+  <svg class="el" id="pin" viewBox="30 26 48 56" style="left:400px;top:330px;width:280px;height:327px">
+    <path fill="#F7F1E1" d="M54,30c-9.4,0 -17,7.6 -17,17c0,12.7 17,31 17,31s17,-18.3 17,-31c0,-9.4 -7.6,-17 -17,-17z"/>
+    <circle fill="#E0703A" cx="54" cy="47" r="6"/>
+  </svg>
+  <div class="el" id="pinShadow" style="left:440px;top:672px;width:200px;height:34px;border-radius:50%;background:rgba(0,0,0,.25)"></div>
+  <div class="el hook" id="e1" style="top:730px;font-size:230px;line-height:1">מפה</div>
+  <div class="el hook" id="e2" style="top:1010px;font-size:58px;font-weight:500;color:#DCEBF6">לומדים את המפה של ישראל<br>5 עד 10 דקות ביום</div>
+  <div class="el hook" id="e3" style="top:1300px"><span class="chip" style="font-size:56px;padding:22px 60px;background:#fff;color:var(--blue)">הורידו עכשיו לאנדרואיד</span></div>
+  <div class="el hook" id="e4" style="top:1500px;font-size:40px;font-weight:500;color:#BFD6E8">משחק בעברית, מבוסס על מדע הזיכרון</div>
+</div>
+
+<script>
+// Tiny deterministic tween engine: each element gets keyframed tracks, render(t) sets styles.
+const E = {
+  lin: x => x,
+  out: x => 1 - Math.pow(1 - x, 3),
+  inn: x => x * x * x,
+  io: x => x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3) / 2,
+  back: x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3*Math.pow(x-1,3) + c1*Math.pow(x-1,2); },
+  bounce: x => { const n=7.5625,d=2.75; if(x<1/d) return n*x*x; if(x<2/d) return n*(x-=1.5/d)*x+.75; if(x<2.5/d) return n*(x-=2.25/d)*x+.9375; return n*(x-=2.625/d)*x+.984375; },
+};
+const DEF = { o:1, x:0, y:0, s:1, r:0 };
+const tracks = [];
+// kf: { o:[[t,v,ease],...], x:..., y:..., s:..., r:... }; ease applies to the segment ending at that key
+function T(id, kf) { tracks.push({ el: document.getElementById(id), kf }); }
+function val(keys, t, d) {
+  if (!keys) return d;
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    const [t1, v1, e] = keys[i];
+    if (t <= t1) {
+      const [t0, v0] = keys[i-1];
+      const p = (E[e || 'io'])((t - t0) / (t1 - t0));
+      return v0 + (v1 - v0) * p;
+    }
+  }
+  return keys[keys.length-1][1];
+}
+function render(t) {
+  for (const { el, kf } of tracks) {
+    const o = val(kf.o, t, 1);
+    el.style.opacity = o;
+    el.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
+    el.style.transform = `translate(${val(kf.x,t,0)}px,${val(kf.y,t,0)}px) scale(${val(kf.s,t,1)}) rotate(${val(kf.r,t,0)}deg)`;
+  }
+}
+// helpers
+const fadeIn = (a, d=.5) => [[a,0],[a+d,1,'out']];
+const inOut = (a, b, d=.45) => [[a,0],[a+d,1,'out'],[b-d,1],[b,0,'inn']];
+
+// ---------- timeline (seconds) ----------
+// S1 hook 0 - 3.4
+T('bgHook', { o:[[0,1],[3.2,1],[3.6,0]] });
+T('h1', { o:inOut(.15,3.4,.3), y:[[.15,60],[.6,0,'back']], s:[[3.0,1],[3.4,1.15,'inn']] });
+T('h2', { o:inOut(.55,3.4,.3), y:[[.55,60],[1.0,0,'back']], s:[[3.0,1],[3.4,1.15,'inn']] });
+T('h3', { o:inOut(.95,3.4,.3), s:[[.95,.6],[1.5,1,'back'],[3.0,1],[3.4,1.2,'inn']] });
+T('h4', { o:inOut(1.8,3.4,.3), y:[[1.8,40],[2.2,0,'back']] });
+
+// S2 find 3.4 - 8.4
+T('c2', { o:inOut(3.4,8.4), y:[[3.4,-40],[3.9,0,'out']] });
+T('p2', { o:inOut(3.5,8.4), y:[[3.5,500],[4.2,0,'out'],[8.0,0],[8.4,-80,'inn']] });
+T('p2b', { o:[[5.55,0],[5.8,1]] });
+T('d2', { o:[[5.2,0],[5.3,1],[5.6,1],[5.9,0]], s:[[5.2,1.6],[5.35,1,'out']] });
+T('r2', { o:[[5.3,0],[5.32,1],[6.0,0,'out']], s:[[5.3,.3],[6.0,1.8,'out']] });
+T('b2', { o:inOut(5.9,8.2,.3), s:[[5.9,.3],[6.3,1,'back']], r:[[5.9,-12],[6.3,-6,'back']] });
+
+// S3 miss 8.4 - 12.6
+T('c3', { o:inOut(8.4,12.6), y:[[8.4,-40],[8.9,0,'out']] });
+T('p3', { o:inOut(8.5,12.6), y:[[8.5,500],[9.2,0,'out'],[12.2,0],[12.6,-80,'inn']], s:[[9.2,1],[12.4,1.04,'lin']] });
+
+// S4 builder 12.6 - 16.8
+T('c4', { o:inOut(12.6,16.8), y:[[12.6,-40],[13.1,0,'out']] });
+T('p4', { o:inOut(12.7,16.8), x:[[12.7,700],[13.4,0,'out']], r:[[12.7,8],[13.4,0,'out']], y:[[16.4,0],[16.8,-80,'inn']] });
+T('p4b', { o:[[14.8,0],[15.1,1]] });
+
+// S5 free play 16.8 - 21.2
+T('c5', { o:inOut(16.8,21.2), y:[[16.8,-40],[17.3,0,'out']] });
+T('p5a', { o:inOut(16.9,21.2), x:[[16.9,900],[17.6,240,'out']], y:[[16.9,20],[21.2,20]], s:[[16.9,.7],[21.2,.7]], r:[[16.9,15],[17.6,4,'out']] });
+T('p5b', { o:inOut(17.2,21.2), x:[[17.2,-900],[17.9,-240,'out']], y:[[17.2,60],[21.2,60]], s:[[17.2,.7],[21.2,.7]], r:[[17.2,-15],[17.9,-4,'out']] });
+
+// S6 spaced repetition 21.2 - 25.8
+T('c6', { o:inOut(21.2,25.8), y:[[21.2,-40],[21.7,0,'out']] });
+T('p6a', { o:inOut(21.3,25.8), y:[[21.3,900],[22.0,20,'out']], x:[[21.3,240],[25.8,240]], s:[[21.3,.7],[25.8,.7]], r:[[21.3,4],[25.8,4]] });
+T('p6b', { o:inOut(21.6,25.8), y:[[21.6,900],[22.3,60,'out']], x:[[21.6,-240],[25.8,-240]], s:[[21.6,.7],[25.8,.7]], r:[[21.6,-4],[25.8,-4]] });
+
+// S7 map styles 25.8 - 29.8
+T('c7', { o:inOut(25.8,29.8), y:[[25.8,-40],[26.3,0,'out']] });
+T('p7a', { o:inOut(25.9,29.8), s:[[25.9,.5],[26.6,.7,'back'],[29.8,.74,'lin']], x:[[25.9,240],[29.8,240]], y:[[25.9,20],[29.8,20]], r:[[25.9,4],[29.8,4]] });
+T('p7b', { o:inOut(26.3,29.8), s:[[26.3,.5],[27.0,.7,'back'],[29.8,.74,'lin']], x:[[26.3,-240],[29.8,-240]], y:[[26.3,60],[29.8,60]], r:[[26.3,-4],[29.8,-4]] });
+
+// S8 CTA 29.6 - 35
+T('bgEnd', { o:[[29.5,0],[30.0,1,'out']] });
+T('pin', { o:fadeIn(30.0,.15), y:[[30.0,-700],[30.9,0,'bounce']] });
+T('pinShadow', { o:[[30.0,0],[30.9,1,'out']], s:[[30.0,.3],[30.9,1,'bounce']] });
+T('e1', { o:fadeIn(30.8,.4), s:[[30.8,.5],[31.3,1,'back']] });
+T('e2', { o:fadeIn(31.4,.5), y:[[31.4,40],[31.9,0,'out']] });
+T('e3', { o:fadeIn(32.1,.4), s:[[32.1,.6],[32.5,1,'back'],[33.2,1],[33.5,1.06],[33.8,1]] });
+T('e4', { o:fadeIn(32.6,.5) });
+
+window.DURATION = 35.5;
+window.render = render;
+render(0);
+// preview mode: ?play plays in real time
+if (location.search.includes('play')) { const t0 = performance.now(); (function f(){ render(((performance.now()-t0)/1000) % DURATION); requestAnimationFrame(f); })(); }
+</script>
+</body>
+</html>
