@@ -29,10 +29,11 @@ data class RegionScore(val region: Place, val places: Int, val practiced: Int, v
 /**
  * Region scores (docs/04-learning-engine.md): the mean mastery of the region itself and
  * every place in it (cities, mountains, streams, sites...), counting places not yet
- * practiced as 0, so a region reaches 100 percent only once all of them are known.
- * [mastery] maps place ids to their 0..1 LOCATE mastery. Regions come in curriculum order.
+ * practiced as 0 and [known] places as 1, so a region reaches 100 percent exactly when
+ * all of them are known. [mastery] maps place ids to their 0..1 LOCATE mastery, [known]
+ * holds the ids of known places ([isKnown]). Regions come in curriculum order.
  */
-fun regionScores(content: Content, mastery: Map<String, Double>): List<RegionScore> =
+fun regionScores(content: Content, mastery: Map<String, Double>, known: Set<String> = emptySet()): List<RegionScore> =
     content.places.filter { it.type == PlaceType.REGION }.map { region ->
         val key = region.id.removePrefix("region.")
         val members = listOf(region) + content.places.filter { it.region == key }
@@ -40,7 +41,7 @@ fun regionScores(content: Content, mastery: Map<String, Double>): List<RegionSco
             region = region,
             places = members.size,
             practiced = members.count { it.id in mastery },
-            score = members.sumOf { mastery[it.id] ?: 0.0 } / members.size,
+            score = members.sumOf { if (it.id in known) 1.0 else mastery[it.id] ?: 0.0 } / members.size,
         )
     }
 

@@ -33,6 +33,8 @@ class MotivationTest {
         errorMeters: Double? = null,
     ) = ReviewRecord(placeId, Facet.LOCATE, practice, session, at, rating, 2_000, elapsedDays = elapsedDays, errorMeters = errorMeters)
 
+    private val AchievementProgress.counts get() = done to total
+
     private fun progress(known: Set<String> = emptySet(), records: List<ReviewRecord> = emptyList(), bestStreak: Int = 0, c: Content = content) =
         Achievements.progress(c, known, records, bestStreak)
 
@@ -52,11 +54,11 @@ class MotivationTest {
         assertFalse(progress().getValue(Achievement.FIRST_KNOWN).earned)
         val p = progress(known = setOf("city.c0", "city.c1"))
         assertTrue(p.getValue(Achievement.FIRST_KNOWN).earned)
-        assertEquals(AchievementProgress(2, 12), p.getValue(Achievement.ALL_CITIES))
+        assertEquals(2 to 12, p.getValue(Achievement.ALL_CITIES).counts)
         val all = progress(known = content.places.map { it.id }.toSet())
         assertTrue(all.getValue(Achievement.ALL_CITIES).earned)
         // Nothing to know is nothing earned: the test content has no districts.
-        assertEquals(AchievementProgress(0, 0), all.getValue(Achievement.DISTRICTS))
+        assertEquals(0 to 0, all.getValue(Achievement.DISTRICTS).counts)
         assertFalse(all.getValue(Achievement.DISTRICTS).earned)
     }
 
@@ -66,7 +68,7 @@ class MotivationTest {
         val near = content.places.filter { it.type == PlaceType.CITY }.map { record(it.id, errorMeters = 1_000.0) }
         assertTrue(progress(records = near).getValue(Achievement.MAIN_CITIES).earned)
         val laterMiss = near + record("city.c3", Rating.AGAIN, at = now + 1, errorMeters = 20_000.0)
-        assertEquals(AchievementProgress(11, 12), progress(records = laterMiss).getValue(Achievement.MAIN_CITIES))
+        assertEquals(11 to 12, progress(records = laterMiss).getValue(Achievement.MAIN_CITIES).counts)
     }
 
     @Test
@@ -86,7 +88,7 @@ class MotivationTest {
         assertTrue(progress(records = listOf(record("city.c0", elapsedDays = 31.0))).getValue(Achievement.LONG_MEMORY).earned)
         val p = progress(bestStreak = 8)
         assertTrue(p.getValue(Achievement.STREAK_7).earned)
-        assertEquals(AchievementProgress(8, 30), p.getValue(Achievement.STREAK_30))
+        assertEquals(8 to 30, p.getValue(Achievement.STREAK_30).counts)
     }
 
     @Test
@@ -104,8 +106,59 @@ class MotivationTest {
         val c = Content(content.map, places)
         val known = setOf("lake.kinneret", "city.shore", "site.shore")
         assertTrue(progress(known = known, c = c).getValue(Achievement.KINNERET).earned)
-        assertEquals(AchievementProgress(2, 3), progress(known = known, c = c).getValue(Achievement.WHOLE_REGION))
+        assertEquals(2 to 3, progress(known = known, c = c).getValue(Achievement.WHOLE_REGION).counts)
         assertTrue(progress(known = known + "region.r", c = c).getValue(Achievement.WHOLE_REGION).earned)
+    }
+
+    @Test
+    fun placeSetsListTheirPlacesAndWholeRegionNamesItsRegion() {
+        val square = Polygon(listOf(doubleArrayOf(0.0, 0.0, 10_000.0, 0.0, 10_000.0, 10_000.0, 0.0, 10_000.0, 0.0, 0.0)))
+        fun area(id: String, type: PlaceType) = Place(id, type, "u", 1, id, "", "", Shape.Area(listOf(square)), MapPoint(5_000.0, 5_000.0))
+        fun point(id: String, x: Double, region: String) =
+            Place(id, PlaceType.CITY, "u", 1, id, "", "", Shape.Point(MapPoint(x, 50_000.0)), MapPoint(x, 50_000.0), region = region)
+        val places = listOf(
+            area("lake.kinneret", PlaceType.LAKE),
+            area("region.big", PlaceType.REGION),
+            area("region.small", PlaceType.REGION),
+        ) + (0 until 9).map { point("city.b$it", it * 1_000.0, "big") } + point("city.s0", 0.0, "small")
+        val c = Content(content.map, places)
+
+        // Nothing known: the target is still a named region (the one with the fewest places), the same each time.
+        val none = progress(c = c).getValue(Achievement.WHOLE_REGION)
+        assertEquals("region.small", none.region?.id)
+        assertEquals(none, progress(c = c).getValue(Achievement.WHOLE_REGION))
+
+        // One of two places of the small region beats three of ten in the big one: named, with what is left.
+        val p = progress(known = setOf("city.b0", "city.b1", "city.b2", "city.s0"), c = c).getValue(Achievement.WHOLE_REGION)
+        assertEquals("region.small", p.region?.id)
+        assertEquals(1 to 2, p.counts)
+        assertEquals(listOf("region.small"), p.placesLeft.map { it.id })
+
+        // The Kinneret lists its places, done and left.
+        val k = progress(known = setOf("lake.kinneret"), c = c).getValue(Achievement.KINNERET)
+        assertEquals(listOf("lake.kinneret"), k.places.map { it.id })
+        assertEquals(setOf("lake.kinneret"), k.placesDone)
+        assertTrue(k.placesLeft.isEmpty())
+    }
+
+    @Test
+    fun oneOffAchievementsAreMarkedBinary() {
+        val p = progress(bestStreak = 3)
+        assertTrue(p.getValue(Achievement.NO_MISS).binary)
+        assertTrue(p.getValue(Achievement.LONG_MEMORY).binary)
+        assertTrue(p.getValue(Achievement.FIRST_KNOWN).binary)
+        assertFalse(p.getValue(Achievement.STREAK_7).binary)
+        assertFalse(p.getValue(Achievement.ALL_CITIES).binary)
+    }
+
+    @Test
+    fun aSessionWithNoAnswersEarnsNothing() {
+        val ten = (0 until 10).map { record("city.c$it") }
+        val p = progress(records = ten)
+        assertEquals(emptyList(), Achievements.newlyEarned(p, emptySet(), sessionAnswers = 0))
+        assertTrue(Achievement.NO_MISS in Achievements.newlyEarned(p, emptySet(), sessionAnswers = 10))
+        assertTrue(Achievement.NO_MISS in Achievements.newlyEarned(p, emptySet()))
+        assertEquals(emptyList(), Achievements.newlyEarned(p, setOf(Achievement.NO_MISS), sessionAnswers = 10))
     }
 
     @Test
