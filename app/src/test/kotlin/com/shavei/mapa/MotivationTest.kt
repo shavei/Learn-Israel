@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
@@ -60,6 +61,48 @@ class MotivationTest {
         answer = null, responseMs = 3000, appVersion = "test", tappedNear = tapped,
     )
 
+    @Test
+    fun homeExplainsKnownPlacesAndCreditsTheMap() {
+        seedKnown()
+        val now = System.currentTimeMillis()
+        runBlocking {
+            // Four more cities still being learned: not yet stable for three weeks.
+            app.content.places.filter { it.id.startsWith("city.") }.drop(12).take(4).forEach {
+                app.database.progressDao().upsert(
+                    CardEntity(it.id, "LOCATE", CardState.REVIEW.value, null, 3.0, 5.0, now + 2 * DAY_MS, now - DAY_MS, 0),
+                )
+            }
+        }
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("12 ידועים · 4 בלמידה · מתוך 202")
+            // The legend over the map uses the same two words.
+            compose.onNodeWithText("בלמידה").assertExists()
+            compose.onNodeWithText("מה זה ידוע?").performClick()
+            waitForText("מקום ידוע הוא מקום שתזכרו גם בעוד שלושה שבועות")
+            Screenshots.save(scenario, "d4-home-known-explained")
+            // The map credits moved off the home card into a dialog.
+            assertTrue(!has("OpenStreetMap"))
+            compose.onNodeWithText("© נתוני מפה").performClick()
+            waitForText("OpenStreetMap")
+            compose.onNodeWithText("סגירה").performClick()
+            compose.waitUntil(10_000) { !has("OpenStreetMap") }
+        }
+    }
+
+    /** At the largest system font the cards scroll instead of covering the map, and still work. */
+    @Test
+    @Config(fontScale = 2.0f)
+    fun homeWorksWithTheLargestText() {
+        seedKnown()
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("דרגה: מטייל/ת")
+            Screenshots.save(scenario, "d6-home-large-text")
+            compose.onNodeWithText("עוד דרכים לתרגל").performScrollTo().performClick()
+            compose.onNodeWithText("בליץ").performScrollTo().performClick()
+            waitForText("התחילו!")
+        }
+    }
+
     @After
     fun resetClock() {
         SessionViewModel.blitzDurationMs = 60_000
@@ -77,8 +120,11 @@ class MotivationTest {
         }
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("דרגה: מטייל/ת")
+            // Home shows how far the next rank is, too.
+            waitForText("עוד 18 מקומות ידועים לדרגת מדריך/ת טיולים")
             Screenshots.save(scenario, "d0-home-rank")
             compose.onNodeWithText("התקדמות").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasTestTag("progress")).fetchSemanticsNodes().isNotEmpty() }
             waitForText("עוד 18 מקומות ידועים לדרגת מדריך/ת טיולים")
             Screenshots.save(scenario, "d1-progress-rank")
 
@@ -118,8 +164,10 @@ class MotivationTest {
         seedKnown()
         SessionViewModel.blitzDurationMs = 3_000
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("עוד דרכים לתרגל")
+            compose.onNodeWithText("עוד דרכים לתרגל").performScrollTo().performClick()
             waitForText("בליץ")
-            compose.onNodeWithText("בליץ").performClick()
+            compose.onNodeWithText("בליץ").performScrollTo().performClick()
             waitForText("התחילו!")
             compose.onNodeWithText("התחילו!").performClick()
             waitForText("נותרו")

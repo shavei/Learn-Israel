@@ -49,7 +49,9 @@ class MoreSessionsTest {
         app.settings.update { it.copy(onboarded = true, reminderOffered = true, pace = LearningPace.UNLIMITED) }
         learnTwentyToday()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("האימון היומי הושלם. אפשר להמשיך ללמוד כמה שרוצים.")
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodes(hasText("✓ סיימתם להיום. יש עוד", substring = true)).fetchSemanticsNodes().isNotEmpty()
+            }
             Screenshots.save(scenario, "m1-home-after-daily")
             compose.onNodeWithText("אימון נוסף").performClick()
             // Past twenty new places today, and still a new one.

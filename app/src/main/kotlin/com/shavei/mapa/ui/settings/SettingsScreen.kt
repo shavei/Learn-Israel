@@ -189,6 +189,11 @@ fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Se
                 note = stringResource(R.string.settings_green_line_note),
                 checked = settings.showGreenLine,
             ) { on -> onChange { it.copy(showGreenLine = on) } }
+            Text(
+                stringResource(R.string.attribution),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
             HorizontalDivider()
             Section(stringResource(R.string.settings_theme))

@@ -77,7 +77,7 @@ class AppFlowTest {
         screenshot("6-miss")
 
         compose.onNodeWithText("יציאה").performClick()
-        waitForText("2 מתוך 202 מקומות בתרגול")
+        waitForText("2 בלמידה · 0 ידועים · מתוך 202")
         // After the first session, and only then, the daily reminder is offered.
         waitForText("תזכורת יומית?")
         compose.onNodeWithText("רצף: יום אחד").assertExists()
