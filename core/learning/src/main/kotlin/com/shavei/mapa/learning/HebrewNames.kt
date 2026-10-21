@@ -27,10 +27,13 @@ object HebrewNames {
         if (input.isEmpty()) return Match.WRONG
         val targets = names.map(::normalize)
         if (input in targets) return Match.EXACT
-        // One slip is forgiven on longer names: the player knew it.
-        if (targets.any { it.length >= 5 && editDistance(input, it) <= 1 }) return Match.CLOSE
+        // One slip is forgiven on longer names: the player knew it. A number is never a slip:
+        // כביש 4 is another road than כביש 1.
+        if (targets.any { it.length >= 5 && it.digits() == input.digits() && editDistance(input, it) <= 1 }) return Match.CLOSE
         return Match.WRONG
     }
+
+    private fun String.digits() = filter { it.isDigit() }
 
     internal fun editDistance(a: String, b: String): Int {
         var prev = IntArray(b.length + 1) { it }

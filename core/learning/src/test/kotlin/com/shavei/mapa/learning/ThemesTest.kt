@@ -124,6 +124,23 @@ class ThemesTest {
     }
 
     @Test
+    fun aMissedRoadNamesAnotherRoadNeverACityOnIt() {
+        val base = testContent()
+        // Two roads 6 km apart, the first passing 6 km north of the cities at y = 0.
+        val roads = Content(base.map, base.places + stream("road.a", 6_000.0, PlaceType.ROAD) + stream("road.b", 12_000.0, PlaceType.ROAD))
+        fun missed(tap: MapPoint): Place? {
+            val e = SessionEngine(roads, scheduler, mapOf(CardKey("road.a", Facet.LOCATE) to known(4.0)), 0,
+                SessionConfig(maxNewPerDay = 0, drillShare = 0.0), { now }, Random(3))
+            val q = e.next()!!
+            assertEquals("road.a", q.place.id)
+            return e.submit(q, Response.Tap(tap), 3_000).tappedNear
+        }
+        // 1 km from city.c3 and 5 km from the road: not "you marked city.c3".
+        assertEquals(null, missed(MapPoint(60_000.0, 1_000.0)))
+        assertEquals("road.b", missed(MapPoint(30_000.0, 12_500.0))?.id)
+    }
+
+    @Test
     fun newPlacesOfTheThemesComeAfterTheCore() {
         val e = SessionEngine(content, scheduler, emptyMap(), 0, SessionConfig(maxNewPerDay = null, maxInLearning = 100), { now }, Random(1))
         val firstNew = generateSequence { e.next()?.also { q -> e.submit(q, Response.Tap(q.place.label), 3_000) } }

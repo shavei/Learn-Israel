@@ -407,7 +407,8 @@ class SessionEngine(
     /**
      * The place the player most likely meant when a tap missed: for a region or a
      * district, the one the tap fell in; otherwise a city, or a place of the same kind
-     * (another stream, another site), within its own tolerance of the tap.
+     * (another stream, another site), within its own tolerance of the tap. A highway runs
+     * through cities, so a missed road names only another road.
      */
     private fun nearestOtherPlace(target: Place, tap: Response.Tap): Place? {
         val areaKind = target.type == PlaceType.REGION || target.type == PlaceType.DISTRICT
@@ -415,6 +416,8 @@ class SessionEngine(
             .filter {
                 it.id != target.id && if (areaKind) {
                     it.type == target.type
+                } else if (target.type == PlaceType.ROAD) {
+                    it.type == PlaceType.ROAD
                 } else {
                     it.type == PlaceType.CITY || (it.type.kind == target.type.kind && it.shape !is Shape.Area)
                 }
