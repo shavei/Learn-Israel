@@ -93,7 +93,7 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                 errorByDay = cityErrors.entries.sortedBy { it.key }.takeLast(HISTORY_DAYS).map { it.key to it.value.average() },
                 stats = LearningStats.of(records, app.content, now, zone),
                 mapTests = mapTests,
-                mapTestNext = MapTest.nextDue(daysPlayed.minOrNull(), lastTest),
+                mapTestNext = MapTest.nextDue(app.progress.firstPracticeDay(), lastTest),
                 appVersion = app.progress.appVersion,
                 motivation = app.progress.motivation(app.content, now, zone),
                 blitz = app.progress.blitzRecord(),

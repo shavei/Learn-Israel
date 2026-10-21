@@ -200,6 +200,24 @@ class DailyHabitTest {
     }
 
     @Test
+    fun withNothingToAskHomeSaysWhyAndOffersNoEmptySession() {
+        val now = System.currentTimeMillis()
+        runBlocking {
+            // Four places in their first steps, not due for hours: no session to offer now.
+            for (place in app.content.places.take(4)) {
+                dao.upsert(CardEntity(place.id, "LOCATE", CardState.LEARNING.value, 1, 2.3, 5.0, now + 3 * 60 * 60_000L, now - 60_000, 0))
+            }
+        }
+        app.settings.update { it.copy(onboarded = true, reminderOffered = true, pace = com.shavei.mapa.data.LearningPace.UNLIMITED) }
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("המקומות החדשים הבאים יגיעו כשהמקומות שבלמידה ייקלטו")
+            assertFalse(has("התחילו אימון יומי"))
+            assertFalse(has("תרגול נוסף"))
+            Screenshots.save(scenario, "h7-home-new-waits")
+        }
+    }
+
+    @Test
     fun theStreakSaysWhenAFreezeSavedItTheBestAndHowToKeepIt() {
         // A week of days two to eight days ago earns a freeze, used yesterday; before them,
         // a longer streak of ten days that broke.

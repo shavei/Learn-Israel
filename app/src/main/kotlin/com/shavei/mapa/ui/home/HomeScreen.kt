@@ -150,7 +150,8 @@ fun HomeScreen(
     val body = @Composable {
         HomeBody(state, viewModel, modesOpen, { onModesOpen(!modesOpen) }, onMapTest, onBuild, onFocus, onBlitz, onRoadTrip)
     }
-    val mainButton = @Composable { MainButton(state, hasWork, onStartSession) }
+    // No button for a session that would be empty: the line above it says why.
+    val mainButton = @Composable { if (state.practiceReady) MainButton(state, hasWork, onStartSession) }
     val sources = @Composable { MapChip(stringResource(R.string.home_sources)) { showSources = true } }
     val density = LocalDensity.current
 
@@ -311,7 +312,11 @@ private fun TodayLine(state: HomeState) {
     val hasWork = waiting > 0
     Text(
         when {
-            state.doneToday && hasWork -> pluralStringResource(R.plurals.home_daily_done, waiting, waiting)
+            state.doneToday && hasWork && state.practiceReady -> pluralStringResource(R.plurals.home_daily_done, waiting, waiting)
+            // No session to offer now: say why, and never promise places a session would not give.
+            !state.practiceReady && state.newWaitsForLearning -> stringResource(R.string.home_new_waits)
+            !state.practiceReady && state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
+            !state.practiceReady -> stringResource(if (state.doneToday) R.string.home_nothing_due else R.string.home_nothing_now)
             hasWork && state.dailyLeft != null -> pluralStringResource(R.plurals.home_daily_left, state.dailyLeft, state.dailyLeft)
             hasWork && state.newAvailable == 0 -> stringResource(R.string.home_due_reviews, state.dueNow)
             hasWork && state.dueNow == 0 -> stringResource(R.string.home_due_new, state.newAvailable)

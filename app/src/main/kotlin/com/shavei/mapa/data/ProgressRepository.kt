@@ -89,6 +89,9 @@ class ProgressRepository(
 
     suspend fun lastDayPlayed(zone: ZoneId = ZoneId.systemDefault()): LocalDate? = dao.dailyFinishTimes().lastOrNull()?.let { day(it, zone) }
 
+    /** The day of the first practice answer: the post-test comes a month after it. */
+    suspend fun firstPracticeDay(zone: ZoneId = ZoneId.systemDefault()): LocalDate? = dao.practiceTimes().firstOrNull()?.let { day(it, zone) }
+
     /** True once the player has answered any practice question (the tests are not practice). */
     suspend fun hasPracticed(): Boolean = dao.lastPracticeTime() != null
 

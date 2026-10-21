@@ -7,6 +7,8 @@
     <string name="home_start">התחילו אימון יומי</string>
     <string name="home_due">%1$d לחזרה, %2$d חדשים</string>
     <string name="home_nothing_due">סיימתם להיום. כל הכבוד! חזרו מחר.</string>
+    <string name="home_new_waits">המקומות החדשים הבאים יגיעו כשהמקומות שבלמידה ייקלטו, בהמשך היום או מחר.</string>
+    <string name="home_nothing_now">אין כרגע מה לתרגל. חזרו בהמשך היום.</string>
     <string name="home_nothing_due_yet">אין כרגע מקומות שמחכים לחזרה. תרגול קצר של המקומות החלשים ישלים את היום.</string>
     <plurals name="home_daily_left">
         <item quantity="one">עצרתם באמצע האימון היומי. נשארה עוד שאלה אחת.</item>
@@ -39,11 +41,11 @@
     <string name="home_build_note">גוררים אזורים ומחוזות למקום שלהם</string>
     <string name="home_build_locked">ייפתח כשתתחילו ללמוד אזורים</string>
     <string name="home_focus_note">המקומות שהכי קשים לכם כרגע</string>
-    <string name="home_blitz_note">דקה אחת, כמה שיותר מקומות שכבר נקלטו</string>
+    <string name="home_blitz_note">דקה אחת, כמה שיותר מהמקומות שבתרגול</string>
     <string name="home_blitz_note_record">דקה אחת, כמה שיותר מקומות · השיא שלכם: %1$s נקודות</string>
-    <string name="home_blitz_locked">ייפתח כש־%1$d מקומות בלמידה ייקלטו (עכשיו %2$d). מקום נקלט אחרי כמה תשובות נכונות באימון.</string>
-    <string name="home_trip_note">מסלול על המפה בין מקומות שכבר נקלטו</string>
-    <string name="home_trip_locked">ייפתח כשכמה מקומות קרובים זה לזה ייקלטו</string>
+    <string name="home_blitz_locked">ייפתח כשיהיו %1$d מקומות בתרגול, בלמידה או ידועים (עכשיו %2$d)</string>
+    <string name="home_trip_note">מסלול על המפה בין המקומות שבתרגול</string>
+    <string name="home_trip_locked">ייפתח כשיהיו בתרגול כמה מקומות קרובים זה לזה</string>
     <string name="home_known_what">מה זה ידוע?</string>
     <string name="home_known_explained">מקום ידוע הוא מקום שתזכרו גם בעוד שלושה שבועות. עד אז הוא בלמידה, ולכן לוקח כמה שבועות עד שהמקומות הראשונים נעשים ידועים.</string>
     <string name="home_build">הרכבת המפה</string>

@@ -144,6 +144,27 @@ cities"), which seeds the scheduler with the results.
 - The fading is honest and motivating: "3 places in the Negev are fading. 2 minute
   review?"
 
+### Streaks (the day and the habit)
+A day counts, for the streak and for "done for today", only when its **daily session
+is finished**: run to its summary, or answered as far as it was planned. The daily
+session is the main button on home; when nothing is due, the same button starts a short
+practice of the weakest places, and finishing that makes the day too. Map Builder,
+focused practice, Blitz and Road Trip are extras: they never complete the day by
+themselves.
+
+Leaving the daily session partway keeps the answers, but the day stays open: home says
+the player stopped with N questions left and the button continues with just those.
+Home never says "done for today" before the day is done, and never offers a session
+that would have nothing to ask; it says why instead (new places wait until the places
+in learning have sunk in).
+
+The streak counts days in a row. Every 7 days of streak earn a **freeze** (at most 2
+saved), which covers one missed day without breaking it. Home shows the streak, the
+best streak so far, the freezes with a short explanation on request, a word when a
+freeze just saved the streak, and, on a day not yet done, a gentle "finish today's
+session to keep it" (never a warning). Players from before daily sessions were stored
+keep their streak: each practice session they played counts as a finished one.
+
 ### Ranks
 Tourist, Hiker, Guide, Navigator, Cartographer, Sabra (in Hebrew with both genders,
 "מטייל/ת"). Tied to the number of known places (LOCATE stable for 21 days): 0, 10, 30,

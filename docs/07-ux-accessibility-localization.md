@@ -6,14 +6,28 @@
 2. Immediately play: the map outline appears, Discover shows Tel Aviv, then
    "Tap Tel Aviv". Success, the city lights up. Then Jerusalem, then Haifa.
 3. "Want to skip what you know?" Placement test (optional) or continue.
-4. Ask for a daily reminder time *after* the first session, not before.
+4. Ask for a daily reminder time *after* the first session, not before: the offer on
+   home has a time picker (20:00 to start with). A "no" in Android's own permission
+   question counts as "not now"; only when Android refuses without asking (notifications
+   turned off for the app) does the card explain that and open the phone's settings.
 
-No signup, no permissions on first run.
+No signup, no permissions on first run. The welcome screen stays until the player has
+answered a question: backing out of a first session or the placement test returns to
+it, so the placement test and the map test are not lost to a curious tap. Settings can
+start the placement test again at any time; it only seeds places not yet started.
+
+All three ways in (start, placement test, map test) stay on screen at any text size and
+in landscape: the words above them scroll, with a cue, and the buttons do not.
 
 ## Key screens
 
 - **Home:** the player's mastery map (big), today's session button with a count
-  ("12 reviews, 4 new"), streak, current unit.
+  ("12 reviews, 4 new"), streak, current unit. The map always keeps a real share of the
+  screen: a compact top card, and a bottom card whose main button never leaves the
+  screen while what is above it scrolls (with a fade and an arrow when there is more).
+  In landscape the cards move to a side column. The list of other ways to practice
+  takes the bottom card while open, so every mode shows, and stays open after a round.
+  Home shows nothing until the current state is loaded, so it never flashes old counts.
 - **Session player:** full-screen map, question bar on top, minimal chrome, feedback
   card sliding up from the bottom.
 - **Session summary:** the map animates the places strengthened today; stats (accuracy,

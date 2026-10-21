@@ -8,7 +8,7 @@ people actually remember.
 > mountains, craters, streams, reserves, highways, ports and heritage sites): find them,
 > name them (choice, then typed), and relate them ("which is further north?"),
 > scheduled by spaced repetition (FSRS). Onboarding with a placement test, a progress
-> screen with region percentages, a daily streak and reminder, settings, and dark
+> screen with region percentages, a daily streak (a day counts once its session is finished) and reminder, settings, and dark
 > mode. A 20-place map test before the first session and a month later, and local
 > learning stats you can share. Two map styles: standard and shaded relief.
 > GeoGuessr-style points: up to 5,000 for each answer, more the closer you tap.

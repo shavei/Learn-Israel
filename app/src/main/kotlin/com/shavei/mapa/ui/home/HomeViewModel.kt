@@ -124,7 +124,7 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
                 offerReminder = offerReminder,
                 reminderMinutes = settings.reminderMinutes,
                 offerMapTest = !offerReminder && today.toEpochDay() >= settings.mapTestSnoozedUntilDay &&
-                    MapTest.isDue(daysPlayed.minOrNull(), lastTest, today),
+                    MapTest.isDue(app.progress.firstPracticeDay(), lastTest, today),
             )
         }
     }
