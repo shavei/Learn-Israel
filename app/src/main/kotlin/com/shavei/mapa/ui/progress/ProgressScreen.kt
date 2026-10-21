@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +64,7 @@ import com.shavei.mapa.learning.LearningStats
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.RegionScore
 import com.shavei.mapa.learning.ThemeScore
+import com.shavei.mapa.ui.MapCard
 import com.shavei.mapa.ui.formatDate
 import com.shavei.mapa.ui.formatKm
 import com.shavei.mapa.ui.formatPoints
@@ -188,7 +188,7 @@ private fun FoldableTitle(title: String, tag: String, foldable: Boolean, open: B
 /** What a new player sees in place of empty charts: what will appear here, and the way to start. */
 @Composable
 private fun FirstPractice(onStart: () -> Unit) {
-    Card(Modifier.fillMaxWidth().testTag("first-practice")) {
+    MapCard(Modifier.fillMaxWidth().testTag("first-practice")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.progress_empty_title), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.progress_empty_body), style = MaterialTheme.typography.bodyMedium)
@@ -199,7 +199,7 @@ private fun FirstPractice(onStart: () -> Unit) {
 
 @Composable
 private fun Summary(state: ProgressState) {
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(pluralStringResource(R.plurals.home_known, state.known, state.known), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.progress_known_explained), style = MaterialTheme.typography.bodyMedium)
@@ -248,7 +248,7 @@ private const val MAX_DOTS = 12
  */
 @Composable
 private fun ErrorHistory(days: List<Pair<LocalDate, Double>>) {
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.progress_error_title), style = MaterialTheme.typography.titleMedium)
             if (days.size < 2) {
@@ -321,7 +321,7 @@ private fun ErrorHistory(days: List<Pair<LocalDate, Double>>) {
 @Composable
 private fun MapTestCard(state: ProgressState, onMapTest: () -> Unit) {
     val lines = mapTestLines(state)
-    Card(Modifier.fillMaxWidth().testTag("map-test")) {
+    MapCard(Modifier.fillMaxWidth().testTag("map-test")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.map_test_title), style = MaterialTheme.typography.titleMedium)
             for (line in lines) Text(line)
@@ -394,7 +394,7 @@ private fun StatsCard(state: ProgressState) {
             listOf(stringResource(R.string.map_test_title)) + mapTestLines(state)
         ).joinToString("\n")
     val chooserTitle = stringResource(R.string.stats_share)
-    Card(Modifier.fillMaxWidth().testTag("stats")) {
+    MapCard(Modifier.fillMaxWidth().testTag("stats")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             if (stats.answers == 0) {
@@ -606,7 +606,7 @@ private fun AchievementBadge(earned: Boolean, fraction: Float) {
 /** The pairs learned from this player's missed taps, which the session now practices side by side. */
 @Composable
 private fun MixedPairsCard(pairs: List<MixedPair>) {
-    Card(Modifier.fillMaxWidth().testTag("mixed-pairs")) {
+    MapCard(Modifier.fillMaxWidth().testTag("mixed-pairs")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 stringResource(R.string.confusables_title),
@@ -622,7 +622,7 @@ private fun MixedPairsCard(pairs: List<MixedPair>) {
 /** The places this player misses most when finding them, with how every answer went. */
 @Composable
 private fun HardestCard(places: List<HardPlace>) {
-    Card(Modifier.fillMaxWidth().testTag("hardest")) {
+    MapCard(Modifier.fillMaxWidth().testTag("hardest")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 stringResource(R.string.hardest_title),

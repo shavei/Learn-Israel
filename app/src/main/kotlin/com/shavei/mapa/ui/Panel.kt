@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -16,7 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -40,7 +43,7 @@ fun Panel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scroll = rememberScrollState()
-    Card(modifier.fillMaxWidth().heightIn(max = maxHeight)) {
+    MapCard(modifier.fillMaxWidth().heightIn(max = maxHeight)) {
         Column(
             Modifier
                 .scrollCue(scroll, CardDefaults.cardColors().containerColor, MaterialTheme.colorScheme.primary)
@@ -52,6 +55,43 @@ fun Panel(
             content = content,
         )
     }
+}
+
+/**
+ * A card styled as a legend box on a printed map: a fine double rule inside its edge and a
+ * soft shadow, so it reads as a sheet lying on the map. Use it in place of Material's Card.
+ */
+@Composable
+fun MapCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val outer = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+    val inner = MaterialTheme.colorScheme.outlineVariant
+    val corner = 6.dp
+    Card(
+        modifier.drawWithContent {
+            drawContent()
+            // Drawn over the card's content, which keeps clear of the edge by its padding.
+            val hairline = 1.dp.toPx()
+            val half = hairline / 2
+            drawRoundRect(
+                outer,
+                topLeft = Offset(half, half),
+                size = Size(size.width - hairline, size.height - hairline),
+                cornerRadius = CornerRadius(corner.toPx() - half),
+                style = Stroke(hairline),
+            )
+            val gap = 4.dp.toPx()
+            drawRoundRect(
+                inner,
+                topLeft = Offset(gap, gap),
+                size = Size(size.width - 2 * gap, size.height - 2 * gap),
+                cornerRadius = CornerRadius(2.dp.toPx()),
+                style = Stroke(0.75.dp.toPx()),
+            )
+        },
+        shape = RoundedCornerShape(corner),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        content = content,
+    )
 }
 
 /**

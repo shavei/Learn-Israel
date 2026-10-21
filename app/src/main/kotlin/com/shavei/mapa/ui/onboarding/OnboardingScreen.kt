@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -40,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
+import com.shavei.mapa.ui.MapCard
 import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
 import com.shavei.mapa.ui.scrollCue
@@ -106,7 +106,7 @@ private fun WelcomeCard(
     onMapTest: () -> Unit,
 ) {
     val scroll = rememberScrollState()
-    Card(modifier.fillMaxWidth()) {
+    MapCard(modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Column(
                 Modifier
