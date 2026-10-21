@@ -120,7 +120,7 @@ class ContentParserTest {
         assertTrue(shape("road.4").distanceTo(at("city.nahariya")) < 4_000.0, "and Nahariya")
         assertTrue(shape("road.6").distanceTo(at("city.rosh_haayin")) < 4_000.0, "Route 6 passes Rosh HaAyin")
         assertTrue(shape("road.6").distanceTo(at("city.tel_aviv")) > 10_000.0, "east of Gush Dan, not through it")
-        assertTrue(shape("road.40").distanceTo(at("city.beersheba")) < 4_000.0, "Route 40 through Be'er Sheva")
+        assertTrue(shape("road.40").distanceTo(at("city.beersheba")) < 5_000.0, "Route 40 along Be'er Sheva's east side")
         assertTrue(shape("road.40").distanceTo(at("city.mitzpe_ramon")) < 3_000.0, "and Mitzpe Ramon")
         assertTrue(at("port.eilat").distanceTo(at("city.eilat")) < 5_000.0, "Eilat's port by the city")
         assertTrue(shape("sea.gulf_of_eilat").distanceTo(at("port.eilat")) < 1_000.0, "on the gulf")
