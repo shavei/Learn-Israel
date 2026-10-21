@@ -302,8 +302,6 @@
         <item quantity="other">%d מקומות יותר מבפעם הראשונה</item>
     </plurals>
     <string name="map_test_compare">אותם %1$d מקומות, בפעם הראשונה ועכשיו:</string>
-    <string name="map_test_same">אותו מספר מקומות כמו בפעם הראשונה</string>
-    <string name="map_test_fewer">הפעם מצאתם פחות. מבחן אחד הוא רק רגע אחד, והאימון היומי ממשיך לחזק את המפה שלכם.</string>
     <string name="map_test_tap_noted">הסימון נקלט</string>
     <string name="map_test_to_welcome">חזרה למסך הפתיחה</string>
     <string name="map_test_pre_note">אחרי חודש של אימון נציע את אותו מבחן שוב, ותראו כמה למדתם.</string>

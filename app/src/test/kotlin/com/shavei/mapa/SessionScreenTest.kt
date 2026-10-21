@@ -178,7 +178,7 @@ class SessionScreenTest {
             }
             waitForText("סיום מבחן המפה")
             waitForText("אותם 20 מקומות, בפעם הראשונה ועכשיו:")
-            waitForText("הפעם מצאתם פחות", substring = true)
+            waitForText("הפעם נמצאו פחות מקומות", substring = true)
             shot(scenario, "s4-map-test-fewer")
             compose.onNodeWithText("חזרה למפה").assertExists()
         }
