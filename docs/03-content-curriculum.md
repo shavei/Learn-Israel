@@ -80,7 +80,7 @@ Example units (each 4 to 10 places):
 | Negev | Dimona, Arad, Yeruham, Mitzpe Ramon, Rahat |
 | Arava and Eilat | Eilat, Yotvata, Ein Yahav |
 
-## Tiers 4 to 6: nature, infrastructure and heritage (55 items, built in Phase 2a)
+## Tiers 4 to 6: nature, infrastructure and heritage (56 items, built in Phase 2a)
 
 Taught after the core (tiers 0 to 3), in themed units. Each place type belongs to one
 theme, which the progress screen counts separately. Geometry: points copied from
@@ -96,9 +96,9 @@ number across the borders stay out).
 - *Springs and reserves:* the Dan and the Hermon stream (Banias), the Hula reserve,
   Ein Gedi, Ein Avdat, Timna Park.
 
-**Tier 5, infrastructure (11):**
+**Tier 5, infrastructure (12):**
 - *Highways:* Route 1, the coastal highway (2), the Trans-Israel Highway (6), Route 4,
-  Route 90, Route 40. A highway crosses many regions, so it counts toward none of the
+  Route 60 (the Way of the Patriarchs, along the mountain ridge), Route 90, Route 40. A highway crosses many regions, so it counts toward none of the
   region percentages.
 - *Gateways:* Ben Gurion and Ramon airports; the ports of Haifa, Ashdod and Eilat.
 

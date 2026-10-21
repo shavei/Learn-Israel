@@ -178,7 +178,7 @@ smaller releases, in order of learning value, each playable on its own.
 ### 2a. Tiers 4 to 6 - built
 - [x] 49 new places after the core, in 10 themed units: 22 of nature (mountains,
       craters, streams, springs and reserves), 5 of infrastructure (two airports, three
-      ports) and 22 heritage sites (docs/03-content-curriculum.md); the six highways
+      ports) and 22 heritage sites (docs/03-content-curriculum.md); the highways
       followed later (below)
 - [x] Geometry from OpenStreetMap: rivers and craters by their way or relation, points
       copied from the OSM object named beside each place
@@ -273,7 +273,8 @@ smaller releases, in order of learning value, each playable on its own.
   missed most and answered least weigh together in one score
 
 ### Highways - built
-- [x] Routes 1, 2 (the coastal highway), 4, 6 (Trans-Israel), 40 and 90, in their own
+- [x] Routes 1, 2 (the coastal highway), 4, 6 (Trans-Israel), 40, 60 (the ridge road
+      from Be'er Sheva through Hebron, Jerusalem and Shechem to Nazareth) and 90, in their own
       unit at the start of tier 5: every motorway to secondary road in OpenStreetMap
       that carries the number, within 1 km of Israel's land or Gaza (the numbers repeat
       across the borders), from the Overpass API
@@ -284,7 +285,7 @@ smaller releases, in order of learning value, each playable on its own.
       long ones do not cover it
 - [x] A highway counts toward no region percentage (each crosses many), is not a Road
       Trip stop, and leaves the gateways achievement to ports and airports
-- [x] The six roads as built: `docs/images/highways.png`
+- [x] The seven roads as built: `docs/images/highways.png`
 - Not yet: trips along the highways in Road Trip, and roads in Map Builder
 
 ### 2e. Data - postponed until after launch

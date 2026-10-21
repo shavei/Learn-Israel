@@ -61,7 +61,7 @@ class PlayerExperienceTest {
             compose.onNodeWithText("יציאה").performClick()
 
             // Only the Mediterranean was found, so only it has a card.
-            waitForText("1 בלמידה · 0 ידועים · מתוך 208")
+            waitForText("1 בלמידה · 0 ידועים · מתוך 209")
             // The placement test is not a day of practice: no streak and no reminder offer yet.
             compose.onNodeWithText("אימון היום יתחיל רצף").assertExists()
             assertTrue(compose.onAllNodes(hasText("תזכורת יומית?")).fetchSemanticsNodes().isEmpty())

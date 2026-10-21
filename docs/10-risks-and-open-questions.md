@@ -13,7 +13,7 @@
 | 7 | Backend for social features? | Decide later | Phases 0 to 2 are fully offline; choose Supabase or Firebase at the start of Phase 3 |
 | 8 | Team? | One developer working with Claude Code | Tight scope per phase, heavy automated testing, each phase ships something usable |
 | 9 | When do nature, ports and heritage (tiers 4 to 6) come in? (2026-10-20) | After the whole core (frame, regions, cities), as the curriculum is ordered | Several weeks of play before the first mountain or site; revisit if the exit test shows players stop before Tier 4 |
-| 10 | Highways? (2026-10-20, built 2026-10-21) | Routes 1, 2, 4, 6, 40 and 90, found with Pin It anywhere along them | They count toward no region percentage (each crosses many), are no Road Trip stops, and the gateways achievement stays ports and airports |
+| 10 | Highways? (2026-10-20, built 2026-10-21) | Routes 1, 2, 4, 6, 40, 60 and 90, found with Pin It anywhere along them | They count toward no region percentage (each crosses many), are no Road Trip stops, and the gateways achievement stays ports and airports |
 | 11 | Heritage sites inside a known city (the Old City, Yad Vashem, Old Jaffa, the Bahá'í Gardens, Old Akko)? (2026-10-20) | Kept, with Pin It and Name It like any place | Easy to find once the city is known; they still teach the name and the fact |
 | 12 | Review of the tier 4 to 6 Hebrew text? (2026-10-20) | Shipped without a separate review | Names, hints and facts are fixed as testers report problems |
 | 13 | Do nature and heritage places count in the region percentages? (2026-10-20) | Yes: a region counts every place in it | A region is 100 percent only when its cities, mountains, streams and sites are all known; percentages drop once tier 4 places exist |
