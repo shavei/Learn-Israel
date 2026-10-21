@@ -3,6 +3,7 @@ package com.shavei.mapa
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -269,7 +270,8 @@ class SessionScreenTest {
             waitForText("מצאתם 0 מתוך $stops תחנות")
             shot(scenario, "s11-trip-none-found")
             // Another trip, planned afresh from the places still learned.
-            waitForText("מסע נוסף")
+            // Shown at once, enabled once the trip is saved.
+            compose.waitUntil(10_000) { compose.onAllNodes(hasText("מסע נוסף") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("מסע נוסף").performClick()
             compose.waitForIdle()
             shot(scenario, "s11b-trip-again")
@@ -389,7 +391,7 @@ class SessionScreenTest {
             val summary = (session(scenario).ui.value as SessionUi.Finished).summary
             assertEquals(setOf("region.sharon", "region.negev"), summary.practiced.map { it.id }.toSet())
             // Another round, planned afresh.
-            waitForText("סבב נוסף")
+            compose.waitUntil(10_000) { compose.onAllNodes(hasText("סבב נוסף") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("סבב נוסף").performClick()
             waitForText("הרכבת המפה\u00A0· שאלה 1 מתוך", substring = true)
         }

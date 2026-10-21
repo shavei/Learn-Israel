@@ -297,7 +297,7 @@ class SessionEngine(
         val drill = Drill.of(place.type)
         val useDrill = drill != null && card != null && !config.focus &&
             (config.drill == drill || (card.isReview && !hint && random.nextDouble() < config.drillShare))
-        return if (useDrill) Question.Build(place, Drill.buildStart(content.map.home), hint) else Question.Locate(place, isNew = card == null, hint = hint)
+        return if (useDrill) Question.Build(place, Drill.buildStart(content.map.home, place.shape), hint) else Question.Locate(place, isNew = card == null, hint = hint)
     }
 
     /**

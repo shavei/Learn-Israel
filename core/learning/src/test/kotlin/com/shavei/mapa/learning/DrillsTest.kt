@@ -103,7 +103,7 @@ class DrillsTest {
         assertEquals(listOf("region.o", "region.r"), asked.map { it.place.id })
         asked.forEach { q ->
             val build = assertIs<Question.Build>(q)
-            assertEquals(Drill.buildStart(withTwo.map.home), build.start)
+            assertEquals(Drill.buildStart(withTwo.map.home, build.place.shape), build.start)
         }
     }
 

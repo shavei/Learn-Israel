@@ -22,10 +22,22 @@ enum class Drill {
         }
 
         /**
-         * Where every Map Builder shape starts: its center in the sea off the middle of the
-         * coast. The same spot for every shape, so the start gives nothing away.
+         * Where a Map Builder shape starts: in the open sea off the Carmel coast, where the
+         * sea is widest, its east edge just off the shore, so it covers no land the player
+         * needs. A shape too wide for the sea reaches past the map's west edge, its center
+         * kept on the map. The same spot for every shape but for its width, so the start
+         * gives nothing away.
          */
-        fun buildStart(home: Bounds) = MapPoint(home.minX + 5_000.0, home.center.y)
+        fun buildStart(home: Bounds, shape: Shape): MapPoint {
+            val eastEdge = home.minX + home.width * START_EAST_EDGE
+            return MapPoint(maxOf(eastEdge - shape.bounds.width / 2, home.minX), home.minY + home.height * START_LATITUDE)
+        }
+
+        /** The start's east edge, across the map from its west edge: a little off the shore at Hadera. */
+        private const val START_EAST_EDGE = 0.37
+
+        /** The start's latitude, up the map from its south edge: between Hadera and Haifa. */
+        private const val START_LATITUDE = 0.78
     }
 }
 

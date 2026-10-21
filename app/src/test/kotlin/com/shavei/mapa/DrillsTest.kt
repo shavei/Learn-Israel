@@ -101,6 +101,10 @@ class DrillsTest {
             assertTrue(!has("מקומות חדשים", substring = true))
             waitForText("סבב נוסף")
             Screenshots.save(scenario, "b4-build-summary")
+            // Picking an answer shows its shape where it was dropped, beside its place.
+            compose.onNodeWithTag("blitz-answer-0").performScrollTo().performClick()
+            compose.waitForIdle()
+            Screenshots.save(scenario, "b5-build-summary-picked")
         }
         // Only the region was asked, and the answer logged where its shape was dropped.
         val reviews = runBlocking { app.database.progressDao().reviews() }
