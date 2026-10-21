@@ -84,6 +84,17 @@ data class AchievementEntity(
     val unlockedAt: Long,
 )
 
+/** One blitz that ran to the end of its clock; its answers are in reviews. */
+@Entity(tableName = "blitz_rounds")
+data class BlitzRoundEntity(
+    @PrimaryKey val sessionId: String,
+    val finishedAt: Long,
+    val points: Int,
+    /** Places asked, and how many of them were found within their tolerance. */
+    val answers: Int,
+    val found: Int,
+)
+
 @Dao
 interface ProgressDao {
     @Query("SELECT * FROM cards")
@@ -141,6 +152,12 @@ interface ProgressDao {
     /** Keeps the first unlock time of an achievement already stored. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(achievement: AchievementEntity)
+
+    @Insert
+    suspend fun insert(round: BlitzRoundEntity)
+
+    @Query("SELECT * FROM blitz_rounds ORDER BY finishedAt")
+    suspend fun blitzRounds(): List<BlitzRoundEntity>
 }
 
 data class LocateError(val placeId: String, val timestamp: Long, val errorMeters: Double)
@@ -148,8 +165,8 @@ data class LocateError(val placeId: String, val timestamp: Long, val errorMeters
 data class ConfusionRow(val asked: String, val tapped: String, val count: Int)
 
 @Database(
-    entities = [CardEntity::class, ReviewEntity::class, MapTestEntity::class, AchievementEntity::class],
-    version = 4,
+    entities = [CardEntity::class, ReviewEntity::class, MapTestEntity::class, AchievementEntity::class, BlitzRoundEntity::class],
+    version = 5,
     exportSchema = false,
 )
 abstract class MapaDatabase : RoomDatabase() {
@@ -207,6 +224,16 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `achievements` (`id` TEXT NOT NULL, `unlockedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        )
+    }
+}
+
+/** Blitz scores: every finished round, so the best one can be beaten. */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `blitz_rounds` (`sessionId` TEXT NOT NULL, `finishedAt` INTEGER NOT NULL, " +
+                "`points` INTEGER NOT NULL, `answers` INTEGER NOT NULL, `found` INTEGER NOT NULL, PRIMARY KEY(`sessionId`))",
         )
     }
 }

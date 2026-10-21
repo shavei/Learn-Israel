@@ -154,7 +154,8 @@ What 1d simplified, on purpose:
       test stays without feedback)
 - [x] Points are a score only: the scheduler still grades each answer by its own
       tolerance, which widens for new places
-- Not yet: points are not stored, so there is no best score or history of scores
+- Not yet: daily sessions and road trips keep no score, so there is no history of
+  scores (only Blitz rounds are stored, below)
 
 ### Pace - built
 - [x] As many sessions a day as the player likes: once today's is done, home says so
@@ -240,7 +241,7 @@ smaller releases, in order of learning value, each playable on its own.
 - Decided (doc 10): free play only on learned places; the same reduced weight for Road
   Trip as for Blitz; trips are planned from the player's own places, not written by hand
 - Not yet: written trips with a story ("You land at Ben Gurion..."), trips along the
-  highways, and a best Blitz score (points are not stored yet)
+  highways; the best Blitz score came later (Blitz records, below)
 
 ### 2d. Motivation - built
 - [x] Ranks by known places (LOCATE stable for 21 days): Tourist, Hiker (10), Guide
@@ -260,7 +261,7 @@ smaller releases, in order of learning value, each playable on its own.
 - Decided (doc 10): the rank can drop and achievements stay; personal pairs only,
   from 2 confusions; achievements tied to places use the current content, so new
   places in a theme reopen nothing already earned
-- Not yet: global confusable pairs (with the log upload, 2e), and a best Blitz score
+- Not yet: global confusable pairs (with the log upload, 2e)
 
 ### Focused practice - built
 - [x] A round of 10 from home, in place of Trace It, run by the answer log alone: every
@@ -287,6 +288,15 @@ smaller releases, in order of learning value, each playable on its own.
       Trip stop, and leaves the gateways achievement to ports and airports
 - [x] The seven roads as built: `docs/images/highways.png`
 - Not yet: trips along the highways in Road Trip, and roads in Map Builder
+
+### Blitz records - built
+- [x] Each blitz that runs to the end of its clock is stored: its points, answers and
+      places found (database version 5); a blitz left early is not saved
+- [x] The blitz summary compares with the best: "הבליץ הראשון שלכם: זה השיא לשבור" the
+      first time, "שיא חדש! הקודם היה X נקודות" on a new best, otherwise "השיא שלכם: X
+      נקודות"
+- [x] Home's Blitz button shows the best score once there is one
+- [x] "Share results" adds the best blitz score and the number of rounds played
 
 ### 2e. Data - postponed until after launch
 - [ ] Opt-in anonymous log upload; first global FSRS parameter fit

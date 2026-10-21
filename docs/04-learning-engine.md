@@ -168,6 +168,9 @@ NAME, RELATE: 5000 when right (a spelling slip included, but never a wrong digit
 - A session shows its running score above each question, each answer's points with a
   bar on its feedback, and its total out of the most it could have been (5000 per
   answer) on the summary. The map test shows no points, as it shows no feedback.
+- Only Blitz rounds keep their points: each round that runs out its clock is stored
+  (`blitz_rounds`) for a best score to beat. Other sessions keep no score history,
+  and stored points still never change the schedule.
 
 ### Free play (Blitz, Road Trip) and Daily Challenge
 Reviews from these modes are logged but applied with reduced weight: a success is

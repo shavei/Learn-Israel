@@ -58,6 +58,7 @@ import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Rank
 import com.shavei.mapa.ui.Panel
+import com.shavei.mapa.ui.formatPoints
 import com.shavei.mapa.ui.formatTime
 import com.shavei.mapa.ui.map.MapDecoration
 import com.shavei.mapa.ui.map.MapView
@@ -346,8 +347,11 @@ private fun Modes(
     val blitzReady = state.freePlayPlaces >= Blitz.MIN_PLACES
     Mode(
         stringResource(R.string.home_blitz),
-        if (blitzReady) stringResource(R.string.home_blitz_note)
-        else stringResource(R.string.home_blitz_locked, Blitz.MIN_PLACES, state.freePlayPlaces),
+        when {
+            !blitzReady -> stringResource(R.string.home_blitz_locked, Blitz.MIN_PLACES, state.freePlayPlaces)
+            state.blitzBest != null -> stringResource(R.string.home_blitz_note_record, formatPoints(state.blitzBest))
+            else -> stringResource(R.string.home_blitz_note)
+        },
         enabled = blitzReady, onBlitz,
     )
     Mode(

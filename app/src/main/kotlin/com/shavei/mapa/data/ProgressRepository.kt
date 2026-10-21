@@ -54,6 +54,9 @@ data class Motivation(
     val newlyEarned: List<Achievement>,
 )
 
+/** The best blitz score so far, and how many rounds were played to the end. */
+data class BlitzRecord(val best: Int, val rounds: Int)
+
 class ProgressRepository(
     private val dao: ProgressDao,
     val appVersion: String,
@@ -112,6 +115,17 @@ class ProgressRepository(
         val newly = progress.filter { (a, p) -> p.earned && a !in stored }.keys.toList()
         newly.forEach { dao.insert(AchievementEntity(it.name, now)) }
         return Motivation(Rank.of(known.size), known.size, progress, stored + newly.associateWith { now }, newly)
+    }
+
+    /** The best blitz so far, or null before the first one. */
+    suspend fun blitzRecord(): BlitzRecord? =
+        dao.blitzRounds().takeIf { it.isNotEmpty() }?.let { rs -> BlitzRecord(rs.maxOf { it.points }, rs.size) }
+
+    /** Saves a finished blitz and returns the record it had to beat (null for the first round). */
+    suspend fun saveBlitz(sessionId: String, finishedAt: Long, points: Int, answers: Int, found: Int): BlitzRecord? {
+        val before = blitzRecord()
+        dao.insert(BlitzRoundEntity(sessionId, finishedAt, points, answers, found))
+        return before
     }
 
     suspend fun mapTests(): List<MapTestResult> = dao.mapTests().map {

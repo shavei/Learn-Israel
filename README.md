@@ -15,7 +15,7 @@ people actually remember.
 > As many sessions a day as you like, at the pace of new places you choose.
 > Map Builder (drag a region into place), mixed into the session and as a round of its own.
 > Focused practice: a round of the places your own answers say need it most. Free play on learned places:
-> Blitz (a minute against the clock) and Road Trip (a chain of stops across the map).
+> Blitz (a minute against the clock, with your best score to beat) and Road Trip (a chain of stops across the map).
 > Ranks by places known, 15 achievements for real knowledge, and confusable pairs
 > learned from your own missed taps, practiced side by side.
 > See the [roadmap](docs/09-roadmap.md).

@@ -37,6 +37,8 @@ data class HomeState(
     val buildPlaces: Int = 0,
     /** Places past their learning steps, for free play: a blitz needs a few of them. */
     val freePlayPlaces: Int = 0,
+    /** The best blitz score, null before the first blitz. */
+    val blitzBest: Int? = null,
     /** Learned places near enough to each other for a road trip. */
     val roadTripReady: Boolean = false,
     /** placeId to 0..1 strength shown on the mastery map. */
@@ -86,6 +88,7 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
                 newPerDay = config.maxNewPerDay,
                 buildPlaces = locate.keys.count { app.content.place(it)?.type?.let(Drill::of) == Drill.BUILD },
                 freePlayPlaces = FreePlay.learned(app.content, cards).size,
+                blitzBest = app.progress.blitzRecord()?.best,
                 roadTripReady = RoadTrip.plan(app.content, cards).isNotEmpty(),
                 mastery = locate.mapValues { (_, c) -> app.scheduler.mastery(c.fsrs, now) },
                 streak = Streak.of(daysPlayed, today),

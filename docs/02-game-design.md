@@ -115,7 +115,9 @@ only (past their learning steps), each once in random order before any comes bac
 There is no feedback card to stop the clock: the next place comes at once, with the
 last answer shown faintly on the map and its points above the question. Fun, fast, and
 still a valid retrieval: results feed the scheduler at a reduced weight because speed
-pressure changes the signal. Home offers it once 4 places are learned.
+pressure changes the signal. Home offers it once 4 places are learned. Each round that
+runs to the end of the clock is kept, so the summary and home show the best score to
+beat.
 
 ## Progression and structure
 
