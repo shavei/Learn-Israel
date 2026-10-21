@@ -137,7 +137,7 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: 
                                 { -it.value.done.toDouble() / it.value.total.coerceAtLeast(1) },
                             ),
                         )
-                        items(order, key = { it.key.name }) { (a, p) -> AchievementRow(a, p, motivation.earned[a], state) }
+                        items(order, key = { it.key.name }) { (a, p) -> AchievementRow(a, p, motivation.earned[a]) }
                     }
                 }
                 if (state.mixedPairs.isNotEmpty()) item { MixedPairsCard(state.mixedPairs) }
@@ -517,27 +517,23 @@ private fun ThemeRow(score: ThemeScore) {
  * achievement just says it is not earned yet.
  */
 @Composable
-private fun AchievementRow(achievement: Achievement, progress: AchievementProgress, earnedAt: Long?, state: ProgressState) {
+private fun AchievementRow(achievement: Achievement, progress: AchievementProgress, earnedAt: Long?) {
     val earned = earnedAt != null
     val title = achievementTitle(achievement)
     val text = achievementText(achievement, progress.total)
-    // Which places or region it counts, where the rule alone does not say.
-    val detail = when {
-        earned -> null
-        achievement == Achievement.KINNERET && state.kinneret.isNotEmpty() -> stringResource(
-            R.string.achievement_kinneret_places,
-            state.kinneret.joinToString(", ") { (name, known) -> if (known) "$name ✓" else name },
-        )
-        achievement == Achievement.WHOLE_REGION && state.closestRegion != null ->
-            stringResource(R.string.achievement_whole_region_closest, state.closestRegion)
-        else -> null
-    }
+    // Which region it measures, and which places are still missing once they are few enough to name.
+    val left = progress.placesLeft
+    val detail = if (earned) null else listOfNotNull(
+        progress.region?.let { stringResource(R.string.achievement_whole_region_closest, it.name) },
+        left.takeIf { it.isNotEmpty() && it.size <= MAX_PLACES_NAMED }
+            ?.let { places -> stringResource(R.string.achievement_places_left, places.joinToString(", ") { it.name }) },
+    ).joinToString(". ").ifEmpty { null }
     val status = when {
         earnedAt != null -> stringResource(
             R.string.achievement_earned,
             formatDate(Instant.ofEpochMilli(earnedAt).atZone(ZoneId.systemDefault()).toLocalDate()),
         )
-        progress.total <= 1 -> stringResource(R.string.achievement_locked)
+        progress.binary -> stringResource(R.string.achievement_locked)
         else -> stringResource(R.string.achievement_progress, progress.done, progress.total)
     }
     val description = stringResource(R.string.achievement_description, title, listOfNotNull(text, detail).joinToString(". "), status)
@@ -573,6 +569,9 @@ private fun AchievementRow(achievement: Achievement, progress: AchievementProgre
         }
     }
 }
+
+/** An achievement row names the places still missing when there are at most this many. */
+private const val MAX_PLACES_NAMED = 6
 
 /** A filled circle with a check once earned; before that a ring, filled clockwise as far as the player has come. */
 @Composable

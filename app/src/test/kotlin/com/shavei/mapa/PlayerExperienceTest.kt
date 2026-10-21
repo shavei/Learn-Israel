@@ -48,17 +48,18 @@ class PlayerExperienceTest {
             waitForText("כבר מכירים את הארץ? בדיקת רמה")
             compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
 
-            // No Discover card: the test asks straight away, starting with the frame.
-            waitForText("סמנו על המפה: הים התיכון")
+            // No Discover card: the test asks straight away, starting with the first places taught.
+            waitForText("סמנו על המפה: תל אביב-יפו")
             compose.onNodeWithText("בדיקת רמה · שאלה 1").assertExists()
             Screenshots.save(scenario, "c1-placement-ask")
+            // Far out at sea: not Tel Aviv.
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
-            waitForText("מצוין!")
+            waitForText("לא הפעם")
             compose.onNodeWithText("המשך").performClick()
 
-            waitForText("סמנו על המפה: מפרץ אילת")
-            compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.4f)) }
-            waitForText("לא הפעם")
+            waitForText("סמנו על המפה: הים התיכון")
+            compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
+            waitForText("מצוין!")
             compose.onNodeWithText("יציאה").performClick()
 
             // Only the Mediterranean was found, so only it has a card.

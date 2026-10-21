@@ -66,9 +66,25 @@ enum class Achievement {
     STREAK_30,
 }
 
-/** How far the player is on one achievement: [done] of [total]. */
-data class AchievementProgress(val done: Int, val total: Int) {
+/**
+ * How far the player is on one achievement: [done] of [total]. A [binary] achievement is
+ * earned or not (one session, one answer): show it without "0 of 1". An achievement made
+ * of a set of places lists them in [places], with the known ones in [placesDone], so the
+ * player can see which are missing; [region] names the natural region "A whole region"
+ * is aiming at.
+ */
+data class AchievementProgress(
+    val done: Int,
+    val total: Int,
+    val binary: Boolean = false,
+    val places: List<Place> = emptyList(),
+    val placesDone: Set<String> = emptySet(),
+    val region: Place? = null,
+) {
     val earned: Boolean get() = total > 0 && done >= total
+
+    /** The places still missing, in curriculum order. */
+    val placesLeft: List<Place> get() = places.filter { it.id !in placesDone }
 }
 
 object Achievements {
@@ -81,15 +97,15 @@ object Achievements {
      * [records] every logged answer, [bestStreak] the longest streak so far.
      */
     fun progress(content: Content, known: Set<String>, records: List<ReviewRecord>, bestStreak: Int): Map<Achievement, AchievementProgress> {
-        fun allKnown(places: List<Place>) = AchievementProgress(places.count { it.id in known }, places.size)
+        fun allKnown(places: List<Place>) = placeSet(places, known)
         fun ofType(vararg types: PlaceType) = content.places.filter { it.type in types }
         fun ofTheme(theme: Theme) = content.places.filter { it.type.theme == theme }
-        fun atLeast(value: Int, goal: Int) = AchievementProgress(minOf(value, goal), goal)
+        fun atLeast(value: Int, goal: Int) = AchievementProgress(minOf(value, goal), goal, binary = goal == 1)
 
         return Achievement.entries.associateWith { a ->
             when (a) {
                 Achievement.FIRST_KNOWN -> atLeast(known.size, 1)
-                Achievement.FRAME -> allKnown(content.places.filter { it.unit == FRAME_UNIT || it.unit == ANCHORS_UNIT })
+                Achievement.FRAME -> allKnown(content.places.filter { it.unit in FRAME_UNITS })
                 Achievement.REGIONS -> allKnown(ofType(PlaceType.REGION))
                 Achievement.DISTRICTS -> allKnown(ofType(PlaceType.DISTRICT))
                 Achievement.MAIN_CITIES -> mainCities(content, records)
@@ -115,7 +131,14 @@ object Achievements {
         val cities = content.places.filter { it.type == PlaceType.CITY && it.importance <= 2 }.map { it.id }.toSet()
         val latest = records.filter { it.placeId in cities && it.facet == Facet.LOCATE && it.errorMeters != null }
             .groupBy { it.placeId }.mapValues { (_, rs) -> rs.maxBy { it.at }.errorMeters!! }
-        return AchievementProgress(latest.values.count { it <= MAIN_CITY_METERS }, cities.size)
+        val close = latest.filterValues { it <= MAIN_CITY_METERS }.keys
+        return placeSet(content.places.filter { it.id in cities }, close)
+    }
+
+    /** A set of places and which of them are done. */
+    private fun placeSet(places: List<Place>, done: Set<String>): AchievementProgress {
+        val doneHere = places.mapNotNullTo(HashSet()) { p -> p.id.takeIf { it in done } }
+        return AchievementProgress(doneHere.size, places.size, places = places, placesDone = doneHere)
     }
 
     /** The lake and the points near its shore: Tiberias, Mount Arbel, Capernaum. */
@@ -126,21 +149,40 @@ object Achievements {
         }
     }
 
-    /** The natural region closest to being whole: the region itself and every place in it. */
+    /**
+     * The natural region closest to being whole (the region itself and every place in it),
+     * named in [AchievementProgress.region] so the target is never a bare number that jumps:
+     * the largest share known, then the fewest places left, then curriculum order. Once one
+     * region is whole it stays the one shown.
+     */
     private fun wholeRegion(content: Content, known: Set<String>): AchievementProgress =
         content.places.filter { it.type == PlaceType.REGION }
             .map { region ->
                 val members = listOf(region) + content.places.filter { it.region == region.id.removePrefix("region.") }
-                AchievementProgress(members.count { it.id in known }, members.size)
+                placeSet(members, known).copy(region = region)
             }
-            .maxByOrNull { it.done.toDouble() / it.total } ?: AchievementProgress(0, 0)
+            .sortedWith(compareByDescending<AchievementProgress> { it.done.toDouble() / it.total }.thenBy { it.total - it.done })
+            .firstOrNull() ?: AchievementProgress(0, 0)
+
+    /**
+     * The achievements a session just earned for the first time: earned now and not in
+     * [alreadyEarned]. A session with no answers ([sessionAnswers] 0) earns nothing; whatever
+     * is due is awarded by the next session that has answers. Null [sessionAnswers] when
+     * no session is involved (the progress screen).
+     */
+    fun newlyEarned(
+        progress: Map<Achievement, AchievementProgress>,
+        alreadyEarned: Set<Achievement>,
+        sessionAnswers: Int? = null,
+    ): List<Achievement> =
+        if (sessionAnswers == 0) emptyList() else progress.filter { (a, p) -> p.earned && a !in alreadyEarned }.keys.toList()
 
     private fun hasNoMissSession(records: List<ReviewRecord>): Boolean =
         records.filter { it.practice }.groupBy { it.sessionId }.values
             .any { answers -> answers.size >= NO_MISS_ANSWERS && answers.all { it.rating.remembered } }
 
-    private const val FRAME_UNIT = "frame"
-    private const val ANCHORS_UNIT = "anchors"
+    /** The first steps, the frame and the anchor cities: the units of the frame achievement. */
+    private val FRAME_UNITS = setOf("first", "frame", "anchors")
     private const val KINNERET_ID = "lake.kinneret"
 }
 

@@ -58,6 +58,8 @@ class MapTestTest {
     @Test
     fun theRealItemsMustAllExist() {
         assertEquals(20, MapTest.ITEMS.distinct().size)
+        // Nothing painted on the blank map: the Kinneret and the Dead Sea were free points.
+        assertTrue(MapTest.ITEMS.none { id -> MapTest.PAINTED_PREFIXES.any { id.startsWith(it) } })
         assertFailsWith<IllegalArgumentException> { MapTest(content) }
     }
 

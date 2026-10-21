@@ -33,16 +33,52 @@
 #   units are taught in the order they first appear in this file.
 
 places:
-  # ---------- Unit: frame (waters and neighbors) ----------
+  # ---------- Unit: first steps (the big three cities, and the waters beside them) ----------
+  - id: city.tel_aviv
+    type: city
+    unit: first
+    importance: 1
+    geometry: cbs:5000
+    name: תל אביב-יפו
+    hint: על חוף הים, במרכז הארץ
+    fact: לב גוש דן, המטרופולין הגדול בישראל.
+    aliases: [תל אביב, תל אביב יפו, תא]
   - id: sea.mediterranean
     type: sea
-    unit: frame
+    unit: first
     importance: 1
     geometry: sea:34.3,32.5
     name: הים התיכון
     hint: לאורך כל החוף המערבי של ישראל
     fact: כל ערי החוף הגדולות, מאשקלון ועד נהריה, יושבות לחופו.
     aliases: [ים התיכון, הים הגדול]
+  - id: city.jerusalem
+    type: city
+    unit: first
+    importance: 1
+    geometry: cbs:3000
+    name: ירושלים
+    hint: בהרי יהודה, במרכז הארץ
+    fact: בירת ישראל והעיר הגדולה בה.
+  - id: city.haifa
+    type: city
+    unit: first
+    importance: 1
+    geometry: cbs:4000
+    name: חיפה
+    hint: בצפון, על החוף, למרגלות הכרמל
+    fact: עיר הנמל הגדולה בצפון, על מורדות הר הכרמל.
+  - id: lake.kinneret
+    type: lake
+    unit: first
+    importance: 1
+    geometry: lake:Sea of Galilee
+    name: הכנרת
+    hint: בצפון מזרח, בין הגליל לרמת הגולן
+    fact: אגם המים המתוקים הגדול בישראל. נהר הירדן עובר דרכו.
+    aliases: [כנרת, ים כנרת, ים הכנרת, ים גליל]
+
+  # ---------- Unit: frame (waters and neighbors) ----------
   - id: sea.gulf_of_eilat
     type: sea
     unit: frame
@@ -52,15 +88,6 @@ places:
     hint: בקצה הדרומי של ישראל
     fact: זרוע של ים סוף. היציאה הימית של ישראל לאסיה ולאפריקה.
     aliases: [ים סוף, מפרץ עקבה]
-  - id: lake.kinneret
-    type: lake
-    unit: frame
-    importance: 1
-    geometry: lake:Sea of Galilee
-    name: הכנרת
-    hint: בצפון מזרח, בין הגליל לרמת הגולן
-    fact: אגם המים המתוקים הגדול בישראל. נהר הירדן עובר דרכו.
-    aliases: [כנרת, ים כנרת, ים הכנרת, ים גליל]
   - id: lake.dead_sea
     type: lake
     unit: frame
@@ -113,31 +140,6 @@ places:
     fact: הגבול עם מצרים חוצה את המדבר, מרצועת עזה ועד טאבה ליד אילת.
 
   # ---------- Unit: big anchors ----------
-  - id: city.jerusalem
-    type: city
-    unit: anchors
-    importance: 1
-    geometry: cbs:3000
-    name: ירושלים
-    hint: בהרי יהודה, במרכז הארץ
-    fact: בירת ישראל והעיר הגדולה בה.
-  - id: city.tel_aviv
-    type: city
-    unit: anchors
-    importance: 1
-    geometry: cbs:5000
-    name: תל אביב-יפו
-    hint: על חוף הים, במרכז הארץ
-    fact: לב גוש דן, המטרופולין הגדול בישראל.
-    aliases: [תל אביב, תל אביב יפו, תא]
-  - id: city.haifa
-    type: city
-    unit: anchors
-    importance: 1
-    geometry: cbs:4000
-    name: חיפה
-    hint: בצפון, על החוף, למרגלות הכרמל
-    fact: עיר הנמל הגדולה בצפון, על מורדות הר הכרמל.
   - id: city.beersheba
     type: city
     unit: anchors

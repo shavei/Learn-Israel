@@ -355,6 +355,7 @@
     <string name="achievement_earned">הושג ב־%1$s</string>
     <string name="achievement_progress">%1$d מתוך %2$d</string>
     <string name="achievement_locked">עוד לא הושג</string>
+    <string name="achievement_places_left">עוד חסרים: %1$s</string>
     <string name="achievement_description">%1$s. %2$s. %3$s</string>
     <string name="achievement_first_known">מקום ראשון</string>
     <string name="achievement_first_known_text">מקום ראשון ידוע: הזיכרון שלו יציב לשלושה שבועות</string>
@@ -368,7 +369,6 @@
     <string name="achievement_main_cities_text">כל %1$d הערים המרכזיות סומנו בפעם האחרונה עד 3 ק״מ מהמקום</string>
     <string name="achievement_kinneret">סביב הכנרת</string>
     <string name="achievement_kinneret_text">הכנרת וכל המקומות שעל חופיה ידועים</string>
-    <string name="achievement_kinneret_places">המקומות: %1$s</string>
     <string name="achievement_whole_region">אזור שלם</string>
     <string name="achievement_whole_region_text">אזור טבעי אחד וכל המקומות שבו ידועים</string>
     <string name="achievement_whole_region_closest">הכי קרוב: %1$s</string>

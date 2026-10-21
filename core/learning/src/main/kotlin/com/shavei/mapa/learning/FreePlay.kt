@@ -12,23 +12,28 @@ import kotlin.math.atan2
 import kotlin.random.Random
 
 /**
- * Free play (docs/02-game-design.md, Blitz and Road Trip): Pin It on places the player
- * has already learned, outside the daily session. Answers are real retrievals, so they
+ * Free play (docs/02-game-design.md, Blitz and Road Trip): Pin It on the places the
+ * player has in practice, outside the daily session. Answers are real retrievals, so they
  * reach the scheduler, at a reduced weight (docs/04-learning-engine.md): a miss always
- * counts, a success only on a card due within [DUE_WINDOW_MS], so playing for fun
- * never pushes reviews far into the future. Only a place's first answer in a round counts.
+ * counts, a success only on a card in review due within [DUE_WINDOW_MS], so playing for
+ * fun never pushes reviews far into the future, and a place still in its learning steps
+ * keeps them for the daily session. Only a place's first answer in a round counts.
  */
 object FreePlay {
     /** A success counts only on a card due within this window. */
     const val DUE_WINDOW_MS = 2 * DAY_MS
 
-    /** Places whose LOCATE card is past its learning steps: the places free play asks. */
+    /**
+     * The places free play asks: every place in practice (with a LOCATE card), the same
+     * count home shows as places in practice (learning and known), so a mode that opens
+     * after a few learned places opens when home shows that many.
+     */
     fun learned(content: Content, cards: Map<CardKey, StudyCard>): List<Place> =
-        content.places.filter { cards[CardKey(it.id, Facet.LOCATE)]?.isReview == true }
+        content.places.filter { CardKey(it.id, Facet.LOCATE) in cards }
 
     /** The card after a free play answer rated [rating] at [now]: unchanged unless the answer counts. */
     fun review(scheduler: FsrsScheduler, before: StudyCard, rating: Rating, now: Long): StudyCard {
-        val counts = rating == Rating.AGAIN || before.fsrs.due <= now + DUE_WINDOW_MS
+        val counts = rating == Rating.AGAIN || (before.isReview && before.fsrs.due <= now + DUE_WINDOW_MS)
         if (!counts) return before
         val fsrs = scheduler.review(before.fsrs, rating, now)
         return StudyCard(fsrs, struggles = if (rating != Rating.AGAIN) 0 else before.struggles + 1)

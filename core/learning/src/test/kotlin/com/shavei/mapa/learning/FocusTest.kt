@@ -78,8 +78,22 @@ class FocusTest {
             val answer = e.submit(q, tap(q, right = q.place.id != "city.c0"), 3_000)
             assertEquals(answer.before, answer.after, "focused practice leaves the card as it was")
         }
+        // Three places, fewer than a round: the retry makes it four, and the total says so.
+        assertEquals(4, e.plannedTotal)
         assertEquals(listOf("city.c0", "city.c1", "city.c2", "city.c0"), asked)
         cards.forEach { (k, c) -> assertEquals(c, e.card(k)) }
+    }
+
+    @Test
+    fun aRoundOfTenIsTenQuestionsEvenWithMisses() {
+        val cards = (0 until 12).associate { locate(it) to card() }
+        val e = engine(cards, emptyMap())
+        assertEquals(Focus.SIZE, e.plannedTotal)
+        // Every answer a miss: each comes back once while planned cards give way, never past ten.
+        val asked = generateSequence { e.next()?.also { e.submit(it, tap(it, right = false), 3_000) } }.toList()
+        assertEquals(Focus.SIZE, asked.size)
+        assertEquals(Focus.SIZE, e.plannedTotal)
+        assertEquals(asked.size, asked.map { it.place.id }.toSet().size * 2)
     }
 
     @Test

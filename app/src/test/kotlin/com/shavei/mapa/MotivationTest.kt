@@ -171,6 +171,8 @@ class MotivationTest {
             waitForText("התחילו!")
             compose.onNodeWithText("התחילו!").performClick()
             waitForText("נותרו")
+            // One answer at least: a round with none earns nothing.
+            compose.onNodeWithTag("map").performTouchInput { click(center) }
             Thread.sleep(3_500)
             if (!has("נגמר הזמן!")) compose.onNodeWithTag("map").performTouchInput { click(center) }
             waitForText("הישג חדש: מקום ראשון")

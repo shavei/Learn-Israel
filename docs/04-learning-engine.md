@@ -54,8 +54,7 @@ d       = distance from tap to the place (km); a tap inside a city polygon is d 
 tol     = base tolerance x learning multiplier
           base: city, the Jordan, mountain and crater 4 km; site, reserve, port,
           airport, stream and road 3 km (small targets, often next to a city);
-          a long ridge its own (the Carmel 8 km, the Hermon and the Gilboa 6 km);
-          areas max(2 km, 10% of their size)
+          a long ridge its own (the Carmel 8 km, the Hermon and the Gilboa 6 km)
           multiplier by the LOCATE card's stability (how well the place is known):
             new or under 1 day  2.5   (a new city: 10 km)
             under 3 days        2.0   (8 km)
@@ -72,9 +71,20 @@ ratio >  3    -> Again
 Early attempts are forgiving so the first sessions stay near the 85 percent success
 target; precision is asked for once the memory is stable.
 
-### LOCATE on an area item (region, lake)
-Tap inside the polygon = Good (Easy with the speed/confidence rule). Outside: `d` is
-the distance to the polygon edge, `tol` scales with the square root of the area.
+### LOCATE on an area item (sea, lake, country, region, district)
+Right only inside: a tap inside the polygon is Good (Easy when fast and not the first
+review). Outside it is never right, however big the area: `d` is the distance to the
+polygon edge, and within a close margin it is Hard, beyond it Again.
+
+```
+margin  = 10% of the area's size (square root of its area), between 2 km and 8 km,
+          x the learning multiplier above
+          the Kinneret 2 km (5 km while new), the Negev or the sea 8 km (20 km while new)
+```
+
+A tap on land is never the Mediterranean, in a session, the placement test or the map
+test: with a tolerance that grew with the area's size (10 percent, times 2.5 while new),
+a tap 61 km inland used to count as finding the sea.
 
 ### LOCATE on a line item (river, stream, road, crater) in Pin It
 "Tap anywhere on Route 90". Distance to the nearest segment, tolerance by line type.
@@ -85,13 +95,17 @@ A crater is drawn in OpenStreetMap as a line along its floor, so it is graded as
 ```
 d       = how far the shape was dropped from its place (km), the length of the move
           between where it lies and where the player left it
-tol     = max(4 km, 15% of the shape's size, the square root of its area)
+tol     = 15% of the shape's size (the square root of its area), between 4 km and 8 km,
           x learning multiplier
+d <= tol      -> Good (Easy when within half of it in under 8 seconds)
+d <= 2 x tol  -> Hard
+otherwise     -> Again
 ```
 
 15 percent of its size leaves most of a shape on its place; 4 km keeps small regions
-(Menashe, the Western Galilee) fair to drop with a finger. Same bands as a tap; Easy
-needs half the tolerance in under 8 seconds.
+(Menashe, the Western Galilee) fair to drop with a finger, and 8 km keeps a large one
+(the Negev) from being right half its width away. Close is within twice the tolerance,
+not three times: a Negev dropped 68 km off is a miss, not close.
 
 ### When the engine asks it
 
@@ -117,7 +131,10 @@ need    = recent miss rate + 1 / (2 + answers so far)
 
 Every card the player has met can be asked, still in its learning steps or not. Each
 place is asked once, by its card with the most need; the 10 places with the most need
-come first, ties to the weaker card. A miss comes back once, after the 10. Pin It is
+come first, ties to the weaker card. A round is 10 questions, misses included, so the
+counter can say "question 3 of 10": a miss comes back once, in place of the last place
+not yet asked. A player who has met fewer than 10 places gets a shorter round, and there
+a miss comes back once at the end, the total growing with it (never past 10). Pin It is
 always a tap (no Map Builder), names and relations as in the session. Answers are
 logged with their question type and update the tally, but the scheduler's card stays as
 it was: the round never moves a review earlier or later.
@@ -153,10 +170,23 @@ NAME, RELATE: 5000 when right (a spelling slip included, but never a wrong digit
              כביש 4 for Route 1 is wrong), 0 when wrong
 ```
 
+Points follow the verdict, so the feedback title and the bar always agree:
+
+```
+right (Good, Easy)  at least 2500 (half the bar)
+close (Hard)        500 to 2499
+miss  (Again)       below 500
+```
+
+Within its band an answer keeps the points of its distance, so the curve above holds
+where it can; a tap inside an area is right and worth 5000. A miss never outscores a
+right answer, and "Excellent!" never comes with 80 points. A hinted answer that lands
+right is graded Hard but keeps the points of a right one.
+
 - **Points never change the schedule.** The grade above decides what FSRS learns; points
   are feedback and a score. Keeping them apart lets the grade stay forgiving for new
   places (a wide tolerance) while points stay strict and the same for every place and
-  every stage, so a player can compare today's score with last week's.
+  every stage within a verdict, so a player can compare today's score with last week's.
 - **One scale for every place.** A fixed 10 km half distance, not one per place type:
   a tap inside a region is already worth 5000, and being 10 km off means the same for
   a city or a lake. 10 km is about the gap between neighboring towns, so a tap in the
@@ -176,9 +206,11 @@ NAME, RELATE: 5000 when right (a spelling slip included, but never a wrong digit
 Reviews from these modes are logged but applied with reduced weight: a success is
 applied only if the card is due within 2 days (avoids inflating stability through
 cramming); a failure always counts. Only a place's first answer in a round is applied,
-so a blitz that comes back to a place does not review it twice. Free play asks only
-places past their learning steps, with the tolerance of each place's own stage (as in
-the daily session) and no hints. Under a blitz's clock every answer is fast, so speed
+so a blitz that comes back to a place does not review it twice. Free play asks every
+place in practice (the places home counts, learning and known together, so Blitz opens
+when home shows 4), with the tolerance of each place's own stage (as in the daily
+session) and no hints. A place still in its learning steps keeps them: a free play
+success on it changes nothing, only a miss counts. Under a blitz's clock every answer is fast, so speed
 never upgrades a blitz answer to Easy; a road trip is not timed and grades as Pin It.
 
 ## Within-session (short-term) learning
@@ -196,6 +228,10 @@ The daily session is the minimum; after it, home offers another session for as l
 as the player wants to go on. How fast new places come in is set by the player's own
 learning, not by the calendar:
 
+- **Home promises only what the session gives.** The gates on a new place (the daily
+  limit and the places in learning) are one rule in the engine that home also uses, so
+  home never says "5 new places" for a session that would bring none; and home offers a
+  session only when the engine has a question for it, never an empty one.
 - **Few places in learning at once.** A new place comes in only while fewer than 4
   places are still in their short-term learning steps. Each new place must stick
   (answered right at its 10-minute step) before more are added: small batches,
@@ -318,7 +354,10 @@ today's essential work is done.
 ## Placement test
 
 Optional at onboarding, about 3 minutes, adaptive:
-1. Ask Tier 0 and 2 anchors. If most are right, sample Tier 3 by region.
+1. Ask the anchors: the first steps (the big three cities and the waters beside them),
+   the rest of the frame's main places and the other anchor cities. If most are right,
+   sample Tier 3 by region. A place counts as found with the session's grading: an area
+   only with a tap inside it.
 2. Items answered correctly get an initial FSRS state as if reviewed once with Good,
    so they come back soon for confirmation; wrong ones stay new.
 3. Units whose sampled items are mostly correct are unlocked.
@@ -326,7 +365,8 @@ Optional at onboarding, about 3 minutes, adaptive:
 ## Mastery metrics shown to the player
 
 - **Place mastery:** retrievability today, shown as color intensity.
-- **Region score:** mean retrievability of its places, as a percentage.
+- **Region score:** mean mastery of its places (a known place counts in full, one not
+  yet practiced as 0), as a percentage: 100 percent exactly when all its places are known.
 - **"Known places":** count of cards with `S >= 21 days`. This is the headline number
   and drives ranks.
 

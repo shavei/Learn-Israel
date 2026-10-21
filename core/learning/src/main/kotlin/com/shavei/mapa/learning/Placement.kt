@@ -11,7 +11,8 @@ import com.shavei.mapa.learning.fsrs.Rating
  * The optional placement test at onboarding (docs/04-learning-engine.md), about three
  * minutes of Pin It questions on a player with no progress:
  *
- * 1. The anchors: the main places of the frame and the five anchor cities.
+ * 1. The anchors: the first steps (the big three cities and the waters beside them),
+ *    the main places of the frame and the other anchor cities.
  * 2. If most are right, the other units of the core (the frame, regions and cities) in
  *    curriculum order: each unit's most important place, and a second one when the first
  *    is right. Three missed units in a row mean the player has reached the edge of what
@@ -41,7 +42,7 @@ class PlacementTest(
     private val unitOrder: List<String> = content.unitOrder.filter { it in units }
 
     private val anchors: List<Place> = content.places.filter {
-        (it.unit == FRAME_UNIT && it.importance == 1) || it.unit == ANCHOR_UNIT
+        it.unit == FIRST_UNIT || (it.unit == FRAME_UNIT && it.importance == 1) || it.unit == ANCHOR_UNIT
     }
 
     private var current: Question? = null
@@ -106,6 +107,7 @@ class PlacementTest(
         const val PASS_ACCURACY = 0.75
         const val PER_UNIT = 2
         const val MISSED_UNITS_TO_STOP = 3
+        const val FIRST_UNIT = "first"
         const val FRAME_UNIT = "frame"
         const val ANCHOR_UNIT = "anchors"
     }

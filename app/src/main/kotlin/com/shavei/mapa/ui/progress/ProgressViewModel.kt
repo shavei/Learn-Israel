@@ -3,13 +3,9 @@ package com.shavei.mapa.ui.progress
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
-import com.shavei.mapa.content.Content
-import com.shavei.mapa.content.Place
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.data.BlitzRecord
 import com.shavei.mapa.data.Motivation
-import com.shavei.mapa.geo.Shape
-import com.shavei.mapa.learning.Achievements
 import com.shavei.mapa.learning.AnswerTally
 import com.shavei.mapa.learning.Facet
 import com.shavei.mapa.learning.LearnedConfusables
@@ -55,10 +51,6 @@ data class ProgressState(
     val hardest: List<HardPlace> = emptyList(),
     /** The best blitz and how many were played; null before the first. */
     val blitz: BlitzRecord? = null,
-    /** The places of the Kinneret achievement, by name, and whether each is known. */
-    val kinneret: List<Pair<String, Boolean>> = emptyList(),
-    /** The natural region closest to being whole, by name: what the "whole region" achievement counts now. */
-    val closestRegion: String? = null,
 )
 
 /** A place by name and how finding it has gone. */
@@ -97,7 +89,7 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                 learned = locate.size,
                 total = app.content.places.size,
                 streak = Streak.of(daysPlayed, LocalDate.now()),
-                regions = regionScores(app.content, mastery),
+                regions = regionScores(app.content, mastery, known),
                 themes = themeScores(app.content, locate.keys, known),
                 errorByDay = cityErrors.entries.sortedBy { it.key }.takeLast(HISTORY_DAYS).map { it.key to it.value.average() },
                 stats = LearningStats.of(records, app.content, now, zone),
@@ -116,27 +108,8 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                     .entries.sortedWith(compareByDescending<Map.Entry<*, AnswerTally>> { it.value.recentMissRate }.thenByDescending { it.value.wrong })
                     .take(HARD_PLACES)
                     .mapNotNull { (k, t) -> app.content.place(k.placeId)?.let { HardPlace(it.name, t) } },
-                kinneret = kinneretPlaces(app.content).map { it.name to (it.id in known) },
-                closestRegion = closestRegion(app.content, known)?.name,
             )
         }
     }
 }
 
-/** The lake and the points near its shore, as Achievements.KINNERET counts them. */
-internal fun kinneretPlaces(content: Content): List<Place> {
-    val lake = content.place("lake.kinneret") ?: return emptyList()
-    return listOf(lake) + content.places.filter {
-        it.shape is Shape.Point && lake.shape.distanceTo(it.label) <= Achievements.KINNERET_METERS
-    }
-}
-
-/**
- * The natural region the "whole region" achievement measures now: the one with the largest
- * share known, as Achievements.WHOLE_REGION picks it, so the name always matches the count.
- */
-internal fun closestRegion(content: Content, known: Set<String>): Place? =
-    content.places.filter { it.type == PlaceType.REGION }.maxByOrNull { region ->
-        val members = listOf(region) + content.places.filter { it.region == region.id.removePrefix("region.") }
-        members.count { it.id in known }.toDouble() / members.size
-    }

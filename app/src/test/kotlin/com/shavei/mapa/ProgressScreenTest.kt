@@ -181,9 +181,9 @@ class ProgressScreenTest {
             compose.onNode(hasContentDescription("בלי פספוס", substring = true).and(hasContentDescription("עוד לא הושג", substring = true)))
                 .assertExists()
             compose.onNode(hasTestTag("achievement-NO_MISS").and(hasContentDescription("מתוך", substring = true))).assertDoesNotExist()
-            // Which places the Kinneret counts, and which region "a whole region" measures now.
+            // Which Kinneret places are missing, and which region "a whole region" measures.
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("achievement-KINNERET"))
-            compose.onNode(hasContentDescription("המקומות: הכנרת, ", substring = true)).assertExists()
+            compose.onNode(hasContentDescription("עוד חסרים: הכנרת, ", substring = true)).assertExists()
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("achievement-WHOLE_REGION"))
             compose.onNode(hasContentDescription("הכי קרוב: ", substring = true)).assertExists()
             // Named apart from the theme rows "טבע" and "מורשת".
