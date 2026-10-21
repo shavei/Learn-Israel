@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -64,7 +66,9 @@ import com.shavei.mapa.learning.LearningStats
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.RegionScore
 import com.shavei.mapa.learning.ThemeScore
+import com.shavei.mapa.ui.IconTextButton
 import com.shavei.mapa.ui.MapCard
+import com.shavei.mapa.ui.PlaceCounts
 import com.shavei.mapa.ui.formatDate
 import com.shavei.mapa.ui.formatKm
 import com.shavei.mapa.ui.formatPoints
@@ -99,7 +103,7 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: 
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f).semantics { heading() },
                 )
-                TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+                IconTextButton(stringResource(R.string.back), Icons.AutoMirrored.Filled.ArrowBack, onBack)
             }
             // A line under the title once the cards scroll beneath it.
             HorizontalDivider(
@@ -201,9 +205,8 @@ private fun FirstPractice(onStart: () -> Unit) {
 private fun Summary(state: ProgressState) {
     MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(pluralStringResource(R.plurals.home_known, state.known, state.known), style = MaterialTheme.typography.titleLarge)
+            PlaceCounts(state.known, state.learned - state.known, state.total)
             Text(stringResource(R.string.progress_known_explained), style = MaterialTheme.typography.bodyMedium)
-            Text(pluralStringResource(R.plurals.home_learned, state.total, state.learned, state.total))
             state.motivation?.let { m ->
                 Text(stringResource(R.string.rank_line, rankName(m.rank)), style = MaterialTheme.typography.titleMedium)
                 val next = m.rank.next

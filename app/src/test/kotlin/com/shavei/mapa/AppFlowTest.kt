@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -80,7 +81,7 @@ class AppFlowTest {
         waitForText("לצאת מהאימון?")
         screenshot("6b-leave")
         compose.onNodeWithTag("leave-confirm").performClick()
-        waitForText("2 בלמידה · 0 ידועים · מתוך 209")
+        compose.waitUntil(10_000) { compose.onAllNodes(hasContentDescription("2 בלמידה · 0 ידועים · מתוך 209")).fetchSemanticsNodes().isNotEmpty() }
         // After the first practice, and only then, the daily reminder is offered.
         waitForText("תזכורת יומית?")
         // Left partway: the day is not done yet, and home offers to go on.

@@ -66,7 +66,7 @@ class PlayerExperienceTest {
             compose.onNodeWithTag("leave-confirm").performClick()
 
             // Only the Mediterranean was found, so only it has a card.
-            waitForText("1 בלמידה · 0 ידועים · מתוך 209")
+            compose.waitUntil(10_000) { compose.onAllNodes(hasContentDescription("1 בלמידה · 0 ידועים · מתוך 209")).fetchSemanticsNodes().isNotEmpty() }
             // The placement test is not a day of practice: no streak and no reminder offer yet.
             compose.onNodeWithText("אימון היום יתחיל רצף").assertExists()
             assertTrue(compose.onAllNodes(hasText("תזכורת יומית?")).fetchSemanticsNodes().isEmpty())
@@ -108,7 +108,7 @@ class PlayerExperienceTest {
             compose.onNodeWithText("התקדמות").performClick()
             waitForText("סטייה ממוצעת בערים לפי יום (ק״מ)")
             compose.onNodeWithTag("error-chart").assertExists()
-            compose.onNodeWithText("מקום אחד ידוע").assertExists()
+            compose.onNode(hasContentDescription("1 ידוע · ", substring = true)).assertExists()
             Screenshots.save(scenario, "c3-progress")
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("גוש דן", substring = true))
             Screenshots.save(scenario, "c4-progress-regions")

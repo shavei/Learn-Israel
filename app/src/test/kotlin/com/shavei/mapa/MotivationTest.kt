@@ -2,6 +2,7 @@ package com.shavei.mapa
 
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -74,7 +75,7 @@ class MotivationTest {
             }
         }
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("12 ידועים · 4 בלמידה · מתוך 209")
+            compose.waitUntil(10_000) { compose.onAllNodes(hasContentDescription("12 ידועים · 4 בלמידה · מתוך 209")).fetchSemanticsNodes().isNotEmpty() }
             // The legend over the map uses the same two words.
             compose.onNodeWithText("בלמידה").assertExists()
             compose.onNodeWithText("מה זה ידוע?").performClick()
