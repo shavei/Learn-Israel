@@ -5,10 +5,10 @@ name: Release APK
 # the job starts, unless that commit is already released. So a late, repeated or
 # out-of-order trigger can never publish an older build, and a missed one is caught up
 # by the next, at the latest by the check every 10 minutes.
+# Not on push: GitHub has started push runs on main very late or not at all, and the one
+# that did start was refused write access to releases (HTTP 403). Merges arrive as PRs;
+# anything else that lands on main is caught by the schedule.
 on:
-  push:
-    branches: [main]
-  # GitHub has started some push runs very late, or not at all; a merged PR also releases.
   pull_request:
     types: [closed]
     branches: [main]
