@@ -179,8 +179,13 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
             is SessionUi.Feedback -> {
                 // Naming among places a few kilometers apart: close enough to tell them apart.
                 val close = (s.answer.question as? Question.NameChoice)?.let { closeOptions(it.options) }
-                if (close != null) camera.fit(close, frameTop, frameBottom, CLOSE_OPTIONS_VIEW_METERS)
-                else camera.ensureVisible(feedbackPoints(s.answer, content), frameTop, frameBottom)
+                // Map Builder: close enough to see both shapes, the place and the drop, and how far apart.
+                when {
+                    close != null -> camera.fit(close, frameTop, frameBottom, CLOSE_OPTIONS_VIEW_METERS)
+                    s.answer.response is Response.Moved ->
+                        camera.fit(feedbackPoints(s.answer, content), frameTop + labelRoomPx, frameBottom, BUILD_VIEW_METERS)
+                    else -> camera.ensureVisible(feedbackPoints(s.answer, content), frameTop, frameBottom)
+                }
             }
             else -> Unit
         }
@@ -226,6 +231,8 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         // and a blitz every answer as it was shown in play).
         is SessionUi.Finished -> if (trip.isNotEmpty()) {
             tripSummaryDecorations(s.summary, picked, colors)
+        } else if (s.summary.results.isNotEmpty() && viewModel.kind == SessionKind.BUILD) {
+            buildSummaryDecorations(s.summary, picked, content, colors)
         } else if (s.summary.results.isNotEmpty()) {
             blitzSummaryDecorations(s.summary, picked, colors)
         } else if (s.summary.mapTest == null && trip.isEmpty()) {
@@ -252,8 +259,14 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                     from = at
                     before = offset
                 }
+                // The shape's center stays on the map, so it can never be lost off its edge.
                 override fun move(to: MapPoint) {
-                    offset = MapPoint(before.x + to.x - from.x, before.y + to.y - from.y)
+                    val center = build.place.shape.center
+                    val home = content.map.home
+                    offset = MapPoint(
+                        (center.x + before.x + to.x - from.x).coerceIn(home.minX, home.maxX) - center.x,
+                        (center.y + before.y + to.y - from.y).coerceIn(home.minY, home.maxY) - center.y,
+                    )
                 }
                 override fun end() = Unit
                 override fun cancel() {
@@ -333,7 +346,7 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 viewModel.kind,
                 doneLabel = stringResource(if (viewModel.returnsToWelcome) R.string.map_test_to_welcome else R.string.summary_done),
                 onDone = onExit,
-                onPlayAgain = viewModel::onPlayAgain.takeIf { s.summary.canPlayAgain },
+                onPlayAgain = viewModel::onPlayAgain.takeIf { viewModel.canBePlayedAgain },
                 picked = picked,
                 onPick = { picked = it },
             )
@@ -730,6 +743,7 @@ private fun SummaryCard(
                     Text(stringResource(R.string.build_summary_title), style = title)
                     SummaryPoints(summary)
                     Text(pluralStringResource(R.plurals.summary_found, summary.found.size, summary.found.size, summary.practiced.size))
+                    AnswerChips(summary.results, picked, onPick)
                 }
                 else -> {
                     Text(stringResource(if (kind == SessionKind.FOCUS) R.string.focus_summary_title else R.string.summary_title), style = title)
@@ -748,8 +762,10 @@ private fun SummaryCard(
                 Text(stringResource(R.string.summary_kind), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Motivation(summary)
-            if (onPlayAgain != null) {
-                OutlinedButton(onClick = onPlayAgain, Modifier.fillMaxWidth()) {
+            // Shown at once, and enabled once the answers are saved and another round can be planned,
+            // so the card does not grow under the player's finger.
+            if (onPlayAgain != null && (!summary.saved || summary.canPlayAgain)) {
+                OutlinedButton(onClick = onPlayAgain, Modifier.fillMaxWidth(), enabled = summary.canPlayAgain) {
                     Text(stringResource(if (kind == SessionKind.ROAD_TRIP) R.string.trip_again else R.string.play_again))
                 }
             }
@@ -910,7 +926,10 @@ private fun askedPoints(q: Question): List<MapPoint> = when (q) {
 
 private fun feedbackPoints(answer: Answer, content: Content): List<MapPoint> = when (val r = answer.response) {
     is Response.Tap -> listOf(r.at, answer.place.shape.nearestAnchor(r.at), answer.place.label)
-    is Response.Moved -> answer.place.shape.center.let { listOf(it, MapPoint(it.x + r.dx, it.y + r.dy), answer.place.label) }
+    // Both shapes whole: where it belongs and where it was dropped.
+    is Response.Moved -> answer.place.shape.bounds.let { b ->
+        listOf(MapPoint(b.minX, b.minY), MapPoint(b.maxX, b.maxY), MapPoint(b.minX + r.dx, b.minY + r.dy), MapPoint(b.maxX + r.dx, b.maxY + r.dy))
+    }
     is Response.Choice -> (answer.question as? Question.Relate)?.options?.map { it.label }
         ?: listOfNotNull(answer.place.label, content.place(r.placeId)?.label)
     else -> listOf(answer.place.label)
@@ -920,11 +939,12 @@ private fun feedbackDecorations(answer: Answer, content: Content, colors: MapPal
     val ok: Color = if (answer.grade.isCorrect) colors.good else colors.target
     val q = answer.question
     return when (val r = answer.response) {
-        // Map Builder: the shape where it belongs, and where it was dropped.
+        // Map Builder: the shape where it belongs, in green, and where it was dropped, in the
+        // color it had while dragged, so the player's own shape reads as theirs.
         is Response.Moved -> buildList {
             val center = q.place.shape.center
-            add(MapDecoration.Highlight(q.place.shape, ok))
-            add(MapDecoration.Moved(q.place.shape as Shape.Area, r.dx, r.dy, colors.tap, alpha = 0.2f))
+            add(MapDecoration.Highlight(q.place.shape, colors.good))
+            add(MapDecoration.Moved(q.place.shape as Shape.Area, r.dx, r.dy, colors.target))
             if ((answer.grade.errorMeters ?: 0.0) > 0) {
                 add(MapDecoration.Connector(MapPoint(center.x + r.dx, center.y + r.dy), center, colors.tap))
             }
@@ -982,6 +1002,18 @@ private fun routeDecorations(stops: List<Place>, results: List<Rating>, colors: 
     return legs +
         stops.mapIndexed { i, p -> MapDecoration.Marker(p.label, color(i), radiusPx = if (asking && i == here) 11f else 7f) } +
         stops.mapIndexedNotNull { i, p -> MapDecoration.Label(p.label, p.name, text(i)).takeIf { !asking || i == here } }
+}
+
+/**
+ * The end of a Map Builder round: every shape asked, where it belongs, green where it was
+ * placed right and in the target color where not, each named; the answer [picked] from the
+ * summary's list as its feedback showed it, the shape where it was dropped beside its place.
+ */
+private fun buildSummaryDecorations(summary: SessionSummary, picked: Int?, content: Content, colors: MapPalette): List<MapDecoration> {
+    summary.results.getOrNull(picked ?: -1)?.let { return feedbackDecorations(it, content, colors) }
+    val places = summary.results.map { it.place }.distinct()
+    return places.map { p -> MapDecoration.Highlight(p.shape, if (p in summary.found) colors.good else colors.target, fillAlpha(p.shape, 0.45f)) } +
+        places.map { p -> MapDecoration.Label(p.label, p.name, if (p in summary.found) null else colors.missText) }
 }
 
 /**
@@ -1066,6 +1098,9 @@ private const val CLOSE_OPTIONS_VIEW_METERS = 30_000.0
 
 /** A road trip leg is viewed this wide around its start: the next stop is within a leg of it (map meters). */
 private const val TRIP_VIEW_METERS = 2 * RoadTrip.MAX_LEG_M
+
+/** At least this much of the map is shown around a Map Builder answer's two shapes (map meters). */
+private const val BUILD_VIEW_METERS = 80_000.0
 
 /** At least this much of the map is shown around a blitz answer picked on its summary (map meters). */
 private const val PICKED_VIEW_METERS = 60_000.0

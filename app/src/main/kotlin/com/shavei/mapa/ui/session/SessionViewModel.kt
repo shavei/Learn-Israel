@@ -74,7 +74,7 @@ data class SessionSummary(
      */
     val blitzRecordBefore: BlitzRecord? = null,
     val blitzSaved: Boolean = false,
-    /** Free play: every answer, in order, so the summary map can show where each tap landed. */
+    /** Free play and Map Builder: every answer, in order, so the summary map can show where each landed. */
     val results: List<Answer> = emptyList(),
     /** A road trip: its stops, from the start. */
     val trip: List<Place> = emptyList(),
@@ -88,6 +88,8 @@ data class SessionSummary(
     val newRank: Rank? = null,
     /** Another round of the same kind can be planned now (shown once the answers are saved). */
     val canPlayAgain: Boolean = false,
+    /** Every answer is saved, and the lines that wait on it ([canPlayAgain], [newRank]) are in. */
+    val saved: Boolean = false,
 )
 
 enum class SessionKind {
@@ -272,6 +274,10 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         }
     }
 
+    /** Practice rounds and free play: the summary offers another round of the same kind. */
+    val canBePlayedAgain: Boolean
+        get() = kind == SessionKind.BUILD || kind == SessionKind.FOCUS || kind == SessionKind.BLITZ || kind == SessionKind.ROAD_TRIP
+
     /** Another round of the same kind, planned afresh, once the last one has been saved. */
     fun onPlayAgain() {
         if ((_ui.value as? SessionUi.Finished)?.summary?.canPlayAgain != true) return
@@ -373,6 +379,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                 summary = finished.summary.copy(
                     newAchievements = motivation.newlyEarned,
                     canPlayAgain = canPlayAgain(),
+                    saved = true,
                     newRank = motivation.rank.takeIf { it > rankBefore },
                     blitzRecordBefore = recordBefore,
                     blitzSaved = summary.blitz,
@@ -419,7 +426,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             maxPoints = answers.size * Grader.MAX_POINTS,
             placement = kind == SessionKind.PLACEMENT,
             blitz = kind == SessionKind.BLITZ,
-            results = if (freePlay) answers.toList() else emptyList(),
+            results = if (freePlay || kind == SessionKind.BUILD) answers.toList() else emptyList(),
             trip = trip,
             practiced = practiced,
             found = practiced.filter { p -> answers.any { it.place == p && reached(it) } },
