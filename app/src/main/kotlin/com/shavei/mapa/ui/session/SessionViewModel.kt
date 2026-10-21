@@ -142,25 +142,23 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     /** Questions in the map test, shown as "question 3 of 20"; null in other sessions. */
     val mapTestSize: Int? = if (kind == SessionKind.MAP_TEST) MapTest.ITEMS.size else null
 
-    /** A Map Builder or focus round: the places it starts with, before any miss comes back. */
+    /** A Map Builder round: the places it starts with, before any miss comes back. */
     private var roundPlaces = 0
 
     /**
      * How many questions the round is planned to take, for "question 3 of 10": the placement
-     * test at most, a Map Builder or focus round as planned so far (a miss comes back once and
-     * adds one). Null where the length is open (the daily session) or shown otherwise.
+     * test at most, a focus round as its engine plans it, a Map Builder round as planned so far
+     * (a first answer that leaves the place in its learning steps brings it back once, adding
+     * one). Null where the length is open (the daily session) or shown otherwise.
      */
     fun plannedTotal(number: Int): Int? = when (kind) {
         SessionKind.PLACEMENT -> PlacementTest.MAX_QUESTIONS
-        SessionKind.BUILD, SessionKind.FOCUS -> {
+        SessionKind.FOCUS -> engine.plannedTotal?.let { maxOf(number, it) }
+        SessionKind.BUILD -> {
             val asked = HashSet<CardKey>()
-            // A first answer that leaves the card in its learning steps (Map Builder) or a
-            // first miss (focus) brings the place back once.
-            val repeats = engine.answers.count { a ->
-                asked.add(a.question.key) && if (kind == SessionKind.FOCUS) !a.grade.isCorrect else !a.after.isReview
-            }
-            // A Map Builder round stops at a usual session's length with its overtime.
-            val cap = if (kind == SessionKind.BUILD) app.settings.current.sessionLength.questions + SessionConfig().overtime else Int.MAX_VALUE
+            val repeats = engine.answers.count { a -> asked.add(a.question.key) && !a.after.isReview }
+            // The round stops at a usual session's length with its overtime.
+            val cap = app.settings.current.sessionLength.questions + SessionConfig().overtime
             maxOf(number, minOf(roundPlaces + repeats, cap))
         }
         else -> null
@@ -219,12 +217,10 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                 SessionKind.ROAD_TRIP -> RoadTrip(app.scheduler, cards, RoadTrip.plan(app.content, cards)).also { trip = it.stops }
                 else -> {
                     val tallies = AnswerTally.of(app.progress.reviewRecords())
-                    roundPlaces = when (kind) {
-                        SessionKind.FOCUS -> Focus.plan(cards, tallies).size
-                        SessionKind.BUILD -> cards.keys.count { k ->
+                    if (kind == SessionKind.BUILD) {
+                        roundPlaces = cards.keys.count { k ->
                             k.facet == Facet.LOCATE && app.content.place(k.placeId)?.type?.let(Drill::of) == Drill.BUILD
                         }
-                        else -> 0
                     }
                     SessionEngine(
                         content = app.content,
@@ -232,8 +228,8 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                         initialCards = cards,
                         newIntroducedToday = app.progress.newIntroducedToday(now),
                         config = if (kind == SessionKind.FOCUS) {
-                            // Ten places and each miss once more: the overtime holds every miss.
-                            SessionConfig(size = Focus.SIZE, overtime = Focus.SIZE, focus = true)
+                            // Ten questions: a miss comes back within them, so there is no overtime.
+                            SessionConfig(size = Focus.SIZE, overtime = 0, focus = true)
                         } else {
                             SessionConfig(
                                 size = app.settings.current.sessionLength.questions,
