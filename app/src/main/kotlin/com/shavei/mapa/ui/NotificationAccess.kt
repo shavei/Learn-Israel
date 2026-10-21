@@ -1,6 +1,9 @@
 package com.shavei.mapa.ui
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -27,17 +30,26 @@ class NotificationAccess(
 /**
  * Getting permission to post the reminder. Android shows its question at most twice, and
  * never when the player turned the app's notifications off in the phone's settings: then
- * the request is refused at once, without a word. So a refusal is reported to [onResult]
- * as false, and the screen offers [NotificationAccess.openSettings]; when the player comes
- * back from there, [onResult] runs again with whether notifications are now allowed.
+ * the request is refused at once, without a word. A "no" in Android's question is the
+ * player's answer and goes to [onDeclined]. A refusal without a question is reported to
+ * [onResult] as false, and the screen offers [NotificationAccess.openSettings]; when the
+ * player comes back from there, [onResult] runs again with whether notifications are now allowed.
  */
 @Composable
-fun rememberNotificationAccess(onResult: (allowed: Boolean) -> Unit): NotificationAccess {
+fun rememberNotificationAccess(onDeclined: () -> Unit = {}, onResult: (allowed: Boolean) -> Unit): NotificationAccess {
     val context = LocalContext.current
     val result by rememberUpdatedState(onResult)
+    val declined by rememberUpdatedState(onDeclined)
     var inSettings by remember { mutableStateOf(false) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        result(Reminders.canNotify(context))
+    // Android shows a rationale flag once the player has said no in its question: if it is
+    // set before or after the request, the question was on screen.
+    var askedBefore by remember { mutableStateOf(false) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        when {
+            granted || Reminders.canNotify(context) -> result(Reminders.canNotify(context))
+            askedBefore || context.showsRationale() -> declined()
+            else -> result(false)
+        }
     }
     LifecycleResumeEffect(inSettings) {
         if (inSettings) {
@@ -53,7 +65,10 @@ fun rememberNotificationAccess(onResult: (allowed: Boolean) -> Unit): Notificati
                     ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
                 when {
                     Reminders.canNotify(context) -> result(true)
-                    ask -> launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    ask -> {
+                        askedBefore = context.showsRationale()
+                        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
                     // Allowed, but turned off for the app in the phone's settings.
                     else -> result(false)
                 }
@@ -64,4 +79,12 @@ fun rememberNotificationAccess(onResult: (allowed: Boolean) -> Unit): Notificati
             },
         )
     }
+}
+
+/** Whether Android would explain the notification permission: the player has said no in its question before. */
+private fun Context.showsRationale(): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
+    var c: Context? = this
+    while (c is ContextWrapper && c !is Activity) c = c.baseContext
+    return (c as? Activity)?.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) == true
 }

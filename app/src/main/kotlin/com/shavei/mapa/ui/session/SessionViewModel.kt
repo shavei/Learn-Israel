@@ -131,6 +131,9 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         else -> AnswerSource.PRACTICE
     }
 
+    /** The day's session, from home's main button: finishing it makes the day count. */
+    private val daily = kind == SessionKind.DAILY || kind == SessionKind.EXTRA
+
     /** Questions in the map test, shown as "question 3 of 20"; null in other sessions. */
     val mapTestSize: Int? = if (kind == SessionKind.MAP_TEST) MapTest.ITEMS.size else null
 
@@ -165,8 +168,9 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                         // Ten places and each miss once more: the overtime holds every miss.
                         SessionConfig(size = Focus.SIZE, overtime = Focus.SIZE, focus = true)
                     } else {
+                        val length = app.settings.current.sessionLength.questions
                         SessionConfig(
-                            size = app.settings.current.sessionLength.questions,
+                            size = if (daily) app.progress.startDailySession(sessionId, length, now) else length,
                             maxNewPerDay = app.settings.current.pace.newPerDay,
                             strengthenWeakest = kind == SessionKind.EXTRA,
                             drill = Drill.BUILD.takeIf { kind == SessionKind.BUILD },
@@ -249,6 +253,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         viewModelScope.launch {
             previous?.join()
             val now = System.currentTimeMillis()
+            if (daily) app.progress.finishDailySession(sessionId, now)
             val recordBefore = if (summary.blitz) {
                 app.progress.saveBlitz(sessionId, now, summary.points, summary.answers, summary.correct)
             } else {

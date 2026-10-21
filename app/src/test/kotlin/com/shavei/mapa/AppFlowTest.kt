@@ -78,9 +78,12 @@ class AppFlowTest {
 
         compose.onNodeWithText("יציאה").performClick()
         waitForText("2 בלמידה · 0 ידועים · מתוך 209")
-        // After the first session, and only then, the daily reminder is offered.
+        // After the first practice, and only then, the daily reminder is offered.
         waitForText("תזכורת יומית?")
-        compose.onNodeWithText("רצף: יום אחד").assertExists()
+        // Left partway: the day is not done yet, and home offers to go on.
+        compose.onNodeWithText("אימון היום יתחיל רצף").assertExists()
+        compose.onNodeWithText("עצרתם באמצע האימון היומי. נשארו עוד 13 שאלות.").assertExists()
+        compose.onNodeWithText("המשך האימון היומי").assertExists()
         screenshot("7-home-after")
 
         compose.onNodeWithText("לא עכשיו").performClick()

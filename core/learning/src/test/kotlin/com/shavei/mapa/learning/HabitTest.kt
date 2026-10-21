@@ -31,9 +31,19 @@ class HabitTest {
     @Test
     fun aWeekEarnsAFreezeThatCoversOneMissedDay() {
         val week = (2L..8L).toList().toLongArray()
-        // Seven days played, yesterday missed: the freeze is used and the streak holds.
-        assertEquals(Streak(7, 0, false), Streak.of(daysAgo(*week), today))
-        assertEquals(Streak(8, 0, true), Streak.of(daysAgo(*week) + today, today))
+        // Seven days played, yesterday missed: the freeze is used and the streak holds,
+        // and the streak says a freeze just saved it, also once today is played.
+        assertEquals(Streak(7, 0, false, frozen = 1), Streak.of(daysAgo(*week), today))
+        assertEquals(Streak(8, 0, true, frozen = 1), Streak.of(daysAgo(*week) + today, today))
+    }
+
+    @Test
+    fun aSavedStreakIsToldOnlyUntilTheNextDayPlayed() {
+        val week = (3L..9L).toList().toLongArray()
+        // The freeze covered two days ago; yesterday was played, so that is old news.
+        assertEquals(0, Streak.of(daysAgo(*week) + today.minusDays(1), today).frozen)
+        // A broken streak was not saved by anything.
+        assertEquals(0, Streak.of(daysAgo(5, 6), today).frozen)
     }
 
     @Test

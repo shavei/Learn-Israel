@@ -44,6 +44,10 @@ data class HomeState(
     /** placeId to 0..1 strength shown on the mastery map. */
     val mastery: Map<String, Double> = emptyMap(),
     val streak: Streak = Streak(0, 0, false),
+    /** Today's daily session is finished: the day counts (docs/02-game-design.md, "Streaks"). */
+    val doneToday: Boolean = false,
+    /** The player left today's daily session partway, with this many questions left. */
+    val dailyLeft: Int? = null,
     /** Offer the daily reminder: once, after the first session. */
     val offerReminder: Boolean = false,
     val reminderMinutes: Int = 0,
@@ -71,7 +75,8 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
             val newLeftToday = config.maxNewPerDay?.let { (it - introducedToday).coerceAtLeast(0) } ?: notStarted
             val daysPlayed = app.progress.daysPlayed()
             val today = LocalDate.now()
-            val offerReminder = !settings.reminderOffered && daysPlayed.isNotEmpty()
+            val daily = app.progress.dailyToday(now)
+            val offerReminder = !settings.reminderOffered && app.progress.hasPracticed()
             val lastTest = app.progress.mapTests().lastOrNull()?.let {
                 Instant.ofEpochMilli(it.finishedAt).atZone(ZoneId.systemDefault()).toLocalDate()
             }
@@ -92,6 +97,8 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
                 roadTripReady = RoadTrip.plan(app.content, cards).isNotEmpty(),
                 mastery = locate.mapValues { (_, c) -> app.scheduler.mastery(c.fsrs, now) },
                 streak = Streak.of(daysPlayed, today),
+                doneToday = daily.done,
+                dailyLeft = daily.questionsLeft,
                 offerReminder = offerReminder,
                 reminderMinutes = settings.reminderMinutes,
                 offerMapTest = !offerReminder && today.toEpochDay() >= settings.mapTestSnoozedUntilDay &&
@@ -100,11 +107,14 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
         }
     }
 
-    /** The player answered the reminder offer; [on] only once the system lets the app notify. */
-    fun answerReminderOffer(on: Boolean) {
-        app.settings.update { it.copy(reminderOffered = true, reminderOn = on) }
+    /**
+     * The player answered the reminder offer; [on] only once the system lets the app notify,
+     * at the time of day they picked in it, in [minutes] after midnight.
+     */
+    fun answerReminderOffer(on: Boolean, minutes: Int = app.settings.current.reminderMinutes) {
+        app.settings.update { it.copy(reminderOffered = true, reminderOn = on, reminderMinutes = if (on) minutes else it.reminderMinutes) }
         Reminders.apply(app, app.settings.current)
-        _state.value = _state.value.copy(offerReminder = false, reminderJustSet = on)
+        _state.value = _state.value.copy(offerReminder = false, reminderJustSet = on, reminderMinutes = app.settings.current.reminderMinutes)
     }
 
     /** "Later" on the map test offer: ask again in a few days. */

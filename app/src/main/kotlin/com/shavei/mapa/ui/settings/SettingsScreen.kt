@@ -73,7 +73,14 @@ import com.shavei.mapa.ui.theme.LocalMapPalette
 
 /** Settings apply as soon as they change; [onChange] stores them. */
 @Composable
-fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Settings) -> Unit, onBack: () -> Unit) {
+fun SettingsScreen(
+    settings: Settings,
+    map: MapData,
+    onChange: ((Settings) -> Settings) -> Unit,
+    onBack: () -> Unit,
+    /** The placement test again: for a player who knows more than the app has seen. */
+    onPlacement: () -> Unit = {},
+) {
     val context = LocalContext.current
     var pickingTime by rememberSaveable { mutableStateOf(false) }
     // Whether Android lets the app notify, checked again whenever the screen comes back
@@ -211,6 +218,15 @@ fun SettingsScreen(settings: Settings, map: MapData, onChange: ((Settings) -> Se
                 },
                 onSelect = { theme -> onChange { it.copy(theme = theme) } },
             )
+
+            HorizontalDivider()
+            Section(stringResource(R.string.settings_placement))
+            Text(
+                stringResource(R.string.settings_placement_note),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(onClick = onPlacement) { Text(stringResource(R.string.settings_placement_again)) }
         }
     }
 
@@ -332,7 +348,7 @@ private fun <T> Choices(options: List<T>, selected: T, label: @Composable (T) ->
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimeDialog(minutes: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+internal fun TimeDialog(minutes: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
     val state = rememberTimePickerState(initialHour = minutes / 60, initialMinute = minutes % 60, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,

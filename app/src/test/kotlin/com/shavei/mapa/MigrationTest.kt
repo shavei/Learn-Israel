@@ -8,6 +8,7 @@ import com.shavei.mapa.data.MIGRATION_1_2
 import com.shavei.mapa.data.MIGRATION_2_3
 import com.shavei.mapa.data.MIGRATION_3_4
 import com.shavei.mapa.data.MIGRATION_4_5
+import com.shavei.mapa.data.MIGRATION_5_6
 import com.shavei.mapa.data.MapaDatabase
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -19,7 +20,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Phase 0 players keep their progress: the v1 database opens as v5 with LOCATE cards. */
+/** Phase 0 players keep their progress: the v1 database opens as v6 with LOCATE cards. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class MigrationTest {
@@ -45,7 +46,7 @@ class MigrationTest {
         }
 
         val room = Room.databaseBuilder(context, MapaDatabase::class.java, "migration-test.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).allowMainThreadQueries().build()
         val cards = room.progressDao().cards()
         assertEquals(1, cards.size)
         with(cards.single()) {
@@ -67,6 +68,9 @@ class MigrationTest {
         assertTrue(room.progressDao().achievements().isEmpty())
         // Version 5 adds the blitz rounds, none played yet.
         assertTrue(room.progressDao().blitzRounds().isEmpty())
+        // Version 6 adds daily sessions: every practice session so far counted for its day, and still does.
+        assertEquals(listOf(500L), room.progressDao().dailyFinishTimes())
+        assertEquals(1, room.progressDao().dailySession("s1")!!.size)
         room.close()
     }
 }

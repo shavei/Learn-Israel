@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.shavei.mapa.data.CardEntity
+import com.shavei.mapa.data.DailySessionEntity
 import com.shavei.mapa.data.ReviewEntity
 import com.shavei.mapa.data.ThemeChoice
 import com.shavei.mapa.learning.fsrs.CardState
@@ -83,8 +84,9 @@ class PlayerExperienceTest {
             for ((city, stability) in listOf("city.tel_aviv" to 30.0, "city.ramat_gan" to 5.0, "city.haifa" to 2.0)) {
                 dao.upsert(CardEntity(city, "LOCATE", CardState.REVIEW.value, null, stability, 5.0, now + DAY_MS, now - DAY_MS, 0))
             }
-            // Three days of Pin It answers, getting more precise.
+            // Three days of daily sessions with Pin It answers, getting more precise.
             for ((daysAgo, km) in listOf(2 to 9.0, 1 to 5.5, 0 to 2.0)) {
+                dao.insert(DailySessionEntity("s$daysAgo", now - daysAgo * DAY_MS, 2, finishedAt = now - daysAgo * DAY_MS))
                 for (city in listOf("city.tel_aviv", "city.haifa")) {
                     dao.insert(
                         ReviewEntity(

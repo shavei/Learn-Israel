@@ -54,6 +54,12 @@ data class Motivation(
     val newlyEarned: List<Achievement>,
 )
 
+/**
+ * Today's daily session: [done] once one is finished. Otherwise, when the player left one
+ * partway, [questionsLeft] is how many of its questions are left; null when none was started.
+ */
+data class DailyToday(val done: Boolean, val questionsLeft: Int?)
+
 /** The best blitz score so far, and how many rounds were played to the end. */
 data class BlitzRecord(val best: Int, val rounds: Int)
 
@@ -68,16 +74,45 @@ class ProgressRepository(
             StudyCard(FsrsCard(CardState.of(it.state), it.step, it.stability, it.difficulty, it.due, it.lastReview), it.struggles)
     }
 
-    suspend fun newIntroducedToday(now: Long, zone: ZoneId = ZoneId.systemDefault()): Int {
-        val startOfDay = Instant.ofEpochMilli(now).atZone(zone).toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
-        return dao.countIntroducedSince(startOfDay)
+    suspend fun newIntroducedToday(now: Long, zone: ZoneId = ZoneId.systemDefault()): Int =
+        dao.countIntroducedSince(startOfDay(now, zone))
+
+    private fun startOfDay(now: Long, zone: ZoneId) =
+        Instant.ofEpochMilli(now).atZone(zone).toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
+
+    /**
+     * Local days on which a daily session was finished: the streak is built from these.
+     * Other ways to practice, and a daily session left partway, do not make a day.
+     */
+    suspend fun daysPlayed(zone: ZoneId = ZoneId.systemDefault()): Set<LocalDate> =
+        dao.dailyFinishTimes().mapTo(HashSet()) { day(it, zone) }
+
+    suspend fun lastDayPlayed(zone: ZoneId = ZoneId.systemDefault()): LocalDate? = dao.dailyFinishTimes().lastOrNull()?.let { day(it, zone) }
+
+    /** True once the player has answered any practice question (the tests are not practice). */
+    suspend fun hasPracticed(): Boolean = dao.lastPracticeTime() != null
+
+    /** Whether today's daily session is done, or how much of it was left when the player stopped. */
+    suspend fun dailyToday(now: Long, zone: ZoneId = ZoneId.systemDefault()): DailyToday {
+        val sessions = dao.dailySessionsSince(startOfDay(now, zone))
+        if (sessions.any { it.finishedAt != null }) return DailyToday(done = true, questionsLeft = null)
+        // The latest one with answers: one opened and left at once stopped nothing.
+        val stopped = sessions.firstNotNullOfOrNull { s -> dao.answersIn(s.sessionId).takeIf { it > 0 }?.let { s.size - it } }
+        return DailyToday(done = false, questionsLeft = stopped?.coerceAtLeast(1))
     }
 
-    /** Local days with at least one practice answer: the streak is built from these. */
-    suspend fun daysPlayed(zone: ZoneId = ZoneId.systemDefault()): Set<LocalDate> =
-        dao.practiceTimes().mapTo(HashSet()) { day(it, zone) }
+    /**
+     * Starts a daily session and returns how many questions it plans: what is left of
+     * today's if the player stopped one partway, else [length].
+     */
+    suspend fun startDailySession(sessionId: String, length: Int, now: Long): Int {
+        val size = dailyToday(now).questionsLeft ?: length
+        dao.insert(DailySessionEntity(sessionId, now, size))
+        return size
+    }
 
-    suspend fun lastDayPlayed(zone: ZoneId = ZoneId.systemDefault()): LocalDate? = dao.lastPracticeTime()?.let { day(it, zone) }
+    /** The daily session reached its summary: the day counts. */
+    suspend fun finishDailySession(sessionId: String, now: Long) = dao.finishDailySession(sessionId, now)
 
     /** True once the player has seen any feedback: a map test from then on is a post-test. */
     suspend fun hasAnsweredWithFeedback(): Boolean = dao.hasAnsweredWithFeedback()
@@ -155,12 +190,12 @@ class ProgressRepository(
             AnswerSource.MAP_TEST -> false
         }
         if (saveCard) {
-            dao.upsert(
-                CardEntity(
-                    key.placeId, key.facet.name, c.fsrs.state.value, c.fsrs.step, c.fsrs.stability, c.fsrs.difficulty,
-                    c.fsrs.due, c.fsrs.lastReview, c.struggles,
-                ),
+            val card = CardEntity(
+                key.placeId, key.facet.name, c.fsrs.state.value, c.fsrs.step, c.fsrs.stability, c.fsrs.difficulty,
+                c.fsrs.due, c.fsrs.lastReview, c.struggles,
             )
+            // The placement test can be taken again later: it seeds only places not yet started.
+            if (source == AnswerSource.PLACEMENT) dao.insertIfAbsent(card) else dao.upsert(card)
         }
         // Map Builder logs where the shape's center was dropped, like the point of a tap.
         val tap = when (val r = answer.response) {
@@ -205,6 +240,11 @@ class ProgressRepository(
                 tappedNear = answer.tappedNear?.id,
             ),
         )
+        // A daily session answered as far as it was planned counts for the day, even if
+        // the player leaves before its summary (its misses come back at the end).
+        dao.dailySession(sessionId)?.let { daily ->
+            if (daily.finishedAt == null && dao.answersIn(sessionId) >= daily.size) dao.finishDailySession(sessionId, answer.at)
+        }
     }
 
     private fun mode(q: Question) = when (q) {
