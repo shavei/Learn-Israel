@@ -279,6 +279,7 @@ smaller releases, in order of learning value, each playable on its own.
       roads; a missed tap names the other road the player probably meant
 - [x] A highway counts toward no region percentage (each crosses many), is not a Road
       Trip stop, and leaves the gateways achievement to ports and airports
+- [x] The six roads as built: `docs/images/highways.png`
 - Not yet: trips along the highways in Road Trip, and roads in Map Builder
 
 ### 2e. Data - postponed until after launch
