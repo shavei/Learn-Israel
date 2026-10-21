@@ -1,28 +1,17 @@
 name: CI
 
+# Tests every PR and main. Publishing the APK is release.yml's job.
 on:
   push:
     branches: [main]
-  # "closed" too: a PR merged into main publishes its merge commit, because GitHub
-  # sometimes starts no run for a merge's push to main.
   pull_request:
-    types: [opened, synchronize, reopened, closed]
-  # "Run workflow" in the Actions tab: on main it builds and publishes the APK.
   workflow_dispatch:
-
-env:
-  # The commit to build: a merged PR's merge commit, otherwise the commit of the event.
-  SHA: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
 
 jobs:
   android:
-    # A PR closed without merging builds nothing.
-    if: github.event.action != 'closed' || github.event.pull_request.merged
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || '' }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -42,58 +31,10 @@ jobs:
           name: mapa-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
-  # Every merge into main (its PR closing or its push, whichever starts a run) and every
-  # manual run on main publishes the APK as a new release and makes it the latest, so the
-  # fixed link https://github.com/<repo>/releases/latest/download/mapa.apk (README
-  # "Install") always serves a complete file. The release is created as a draft, which
-  # nobody can see, and made public only once the APK is uploaded: a download started
-  # while CI publishes gets the previous build, never a missing or half-uploaded file.
-  publish-apk:
-    if: >-
-      (github.event_name != 'pull_request' && github.ref == 'refs/heads/main') ||
-      (github.event.pull_request.merged && github.event.pull_request.base.ref == 'main')
-    needs: [android, content]
-    runs-on: ubuntu-latest
-    # One publish at a time, in order, when merges come close together.
-    concurrency:
-      group: publish-apk
-      cancel-in-progress: false
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: mapa-debug-apk
-      - name: Publish the build as the latest release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          # A merge can start two runs (the PR closing and the push); publish its commit once.
-          if gh api "repos/$GH_REPO/releases" --jq '.[].target_commitish' | grep -qx "$SHA"; then
-            echo "A release of $SHA already exists."
-            exit 0
-          fi
-          mv app-debug.apk mapa.apk
-          tag="build-$GITHUB_RUN_NUMBER"
-          gh release create "$tag" mapa.apk --draft \
-            --target "$SHA" \
-            --title "Build #$GITHUB_RUN_NUMBER" \
-            --notes "Debug build of main at $SHA, published automatically by CI. Install mapa.apk on an Android phone (8.0 or newer)."
-          gh release edit "$tag" --draft=false --latest
-          # Keep the five newest builds, and drop the old release that was replaced in place.
-          gh release list --limit 100 --json tagName --jq '.[].tagName' \
-            | grep '^build-' | sort -t- -k2 -n -r | tail -n +6 \
-            | xargs -r -I{} gh release delete {} --cleanup-tag --yes
-          gh release delete latest-build --cleanup-tag --yes || true
-
   content:
-    if: github.event.action != 'closed' || github.event.pull_request.merged
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || '' }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

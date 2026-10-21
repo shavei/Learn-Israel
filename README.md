@@ -24,9 +24,9 @@ people actually remember.
 
 **[Download the latest Mapa APK](https://github.com/shavei/Learn-Israel/releases/latest/download/mapa.apk)**
 
-This link always points to the newest build of `main`; CI republishes it on every merge.
-If a merge ever leaves it behind, run the CI workflow on `main` from the Actions tab
-("Run workflow") to publish the current build.
+This link always points to the newest build of `main`. The Release APK workflow
+publishes it after every merge, once its tests pass and the APK checks out, and checks
+every 10 minutes that nothing was missed; it never replaces a newer build with an older one.
 Open it on an Android phone (8.0 or newer) and allow installing from your browser when
 asked. Installing a newer build updates the app and keeps your progress.
 
