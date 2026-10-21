@@ -124,16 +124,16 @@ fun HomeScreen(
     if (!state.loaded) return
 
     // The trophy: every place you have practiced, colored by how well you know it today.
-    // Regions and districts cover the land and each other, so they get a lighter wash, and so
+    // Regions, districts and seas cover large areas and each other, so they get a lighter wash, and so
     // do highways, which run the length of the country.
     // Known places also get a heavier outline, so the map does not rely on color alone.
-    // Seas and neighboring countries are the frame around the map: painted, they would tint
-    // the whole background and outline the edge of the map data, so home leaves them out.
+    // Seas in practice show too, as the counts say. Neighboring countries are
+    // the frame around the map: painted, they would tint much of the screen, so home leaves them out.
     val decorations = content.places.mapNotNull { place ->
-        if (place.type == PlaceType.SEA || place.type == PlaceType.COUNTRY) return@mapNotNull null
+        if (place.type == PlaceType.COUNTRY) return@mapNotNull null
         state.mastery[place.id]?.let { m ->
             val alpha = when (place.type) {
-                PlaceType.REGION, PlaceType.DISTRICT -> 0.05 + 0.25 * m
+                PlaceType.REGION, PlaceType.DISTRICT, PlaceType.SEA -> 0.05 + 0.25 * m
                 PlaceType.ROAD -> 0.1 + 0.35 * m
                 else -> 0.15 + 0.7 * m
             }
@@ -215,7 +215,7 @@ private val LANDSCAPE_MAX_HEIGHT = 600.dp
 /** The most of the screen the top card takes, and the bottom one, closed and with the modes open. */
 private const val TOP_SHARE = 0.22f
 private const val BOTTOM_SHARE = 0.34f
-private const val BOTTOM_SHARE_TALL = 0.42f
+private const val BOTTOM_SHARE_TALL = 0.38f
 
 /** A phone this tall has room for a taller action card and still half of the screen for the map. */
 private val TALL = 700.dp

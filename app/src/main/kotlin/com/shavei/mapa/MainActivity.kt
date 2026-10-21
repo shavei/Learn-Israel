@@ -75,8 +75,11 @@ private class StartViewModel(app: MapaApplication) : ViewModel() {
  * starts fresh, and a store is cleared once the player has moved on. The visit just left
  * is kept until the next move: a session's last answers may still be saving as it closes.
  */
-private class VisitStores : ViewModel() {
+internal class VisitStores : ViewModel() {
     private val stores = HashMap<Int, ViewModelStore>()
+
+    /** The store of the latest visit: tests find the open session's ViewModel there. */
+    fun latest(): ViewModelStore? = stores.maxByOrNull { it.key }?.value
 
     fun owner(visit: Int): ViewModelStoreOwner = object : ViewModelStoreOwner {
         override val viewModelStore = stores.getOrPut(visit) { ViewModelStore() }
@@ -193,7 +196,10 @@ private fun App(app: MapaApplication, settings: Settings) {
             )
         }
         Screen.SESSION -> ForThisVisit {
-            val vm: SessionViewModel = viewModel(factory = viewModelFactory { initializer { SessionViewModel(app, sessionKind) } })
+            val vm: SessionViewModel = viewModel(
+                key = "session-$visit",
+                factory = viewModelFactory { initializer { SessionViewModel(app, sessionKind) } },
+            )
             // A first answer (not in the map test, which comes before the choice) ends the welcome.
             if (!settings.onboarded && sessionKind != SessionKind.MAP_TEST) {
                 LaunchedEffect(vm) {

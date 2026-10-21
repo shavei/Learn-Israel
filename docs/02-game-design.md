@@ -78,7 +78,7 @@ Relational questions that fix hierarchical distortions:
 Drag a region or district shape into place on the outline, one shape per question.
 The shape starts in the sea off the middle of the coast (the same spot for every
 shape, so the start gives nothing away); one finger drags it, two fingers pan and zoom
-the map, and "here" hands it in. Scored by how far it lands from its place. Satisfying
+the map, and "here" hands it in once the shape has been moved. Scored by how far it lands from its place. Satisfying
 and very tactile on a phone.
 
 Map Builder practices the same `LOCATE` card as Pin It. In the daily session, a due
@@ -98,8 +98,9 @@ as the player improves, but they leave the schedule as it was. It replaced Trace
 ### 7. Road Trip (free play)
 A chain of stops: "You start in Ashdod. Drive on to Rehovot, then Herzliya, Netanya and
 Hadera." Each stop after the start is a Pin It question with its feedback; the route
-draws across the map from stop to stop as they are found, and the summary shows the
-whole way. Trips are planned on the spot from the places the player has learned (towns,
+draws across the map from stop to stop, solid to a stop found and dashed to one missed,
+and the summary shows the whole way. Only a trip that found every stop "arrives"; any
+other ends with "סוף המסע" and how many stops were found. Trips are planned on the spot from the places the player has learned (towns,
 lakes, mountains, reserves, sites, ports and airports): five stops, each leg 12 to 70 km,
 keeping the road's direction. Builds route knowledge on top of survey knowledge, and is
 great for tourists. Written trips with a story ("You land at Ben Gurion. Drive to the

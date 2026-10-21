@@ -54,6 +54,7 @@ import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.ui.theme.LocalMapPalette
 import com.shavei.mapa.ui.theme.MapPalette
 import kotlin.math.min
+import kotlin.math.sqrt
 
 /** Something drawn on top of the base map: a highlighted place, a tap, a line, a label. */
 sealed interface MapDecoration {
@@ -71,8 +72,8 @@ sealed interface MapDecoration {
     /** An area drawn [dx] meters east and [dy] meters north of where it lies: a Map Builder shape. */
     data class Moved(val shape: Shape.Area, val dx: Double, val dy: Double, val color: Color, val alpha: Float = 0.45f) : MapDecoration
 
-    /** A path across the map: a road trip's route. */
-    data class Drawing(val path: List<MapPoint>, val color: Color) : MapDecoration
+    /** A path across the map: a road trip's route. [dashed] for a leg not traveled (its stop was missed). */
+    data class Drawing(val path: List<MapPoint>, val color: Color, val dashed: Boolean = false) : MapDecoration
 }
 
 /**
@@ -100,9 +101,17 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
     private var size = IntSize.Zero
     private var homeScale = 0.0
 
-    /** Screen space covered by cards at the top and bottom; the map frames Israel between them. */
+    /**
+     * Screen space covered by cards at the top and bottom (and in landscape, at a side);
+     * the map frames Israel between them.
+     */
     private var padTop = 0f
     private var padBottom = 0f
+    private var padLeft = 0f
+    private var padRight = 0f
+
+    /** How far the view is zoomed in from the whole country: 1 at home, more when closer. */
+    val zoom: Double get() = if (homeScale == 0.0) 1.0 else scale / homeScale
 
     fun onSize(newSize: IntSize) {
         if (newSize == size || newSize.width == 0 || newSize.height == 0) return
@@ -110,10 +119,12 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         updateHomeScale(resetView = scale == 0.0)
     }
 
-    fun setFramePadding(topPx: Float, bottomPx: Float) {
-        if (topPx == padTop && bottomPx == padBottom) return
+    fun setFramePadding(topPx: Float, bottomPx: Float, leftPx: Float = 0f, rightPx: Float = 0f) {
+        if (topPx == padTop && bottomPx == padBottom && leftPx == padLeft && rightPx == padRight) return
         padTop = topPx
         padBottom = bottomPx
+        padLeft = leftPx
+        padRight = rightPx
         updateHomeScale(resetView = true)
     }
 
@@ -121,7 +132,8 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         if (size.width == 0) return
         val padded = home.expandedBy(8_000.0)
         val visibleHeight = (size.height - padTop - padBottom).coerceAtLeast(size.height * 0.4f)
-        homeScale = min(size.width / padded.width, visibleHeight / padded.height)
+        val visibleWidth = (size.width - padLeft - padRight).coerceAtLeast(size.width * 0.4f)
+        homeScale = min(visibleWidth / padded.width, visibleHeight / padded.height)
         if (resetView) reset()
     }
 
@@ -141,20 +153,47 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         val margin = 48f
         val top = topPx + margin
         val bottom = size.height - bottomPx - margin
-        val visible = points.map { toScreen(it) }.all { it.x in margin..(size.width - margin) && it.y in top..bottom }
+        val left = padLeft + margin
+        val right = size.width - padRight - margin
+        val visible = points.map { toScreen(it) }.all { it.x in left..right && it.y in top..bottom }
         if (visible) return
-        val b = points.drop(1).fold(Bounds(points[0].x, points[0].y, points[0].x, points[0].y)) { acc, p ->
-            acc.union(Bounds(p.x, p.y, p.x, p.y))
-        }
-        val fit = min((size.width - 2 * margin) / b.width.coerceAtLeast(1.0), (bottom - top).toDouble() / b.height.coerceAtLeast(1.0))
+        val b = boundsOf(points)
+        val fit = min((right - left) / b.width.coerceAtLeast(1.0), (bottom - top).toDouble() / b.height.coerceAtLeast(1.0))
         scale = min(scale, fit).coerceAtLeast(homeScale * 0.5)
         center = centerPlacing(b.center, (top + bottom) / 2)
     }
 
+    /**
+     * Zooms in (or out) so [points] fill the visible part of the screen, showing at least
+     * [minSpanMeters] around them: places a few kilometers apart, seen close enough to tell apart.
+     */
+    fun fit(points: List<MapPoint>, topPx: Float, bottomPx: Float, minSpanMeters: Double) {
+        if (scale == 0.0 || points.isEmpty()) return
+        val margin = 48f
+        val top = topPx + margin
+        val bottom = size.height - bottomPx - margin
+        val left = padLeft + margin
+        val right = size.width - padRight - margin
+        val b = boundsOf(points)
+        val fit = min((right - left) / b.width.coerceAtLeast(minSpanMeters), (bottom - top).toDouble() / b.height.coerceAtLeast(minSpanMeters))
+        scale = fit.coerceIn(homeScale * 0.5, homeScale * MAX_ZOOM)
+        center = centerPlacing(b.center, (top + bottom) / 2)
+    }
+
+    private fun boundsOf(points: List<MapPoint>) = points.drop(1).fold(Bounds(points[0].x, points[0].y, points[0].x, points[0].y)) { acc, p ->
+        acc.union(Bounds(p.x, p.y, p.x, p.y))
+    }
+
     private fun visibleCenterY(topPx: Float, bottomPx: Float) = topPx + (size.height - topPx - bottomPx) / 2
 
-    /** The camera center that puts map point [p] at screen height [screenY], horizontally centered. */
-    private fun centerPlacing(p: MapPoint, screenY: Float) = MapPoint(p.x, p.y + (screenY - size.height / 2) / scale)
+    /**
+     * The camera center that puts map point [p] at screen height [screenY], and horizontally
+     * in the middle of the part of the screen no side panel covers.
+     */
+    private fun centerPlacing(p: MapPoint, screenY: Float): MapPoint {
+        val screenX = padLeft + (size.width - padLeft - padRight) / 2
+        return MapPoint(p.x - (screenX - size.width / 2) / scale, p.y + (screenY - size.height / 2) / scale)
+    }
 
     fun toScreen(p: MapPoint) = Offset(
         ((p.x - center.x) * scale + size.width / 2).toFloat(),
@@ -170,7 +209,7 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
     fun transform(centroid: Offset, pan: Offset, zoom: Float) {
         if (scale == 0.0) return
         val anchor = toMap(centroid)
-        scale = (scale * zoom).coerceIn(homeScale * 0.5, homeScale * 12)
+        scale = (scale * zoom).coerceIn(homeScale * 0.5, homeScale * MAX_ZOOM)
         val after = toMap(centroid)
         center = MapPoint(
             (center.x + anchor.x - after.x - pan.x / scale).coerceIn(window.minX, window.maxX),
@@ -178,6 +217,9 @@ class MapCamera(private val home: Bounds, private val window: Bounds) {
         )
     }
 }
+
+/** How far in the camera zooms, from the whole country. */
+private const val MAX_ZOOM = 12.0
 
 @Composable
 fun rememberMapCamera(map: MapData) = remember(map) { MapCamera(map.home, map.window) }
@@ -205,6 +247,20 @@ fun MapView(
     // float coordinates small; the camera is applied as a canvas transform when drawing.
     val origin = map.home.center
     val layers = remember(map) { BaseLayers.build(map, origin) }
+    // Open water and the neighbors run to the edge of the map data, which is a box: lit
+    // up, they are cut to a rounded area around Israel instead, so no straight edge shows.
+    val openWater = remember(map) {
+        Path().apply {
+            val b = map.home
+            addOval(
+                Rect(
+                    (b.minX - origin.x - OPEN_WATER_MARGIN).toFloat(), (b.minY - origin.y - OPEN_WATER_MARGIN).toFloat(),
+                    (b.maxX - origin.x + OPEN_WATER_MARGIN).toFloat(), (b.maxY - origin.y + OPEN_WATER_MARGIN).toFloat(),
+                ),
+            )
+        }
+    }
+    val edge = map.window.expandedBy(-EDGE_REACH)
     val pathCache = remember(map) { HashMap<Shape, Path>() }
     val textMeasurer = rememberTextMeasurer()
     val terrain = rememberTerrainLayer(look, colors, terrainOverride)
@@ -228,12 +284,18 @@ fun MapView(
     ) {
         if (camera.scale == 0.0) return@Canvas
         drawRect(colors.sea)
+        val crowd = Crowd.of(decorations, camera.zoom)
+        // Marks were sized in pixels of a common (xxhdpi) phone: the same size in dp on any screen.
+        val u = density / 3f
 
         inMapSpace(camera, origin) { px ->
             // Past the edges of the map data: land all round and the open sea to the northwest,
-            // so the edge of the data never shows as a slanted box.
+            // so the edge of the data never shows as a slanted box. A thin stroke of the same
+            // color covers the seam where they meet the data, which would show as a hairline.
             drawPath(layers.beyondLand, colors.neighbor)
+            drawPath(layers.beyondLand, colors.neighbor, style = Stroke(width = 2f * px))
             drawPath(layers.beyondSea, colors.sea)
+            drawPath(layers.beyondSea, colors.sea, style = Stroke(width = 4f * px))
             // The ground: flat colors, then the style's terrain over it, fading in when it first loads.
             drawPath(layers.neighbors, colors.neighbor)
             drawPath(layers.gaza, colors.gaza)
@@ -262,10 +324,20 @@ fun MapView(
                 val path = pathCache.getOrPut(d.shape) { shapePath(d.shape, origin) }
                 when (d.shape) {
                     is Shape.Area -> {
-                        drawPath(path, d.color, alpha = d.alpha)
-                        drawPath(path, d.color, style = Stroke(width = (if (d.emphasis) 4.5f else 2.5f) * px))
+                        val b = d.shape.bounds
+                        val reachesEdge = b.minX < edge.minX || b.minY < edge.minY || b.maxX > edge.maxX || b.maxY > edge.maxY
+                        val outline = Stroke(width = (if (d.emphasis) 4.5f else 2.5f) * crowd.size * px)
+                        if (reachesEdge) {
+                            clipPath(openWater) {
+                                drawPath(path, d.color, alpha = d.alpha * crowd.fill)
+                                drawPath(path, d.color, style = outline)
+                            }
+                        } else {
+                            drawPath(path, d.color, alpha = d.alpha * crowd.fill)
+                            drawPath(path, d.color, style = outline)
+                        }
                     }
-                    is Shape.Lines -> drawPath(path, d.color, style = Stroke(width = 6f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                    is Shape.Lines -> drawPath(path, d.color, alpha = crowd.fill, style = Stroke(width = 6f * crowd.size * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
                     is Shape.Point -> Unit // drawn in screen space so it keeps its size
                 }
             }
@@ -281,41 +353,107 @@ fun MapView(
         for (d in decorations) when (d) {
             is MapDecoration.Highlight -> if (d.shape is Shape.Point) {
                 val c = camera.toScreen(d.shape.at)
-                drawCircle(d.color, radius = 16f, center = c, alpha = d.alpha)
-                drawCircle(d.color, radius = 8f, center = c)
-                if (d.emphasis) drawCircle(d.color, radius = 21f, center = c, style = Stroke(width = 3f))
+                val r = crowd.size * u
+                drawCircle(d.color, radius = 16f * r, center = c, alpha = d.alpha * crowd.fill)
+                drawCircle(d.color, radius = 8f * r, center = c)
+                if (d.emphasis) drawCircle(d.color, radius = 21f * r, center = c, style = Stroke(width = 3f * r))
             }
             is MapDecoration.Drawing -> if (d.path.size >= 2) {
                 val path = Path().apply {
                     camera.toScreen(d.path[0]).let { moveTo(it.x, it.y) }
                     for (i in 1 until d.path.size) camera.toScreen(d.path[i]).let { lineTo(it.x, it.y) }
                 }
-                drawPath(path, colors.markerRing, style = Stroke(width = 9f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                drawPath(path, d.color, style = Stroke(width = 5f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                if (d.dashed) {
+                    drawPath(
+                        path, d.color, alpha = 0.6f,
+                        style = Stroke(width = 4f * u, cap = StrokeCap.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f * u, 12f * u))),
+                    )
+                } else {
+                    drawPath(path, colors.markerRing, style = Stroke(width = 9f * u, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                    drawPath(path, d.color, style = Stroke(width = 5f * u, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                }
             }
             is MapDecoration.Moved -> Unit // drawn in map space above
             is MapDecoration.Connector ->
-                drawLine(d.color, camera.toScreen(d.from), camera.toScreen(d.to), strokeWidth = 4f, cap = StrokeCap.Round)
+                drawLine(d.color, camera.toScreen(d.from), camera.toScreen(d.to), strokeWidth = 4f * u, cap = StrokeCap.Round)
             is MapDecoration.Marker -> {
                 val c = camera.toScreen(d.at)
-                drawCircle(colors.markerRing, radius = d.radiusPx + 3f, center = c)
-                drawCircle(d.color, radius = d.radiusPx, center = c)
+                drawCircle(colors.markerRing, radius = (d.radiusPx + 3f) * u, center = c)
+                drawCircle(d.color, radius = d.radiusPx * u, center = c)
             }
-            is MapDecoration.Label -> {
-                val layout = textMeasurer.measure(d.text, TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = d.color ?: colors.labelText))
-                val c = camera.toScreen(d.at)
-                val topLeft = Offset(c.x - layout.size.width / 2, c.y - layout.size.height - 18f)
-                drawRoundRect(
-                    colors.labelBox,
-                    topLeft = topLeft - Offset(8f, 4f),
-                    size = Size(layout.size.width + 16f, layout.size.height + 8f),
-                    cornerRadius = CornerRadius(10f),
-                )
-                drawText(layout, topLeft = topLeft)
+            is MapDecoration.Label -> Unit // drawn last, above every line
+        }
+
+        // Labels go above their place where they can, else below or beside it, wherever they
+        // cross no line on the map and no other label.
+        val lines = decorations.flatMap { d ->
+            when (d) {
+                is MapDecoration.Drawing -> d.path.map { camera.toScreen(it) }.zipWithNext()
+                is MapDecoration.Connector -> listOf(camera.toScreen(d.from) to camera.toScreen(d.to))
+                else -> emptyList()
             }
+        }
+        // A place named twice (a road trip stop that is also the answer) keeps its last label.
+        val labels = decorations.filterIsInstance<MapDecoration.Label>().asReversed().distinctBy { it.at }.asReversed()
+        val placed = mutableListOf<Rect>()
+        for (d in labels) {
+            val layout = textMeasurer.measure(d.text, TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = d.color ?: colors.labelText))
+            val box = labelBox(camera.toScreen(d.at), Size(layout.size.width + 16f * u, layout.size.height + 8f * u), 14f * u, lines, placed)
+            placed += box
+            drawRoundRect(colors.labelBox, topLeft = box.topLeft, size = box.size, cornerRadius = CornerRadius(10f * u))
+            drawText(layout, topLeft = box.topLeft + Offset(8f * u, 4f * u))
         }
     }
 }
+
+/**
+ * Where a label of [size] for the point at [c] goes, [gap] away: above it, below it, or to a side,
+ * the first spot that crosses none of [lines] and none of the labels [placed] already.
+ * Above it when every spot is taken.
+ */
+private fun labelBox(c: Offset, size: Size, gap: Float, lines: List<Pair<Offset, Offset>>, placed: List<Rect>): Rect {
+    val candidates = listOf(
+        Offset(c.x - size.width / 2, c.y - size.height - gap),
+        Offset(c.x - size.width / 2, c.y + gap),
+        Offset(c.x + gap, c.y - size.height / 2),
+        Offset(c.x - size.width - gap, c.y - size.height / 2),
+    ).map { Rect(it, size) }
+    return candidates.firstOrNull { box -> placed.none { it.overlaps(box) } && lines.none { (a, b) -> crosses(box, a, b) } }
+        ?: candidates.firstOrNull { box -> placed.none { it.overlaps(box) } }
+        ?: candidates.first()
+}
+
+/** Whether the segment from [a] to [b] passes through [box], checked every few pixels. */
+private fun crosses(box: Rect, a: Offset, b: Offset): Boolean {
+    val steps = ((b - a).getDistance() / 4f).toInt().coerceIn(1, 2_000)
+    return (0..steps).any { box.contains(a + (b - a) * (it.toFloat() / steps)) }
+}
+
+/**
+ * How much room each mark gets when many are drawn at once, as on the home map of a player
+ * who knows the whole country: at the full view, a crowd of places gets smaller points,
+ * thinner outlines and lighter fills, so the map stays readable; zooming in gives them their
+ * full size back. [size] scales points and outlines, [fill] the fills.
+ */
+private class Crowd(val size: Float, val fill: Float) {
+    companion object {
+        /** Up to this many marks are drawn at full size. */
+        private const val ROOM = 30
+
+        fun of(decorations: List<MapDecoration>, zoom: Double): Crowd {
+            val marks = decorations.count { it is MapDecoration.Highlight }
+            if (marks <= ROOM) return Crowd(1f, 1f)
+            val size = (sqrt(ROOM.toFloat() / marks) * sqrt(zoom.toFloat())).coerceIn(0.35f, 1f)
+            return Crowd(size, 0.4f + 0.6f * size)
+        }
+    }
+}
+
+/** Open water lit up is cut this far around Israel (map meters). */
+private const val OPEN_WATER_MARGIN = 60_000.0
+
+/** An area within this distance of the edge of the map data runs out to it (map meters). */
+private const val EDGE_REACH = 5_000.0
 
 /** One finger drags through [drag]; two pan and zoom the camera, as everywhere else. */
 private suspend fun PointerInputScope.detectDrags(camera: MapCamera, drag: MapDrag) = awaitEachGesture {

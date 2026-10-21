@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -96,7 +97,10 @@ class DailyHabitTest {
             waitForText("בדיקת רמה · שאלה 1")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
             waitForText("המשך")
+            // Leaving with an answer given is asked first.
             back(scenario)
+            compose.waitUntil(10_000) { compose.onAllNodes(hasTestTag("leave-confirm")).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("leave-confirm").performClick()
             waitForText("דרגה: ")
         }
         assertTrue(app.settings.current.onboarded)
@@ -113,7 +117,10 @@ class DailyHabitTest {
             waitForText("סמנו על המפה")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.4f)) }
             waitForText("המשך")
+            // Leaving with an answer given is asked first.
             back(scenario)
+            compose.waitUntil(10_000) { compose.onAllNodes(hasTestTag("leave-confirm")).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("leave-confirm").performClick()
 
             // One of fifteen answered: not a day yet, and the rest is offered.
             waitForText("עצרתם באמצע האימון היומי. נשארו עוד 14 שאלות.")

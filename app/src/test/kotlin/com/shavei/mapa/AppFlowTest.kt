@@ -75,7 +75,11 @@ class AppFlowTest {
         compose.onNodeWithTag("answer-points").assertTextEquals("5,000 נקודות")
         screenshot("6-feedback")
 
+        // Leaving with answers given is asked first.
         compose.onNodeWithText("יציאה").performClick()
+        waitForText("לצאת מהאימון?")
+        screenshot("6b-leave")
+        compose.onNodeWithTag("leave-confirm").performClick()
         waitForText("2 בלמידה · 0 ידועים · מתוך 209")
         // After the first practice, and only then, the daily reminder is offered.
         waitForText("תזכורת יומית?")

@@ -147,10 +147,10 @@ class FreePlayTest {
 
             var stops = 0
             while (true) {
-                compose.waitUntil(10_000) { has("תחנה") || has("הגעתם ליעד!") }
-                if (has("הגעתם ליעד!")) break
+                compose.waitUntil(10_000) { has("תחנה") || has("הגעתם ליעד!") || has("סוף המסע") }
+                if (has("הגעתם ליעד!") || has("סוף המסע")) break
                 // Each leg starts where the last one ended.
-                assertTrue(has("יוצאים מ־"))
+                assertTrue(has("יוצאים מ"))
                 if (stops == 1) Screenshots.save(scenario, "f5-trip-leg")
                 tapMap()
                 waitForText("המשך")

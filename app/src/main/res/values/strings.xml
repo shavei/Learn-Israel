@@ -117,15 +117,39 @@
     </plurals>
     <string name="summary_error">סטייה ממוצעת: %1$s ק״מ</string>
     <string name="summary_done">חזרה למפה</string>
+    <string name="summary_kind">התחלה קשה היא חלק מהדרך. כל פספוס מראה איפה המקום באמת נמצא, והמקומות האלה יחזרו לתרגול.</string>
+    <plurals name="summary_found">
+        <item quantity="one">מצאתם מקום אחד מתוך %2$d</item>
+        <item quantity="two">מצאתם 2 מתוך %2$d מקומות</item>
+        <item quantity="many">מצאתם %1$d מתוך %2$d מקומות</item>
+        <item quantity="other">מצאתם %1$d מתוך %2$d מקומות</item>
+    </plurals>
     <string name="quit">יציאה</string>
+    <string name="leave_title">לצאת מהאימון?</string>
+    <string name="leave_title_round">לצאת מהסבב?</string>
+    <string name="leave_title_placement">לצאת מבדיקת הרמה?</string>
+    <string name="leave_title_map_test">לצאת ממבחן המפה?</string>
+    <string name="leave_body">האימון עוד לא הסתיים. התשובות שכבר נתתם נשמרות.</string>
+    <string name="leave_body_blitz">התשובות שכבר נתתם נשמרות, אבל סבב שלא הסתיים לא נספר לשיא.</string>
+    <string name="leave_body_placement">המקומות שכבר מצאתם נשמרים.</string>
+    <string name="leave_body_map_test">המבחן נשמר רק כשמסיימים אותו. אם תצאו עכשיו, התשובות עד כה יימחקו, ובפעם הבאה המבחן יתחיל מההתחלה.</string>
+    <string name="leave_stay">להמשיך</string>
+    <string name="leave_map_test">יציאה בלי לשמור</string>
+    <string name="play_again">סבב נוסף</string>
     <string name="ask_name_choice">מה שם המקום המסומן?</string>
     <string name="ask_name_typed">כתבו את שם המקום המסומן</string>
+    <string name="name_label">שם המקום</string>
     <string name="name_check">בדיקה</string>
     <string name="relate_north">מה צפוני יותר?</string>
     <string name="relate_south">מה דרומי יותר?</string>
     <string name="relate_east">מה מזרחי יותר?</string>
     <string name="relate_west">מה מערבי יותר?</string>
     <string name="relate_closer">מה קרוב יותר ל%1$s?</string>
+    <string name="relate_explain_north">%1$s צפונית יותר מ%2$s</string>
+    <string name="relate_explain_south">%1$s דרומית יותר מ%2$s</string>
+    <string name="relate_explain_east">%1$s מזרחית יותר מ%2$s</string>
+    <string name="relate_explain_west">%1$s מערבית יותר מ%2$s</string>
+    <string name="relate_explain_closer">%1$s קרובה יותר ל%2$s מ%3$s</string>
     <string name="hint">רמז: %1$s</string>
     <string name="feedback_tapped_near">סימנתם את %1$s</string>
     <string name="feedback_you_chose">בחרתם: %1$s</string>
@@ -136,8 +160,10 @@
     <string name="build_prompt">גררו למקום: %1$s</string>
     <string name="build_help">גררו את הצורה באצבע אחת. בשתי אצבעות מזיזים ומגדילים את המפה.</string>
     <string name="build_place">כאן המקום</string>
-    <string name="build_counter">הרכבת המפה · שאלה %1$d</string>
-    <string name="focus_counter">אימון ממוקד · שאלה %1$d</string>
+    <string name="build_counter">הרכבת המפה · שאלה %1$d מתוך %2$d</string>
+    <string name="build_summary_title">סיום הרכבת המפה</string>
+    <string name="focus_counter">אימון ממוקד · שאלה %1$d מתוך %2$d</string>
+    <string name="focus_summary_title">סיום האימון הממוקד</string>
     <string name="blitz_title">בליץ</string>
     <string name="blitz_rules">דקה אחת: סמנו כמה שיותר מקומות שכבר למדתם. השעון לא עוצר בין שאלה לשאלה.</string>
     <string name="blitz_go">התחילו!</string>
@@ -158,6 +184,7 @@
     <string name="blitz_record_first">הבליץ הראשון שלכם: זה השיא לשבור</string>
     <string name="blitz_record_new">שיא חדש! הקודם היה %1$s נקודות</string>
     <string name="blitz_record">השיא שלכם: %1$s נקודות</string>
+    <string name="blitz_summary_none">הפעם לא סימנתם אף מקום. בסבב הבא כל סימון שווה נקודות.</string>
     <plurals name="blitz_summary_found">
         <item quantity="one">מקום אחד נכון מתוך %2$d</item>
         <item quantity="two">2 מקומות נכונים מתוך %2$d</item>
@@ -165,12 +192,20 @@
         <item quantity="other">%1$d מקומות נכונים מתוך %2$d</item>
     </plurals>
     <string name="trip_title">מסע בדרכים</string>
-    <string name="trip_from">יוצאים מ־%1$s</string>
+    <string name="trip_from">יוצאים מ%1$s</string>
     <string name="trip_rules">בכל תחנה סמנו על המפה את היעד הבא. הדרך תסומן על המפה בכל תחנה שתמצאו.</string>
     <string name="trip_go">יוצאים לדרך</string>
     <string name="trip_none">עדיין אין מספיק מקומות קרובים שלמדתם בשביל מסע. המשיכו באימון היומי.</string>
     <string name="trip_counter">מסע בדרכים · תחנה %1$d מתוך %2$d</string>
     <string name="trip_summary_title">הגעתם ליעד!</string>
+    <string name="trip_summary_title_short">סוף המסע</string>
+    <plurals name="trip_summary_found">
+        <item quantity="one">מצאתם תחנה אחת מתוך %2$d</item>
+        <item quantity="two">מצאתם 2 מתוך %2$d תחנות</item>
+        <item quantity="many">מצאתם %1$d מתוך %2$d תחנות</item>
+        <item quantity="other">מצאתם %1$d מתוך %2$d תחנות</item>
+    </plurals>
+    <string name="trip_again">מסע נוסף</string>
 
     <string name="back">חזרה</string>
 
@@ -180,9 +215,10 @@
     <string name="onboarding_placement">כבר מכירים את הארץ? בדיקת רמה</string>
     <string name="onboarding_placement_note">כ־3 דקות. מקומות שתמצאו יחזרו בקרוב לאישור, והשאר יילמדו מההתחלה.</string>
 
-    <string name="placement_counter">בדיקת רמה · שאלה %1$d</string>
+    <string name="placement_counter">בדיקת רמה · שאלה %1$d מתוך %2$d לכל היותר</string>
     <string name="placement_summary_title">סיום בדיקת הרמה</string>
     <string name="placement_summary_found">מצאתם %1$d מתוך %2$d מקומות</string>
+    <string name="placement_found_list">מצאתם: %1$s</string>
     <string name="placement_summary_note">המקומות שמצאתם יחזרו בעוד כמה ימים לאישור. השאר יילמדו באימון היומי.</string>
 
     <string name="home_progress">התקדמות</string>
@@ -293,6 +329,9 @@
         <item quantity="many">%d מקומות יותר מבפעם הראשונה</item>
         <item quantity="other">%d מקומות יותר מבפעם הראשונה</item>
     </plurals>
+    <string name="map_test_compare">אותם %1$d מקומות, בפעם הראשונה ועכשיו:</string>
+    <string name="map_test_tap_noted">הסימון נקלט</string>
+    <string name="map_test_to_welcome">חזרה למסך הפתיחה</string>
     <string name="map_test_pre_note">אחרי חודש של אימון נציע את אותו מבחן שוב, ותראו כמה למדתם.</string>
     <string name="map_test_offer_title">חודש של אימון: כמה למדתם?</string>
     <string name="map_test_offer_body">אותם 20 מקומות, כ־2 דקות, בלי משוב.</string>
