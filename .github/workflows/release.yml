@@ -72,11 +72,13 @@ jobs:
         env:
           SHA: ${{ steps.check.outputs.sha }}
         run: |
-          tag="build-$GITHUB_RUN_NUMBER"
+          # Named by time and commit, not run number: the run number restarted at 1 when this
+          # workflow replaced CI's publish job.
+          tag="build-$(date -u +%Y%m%d-%H%M)-${SHA:0:7}"
           subject=$(git log -1 --format=%s "$SHA")
           gh release create "$tag" mapa.apk --draft \
             --target "$SHA" \
-            --title "Build #$GITHUB_RUN_NUMBER" \
+            --title "Build ${SHA:0:7}, $(date -u '+%Y-%m-%d %H:%M') UTC" \
             --notes "Debug build of main at $SHA ($subject), published automatically. Install mapa.apk on an Android phone (8.0 or newer)."
           gh release edit "$tag" --draft=false --latest
       - name: The download link serves this build
@@ -93,7 +95,8 @@ jobs:
       - name: Keep the five newest builds
         if: steps.check.outputs.done != 'true'
         run: |
-          gh release list --limit 100 --json tagName --jq '.[].tagName' \
-            | grep '^build-' | sort -t- -k2 -n -r | tail -n +6 \
+          # By creation time, newest first, so the build just published is never the one dropped.
+          gh release list --limit 100 --json tagName,createdAt \
+            --jq '[.[] | select(.tagName | startswith("build-"))] | sort_by(.createdAt) | reverse | .[5:] | .[].tagName' \
             | xargs -r -I{} gh release delete {} --cleanup-tag --yes
           gh release delete latest-build --cleanup-tag --yes || true
