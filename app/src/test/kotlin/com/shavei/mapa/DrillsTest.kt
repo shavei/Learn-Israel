@@ -1,6 +1,8 @@
 package com.shavei.mapa
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -54,6 +56,16 @@ class DrillsTest {
         runBlocking { placeIds.forEach { app.database.progressDao().upsert(known(it)) } }
     }
 
+    /** One finger drags the shape from the sea toward the coast. */
+    private fun dragShape() {
+        compose.onNodeWithTag("map").performTouchInput {
+            down(Offset(width * 0.3f, height * 0.5f))
+            for (i in 1..10) moveTo(Offset(width * (0.3f + 0.012f * i), height * (0.5f - 0.007f * i)))
+            up()
+        }
+        compose.waitForIdle()
+    }
+
     @Test
     fun mapBuilderDragsARegionIntoPlace() {
         seed("region.sharon", "city.tel_aviv")
@@ -65,27 +77,30 @@ class DrillsTest {
             compose.onNodeWithText("הרכבת המפה").performScrollTo().performClick()
 
             waitForText("גררו למקום: השרון")
+            waitForText("הרכבת המפה · שאלה 1 מתוך 1")
             Screenshots.save(scenario, "b1-build-start")
-            // One finger drags the shape from the sea toward the coast.
-            compose.onNodeWithTag("map").performTouchInput {
-                down(Offset(width * 0.3f, height * 0.5f))
-                for (i in 1..10) moveTo(Offset(width * (0.3f + 0.012f * i), height * (0.5f - 0.007f * i)))
-                up()
-            }
-            compose.waitForIdle()
+            // The shape has to be moved before it can be placed.
+            compose.onNodeWithText("כאן המקום").assertIsNotEnabled()
+            dragShape()
+            compose.onNodeWithText("כאן המקום").assertIsEnabled()
             Screenshots.save(scenario, "b2-build-dragged")
             compose.onNodeWithText("כאן המקום").performClick()
             waitForFeedback()
             Screenshots.save(scenario, "b3-build-feedback")
             compose.onNodeWithText("המשך").performClick()
             // A miss comes back once.
-            compose.waitUntil(10_000) { has("סיום אימון") || has("כאן המקום") }
+            compose.waitUntil(10_000) { has("סיום הרכבת המפה") || has("כאן המקום") }
             if (has("כאן המקום")) {
+                dragShape()
                 compose.onNodeWithText("כאן המקום").performClick()
                 waitForFeedback()
                 compose.onNodeWithText("המשך").performClick()
             }
-            waitForText("סיום אימון")
+            waitForText("סיום הרכבת המפה")
+            // A round of its own: no new places line, and it can be played again.
+            assertTrue(!has("מקומות חדשים", substring = true))
+            waitForText("סבב נוסף")
+            Screenshots.save(scenario, "b4-build-summary")
         }
         // Only the region was asked, and the answer logged where its shape was dropped.
         val reviews = runBlocking { app.database.progressDao().reviews() }
@@ -119,8 +134,8 @@ class DrillsTest {
             // The most missed first, then the never answered, then the one always right.
             val asked = mutableListOf<String>()
             while (true) {
-                compose.waitUntil(10_000) { has("סמנו על המפה", substring = true) || has("סיום אימון") }
-                if (has("סיום אימון")) break
+                compose.waitUntil(10_000) { has("סמנו על המפה", substring = true) || has("סיום האימון הממוקד") }
+                if (has("סיום האימון הממוקד")) break
                 asked += listOf("אילת", "ירושלים", "חיפה").first { has("סמנו על המפה: $it") }
                 if (asked.size == 1) Screenshots.save(scenario, "f1-focus-ask")
                 compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.1f, height * 0.9f)) }

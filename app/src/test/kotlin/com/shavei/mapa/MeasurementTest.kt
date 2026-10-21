@@ -77,7 +77,8 @@ class MeasurementTest {
             Screenshots.save(scenario, "d2-map-test-summary")
 
             // Back on the welcome screen: the test is not onboarding, the choice is still to make.
-            compose.onNodeWithText("חזרה למפה").performClick()
+            // The button says where it leads.
+            compose.onNodeWithText("חזרה למסך הפתיחה").performClick()
             waitForText("מבחן המפה נשמר. בעוד חודש נשווה.")
             compose.onNodeWithText("בואו נתחיל").assertExists()
         }
@@ -107,7 +108,7 @@ class MeasurementTest {
             Screenshots.save(scenario, "d3-home-map-test-offer")
             compose.onNodeWithText("למבחן המפה").performClick()
             answerAllTwenty()
-            compose.onNodeWithText("בפעם הראשונה: 3 מתוך 20, סטייה חציונית 25 ק״מ").assertExists()
+            compose.onNodeWithText("בפעם הראשונה: 3 מתוך 20, סטייה חציונית 25\u00A0ק״מ").assertExists()
             compose.onNodeWithText("חזרה למפה").performClick()
             // Taken: not offered again for another month.
             waitForText("התחילו אימון יומי")
@@ -183,11 +184,13 @@ class MeasurementTest {
             compose.onNodeWithText("התקדמות").performClick()
             waitForText("סטייה ממוצעת בערים לפי יום (ק״מ)")
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("stats"))
-            waitForText("נזכרתם ב־75% מהחזרות (4 חזרות). היעד: 85 עד 92 אחוז.")
-            compose.onNodeWithText("מנוע החזרות צפה 90%").assertExists()
+            waitForText("בחזרות על מקומות שלמדתם זכרתם 75% (4\u00A0חזרות).")
+            compose.onNodeWithText("לפי התחזית שלנו ציפינו ל־90%.").assertExists()
+            // Below the target the player is told what to do, in plain words.
+            compose.onNodeWithText("זה פחות מהרגיל", substring = true).assertExists()
             compose.onNodeWithText("ימי אימון: 4 ב־7 הימים האחרונים, 4 ב־30").assertExists()
-            compose.onNodeWithText("לפני האימון: 4 מתוך 20, סטייה חציונית 21 ק״מ").assertExists()
-            compose.onNodeWithText("מאז הפעם הראשונה: 13 מקומות במקום 4").assertExists()
+            compose.onNodeWithText("לפני האימון: 4 מתוך 20, סטייה חציונית 21\u00A0ק״מ").assertExists()
+            compose.onNodeWithText("9 מקומות יותר מבפעם הראשונה").assertExists()
             compose.onNodeWithText("שיתוף התוצאות").assertExists()
             Screenshots.save(scenario, "d4-progress-stats")
         }

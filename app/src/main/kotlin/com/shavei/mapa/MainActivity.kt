@@ -24,8 +24,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -41,11 +44,13 @@ import com.shavei.mapa.ui.progress.ProgressScreen
 import com.shavei.mapa.ui.progress.ProgressViewModel
 import com.shavei.mapa.ui.session.SessionKind
 import com.shavei.mapa.ui.session.SessionScreen
+import com.shavei.mapa.ui.session.SessionUi
 import com.shavei.mapa.ui.session.SessionViewModel
 import com.shavei.mapa.ui.settings.SettingsScreen
 import com.shavei.mapa.ui.theme.LocalMapPalette
 import com.shavei.mapa.ui.theme.MapaTheme
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 private enum class Screen { LOADING, ONBOARDING, HOME, SESSION, PROGRESS, SETTINGS }
@@ -62,6 +67,30 @@ private class StartViewModel(app: MapaApplication) : ViewModel() {
             }
             firstScreen.value = if (app.settings.current.onboarded) Screen.HOME else Screen.ONBOARDING
         }
+    }
+}
+
+/**
+ * One ViewModelStore for each visit to a screen, so every session, progress view and home
+ * starts fresh, and a store is cleared once the player has moved on. The visit just left
+ * is kept until the next move: a session's last answers may still be saving as it closes.
+ */
+internal class VisitStores : ViewModel() {
+    private val stores = HashMap<Int, ViewModelStore>()
+
+    /** The store of the latest visit: tests find the open session's ViewModel there. */
+    fun latest(): ViewModelStore? = stores.maxByOrNull { it.key }?.value
+
+    fun owner(visit: Int): ViewModelStoreOwner = object : ViewModelStoreOwner {
+        override val viewModelStore = stores.getOrPut(visit) { ViewModelStore() }
+    }
+
+    fun keepOnly(visits: Set<Int>) {
+        stores.keys.filter { it !in visits }.forEach { stores.remove(it)?.clear() }
+    }
+
+    override fun onCleared() {
+        stores.values.forEach { it.clear() }
     }
 }
 
@@ -100,8 +129,12 @@ class MainActivity : ComponentActivity() {
 private fun App(app: MapaApplication, settings: Settings) {
     var screen by rememberSaveable { mutableStateOf(Screen.LOADING) }
     var sessionKind by rememberSaveable { mutableStateOf(SessionKind.DAILY) }
-    // A fresh key gives every session (and progress view) its own ViewModel.
+    // Every move to another screen is a new visit, with its own ViewModels.
     var visit by rememberSaveable { mutableIntStateOf(0) }
+    val stores: VisitStores = viewModel(factory = viewModelFactory { initializer { VisitStores() } })
+    LaunchedEffect(visit) { stores.keepOnly(setOf(visit, visit - 1)) }
+    // The other ways to practice stay open on home after a round in one of them.
+    var modesOpen by rememberSaveable { mutableStateOf(false) }
 
     if (screen == Screen.LOADING) {
         val start: StartViewModel = viewModel(factory = viewModelFactory { initializer { StartViewModel(app) } })
@@ -109,9 +142,9 @@ private fun App(app: MapaApplication, settings: Settings) {
         LaunchedEffect(first) { first?.let { screen = it } }
     }
 
+    // The welcome screen stays until the player answers a question in a session started
+    // from it (see Screen.SESSION below): back out before that, and it is still there.
     fun startSession(kind: SessionKind) {
-        // The pre-test comes before the choice on the welcome screen, which stays until then.
-        if (kind != SessionKind.MAP_TEST) app.settings.update { it.copy(onboarded = true) }
         sessionKind = kind
         visit++
         screen = Screen.SESSION
@@ -123,8 +156,13 @@ private fun App(app: MapaApplication, settings: Settings) {
     }
 
     fun home() {
+        visit++
         screen = if (app.settings.current.onboarded) Screen.HOME else Screen.ONBOARDING
     }
+
+    @Composable
+    fun ForThisVisit(content: @Composable () -> Unit) =
+        CompositionLocalProvider(LocalViewModelStoreOwner provides stores.owner(visit), content = content)
 
     if (screen != Screen.HOME && screen != Screen.ONBOARDING && screen != Screen.LOADING) {
         BackHandler { home() }
@@ -141,10 +179,12 @@ private fun App(app: MapaApplication, settings: Settings) {
                 onMapTest = { startSession(SessionKind.MAP_TEST) },
             )
         }
-        Screen.HOME -> {
+        Screen.HOME -> ForThisVisit {
             val vm: HomeViewModel = viewModel(factory = viewModelFactory { initializer { HomeViewModel(app) } })
             HomeScreen(
                 app.content, vm, settings.showGreenLine,
+                modesOpen = modesOpen,
+                onModesOpen = { modesOpen = it },
                 onStartSession = { extra -> startSession(if (extra) SessionKind.EXTRA else SessionKind.DAILY) },
                 onProgress = { open(Screen.PROGRESS) },
                 onSettings = { open(Screen.SETTINGS) },
@@ -155,19 +195,28 @@ private fun App(app: MapaApplication, settings: Settings) {
                 onRoadTrip = { startSession(SessionKind.ROAD_TRIP) },
             )
         }
-        Screen.SESSION -> {
+        Screen.SESSION -> ForThisVisit {
             val vm: SessionViewModel = viewModel(
                 key = "session-$visit",
                 factory = viewModelFactory { initializer { SessionViewModel(app, sessionKind) } },
             )
+            // A first answer (not in the map test, which comes before the choice) ends the welcome.
+            if (!settings.onboarded && sessionKind != SessionKind.MAP_TEST) {
+                LaunchedEffect(vm) {
+                    vm.ui.first { it is SessionUi.Feedback || (it is SessionUi.Finished && it.summary.answers > 0) }
+                    app.settings.update { it.copy(onboarded = true) }
+                }
+            }
             SessionScreen(app.content, vm, settings.showGreenLine, onExit = { home() })
         }
-        Screen.PROGRESS -> {
-            val vm: ProgressViewModel = viewModel(
-                key = "progress-$visit",
-                factory = viewModelFactory { initializer { ProgressViewModel(app) } },
+        Screen.PROGRESS -> ForThisVisit {
+            val vm: ProgressViewModel = viewModel(factory = viewModelFactory { initializer { ProgressViewModel(app) } })
+            ProgressScreen(
+                vm,
+                onBack = { home() },
+                onMapTest = { startSession(SessionKind.MAP_TEST) },
+                onStart = { startSession(SessionKind.DAILY) },
             )
-            ProgressScreen(vm, onBack = { screen = Screen.HOME }, onMapTest = { startSession(SessionKind.MAP_TEST) })
         }
         Screen.SETTINGS -> SettingsScreen(
             settings,
@@ -176,7 +225,8 @@ private fun App(app: MapaApplication, settings: Settings) {
                 app.settings.update(change)
                 Reminders.apply(app, app.settings.current)
             },
-            onBack = { screen = Screen.HOME },
+            onBack = { home() },
+            onPlacement = { startSession(SessionKind.PLACEMENT) },
         )
     }
 }

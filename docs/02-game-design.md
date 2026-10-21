@@ -78,7 +78,7 @@ Relational questions that fix hierarchical distortions:
 Drag a region or district shape into place on the outline, one shape per question.
 The shape starts in the sea off the middle of the coast (the same spot for every
 shape, so the start gives nothing away); one finger drags it, two fingers pan and zoom
-the map, and "here" hands it in. Scored by how far it lands from its place. Satisfying
+the map, and "here" hands it in once the shape has been moved. Scored by how far it lands from its place. Satisfying
 and very tactile on a phone.
 
 Map Builder practices the same `LOCATE` card as Pin It. In the daily session, a due
@@ -98,8 +98,9 @@ as the player improves, but they leave the schedule as it was. It replaced Trace
 ### 7. Road Trip (free play)
 A chain of stops: "You start in Ashdod. Drive on to Rehovot, then Herzliya, Netanya and
 Hadera." Each stop after the start is a Pin It question with its feedback; the route
-draws across the map from stop to stop as they are found, and the summary shows the
-whole way. Trips are planned on the spot from the places the player has learned (towns,
+draws across the map from stop to stop, solid to a stop found and dashed to one missed,
+and the summary shows the whole way. Only a trip that found every stop "arrives"; any
+other ends with "סוף המסע" and how many stops were found. Trips are planned on the spot from the places the player has learned (towns,
 lakes, mountains, reserves, sites, ports and airports): five stops, each leg 12 to 70 km,
 keeping the road's direction. Builds route knowledge on top of survey knowledge, and is
 great for tourists. Written trips with a story ("You land at Ben Gurion. Drive to the
@@ -110,12 +111,12 @@ Same 10 questions for everyone that day, Wordle style. Score = total km error. A
 shareable emoji result (no spoilers). Drives word of mouth.
 
 ### 9. Blitz (free play)
-60 seconds, as many correct pins as possible, from places you have *already learned*
-only (past their learning steps), each once in random order before any comes back.
+60 seconds, as many correct pins as possible, from the places you have in practice
+(the ones home counts, learning and known), each once in random order before any comes back.
 There is no feedback card to stop the clock: the next place comes at once, with the
 last answer shown faintly on the map and its points above the question. Fun, fast, and
 still a valid retrieval: results feed the scheduler at a reduced weight because speed
-pressure changes the signal. Home offers it once 4 places are learned. Each round that
+pressure changes the signal. Home offers it once 4 places are in practice. Each round that
 runs to the end of the clock is kept, so the summary and home show the best score to
 beat.
 
@@ -144,6 +145,27 @@ cities"), which seeds the scheduler with the results.
 - The fading is honest and motivating: "3 places in the Negev are fading. 2 minute
   review?"
 
+### Streaks (the day and the habit)
+A day counts, for the streak and for "done for today", only when its **daily session
+is finished**: run to its summary, or answered as far as it was planned. The daily
+session is the main button on home; when nothing is due, the same button starts a short
+practice of the weakest places, and finishing that makes the day too. Map Builder,
+focused practice, Blitz and Road Trip are extras: they never complete the day by
+themselves.
+
+Leaving the daily session partway keeps the answers, but the day stays open: home says
+the player stopped with N questions left and the button continues with just those.
+Home never says "done for today" before the day is done, and never offers a session
+that would have nothing to ask; it says why instead (new places wait until the places
+in learning have sunk in).
+
+The streak counts days in a row. Every 7 days of streak earn a **freeze** (at most 2
+saved), which covers one missed day without breaking it. Home shows the streak, the
+best streak so far, the freezes with a short explanation on request, a word when a
+freeze just saved the streak, and, on a day not yet done, a gentle "finish today's
+session to keep it" (never a warning). Players from before daily sessions were stored
+keep their streak: each practice session they played counts as a finished one.
+
 ### Ranks
 Tourist, Hiker, Guide, Navigator, Cartographer, Sabra (in Hebrew with both genders,
 "מטייל/ת"). Tied to the number of known places (LOCATE stable for 21 days): 0, 10, 30,
@@ -156,15 +178,22 @@ Fifteen, each a piece of real knowledge, never time spent or answers given:
 the first known place; the frame (seas, lakes, the Jordan, the neighbors and the five
 anchor cities); all 19 natural regions; all 7 districts; every main city (importance 1
 and 2) found within 3 km in its latest Pin It answer; around the Kinneret (the lake
-and every place within 5 km of its shore); one whole natural region; all 118 cities;
+and every place within 5 km of its shore); one whole natural region (the one closest
+to whole, named, so the target never jumps unexplained); all 118 cities;
 all of nature, all ports and airports, all heritage sites; a no-miss session (10
 answers or more, all remembered); a place remembered after 30+ days without review;
 7 and 30 days in a row (with streak freezes).
 
 An achievement is stored when first earned and kept, even if a place in it later
 fades: the rank and the map stay honest instead. The progress screen lists the earned
-ones with their date, then the rest with how far along they are ("5 of 14"); the
-session summary names any earned in that session, and a new rank.
+ones with their date on a tinted row with a check badge, then the rest with a ring
+that fills as they get closer and how far along they are ("5 of 14"), and for a set
+of places which ones are still missing (named once six or fewer are left); one whole
+region names the region it is measuring. A one-off achievement (a no-miss session, a
+long memory, the first known place) shows no count, only "not earned yet". Nature and
+heritage are named "נוף הארץ" and "שורשים", apart from the theme rows below them. The
+session summary names any earned in that session, and a new rank; a session with no
+answers earns nothing.
 
 ### Social (opt in)
 Friends list, weekly league of ~20 players with promotion/demotion, daily challenge

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,9 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,10 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -51,12 +61,14 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Rank
+import com.shavei.mapa.learning.Streak
 import com.shavei.mapa.ui.Panel
 import com.shavei.mapa.ui.formatPoints
 import com.shavei.mapa.ui.formatTime
@@ -65,14 +77,18 @@ import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
 import com.shavei.mapa.ui.progress.rankName
 import com.shavei.mapa.ui.rememberNotificationAccess
+import com.shavei.mapa.ui.scrollCue
+import com.shavei.mapa.ui.settings.TimeDialog
 import com.shavei.mapa.ui.theme.LocalMapPalette
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
     content: Content,
     viewModel: HomeViewModel,
     showGreenLine: Boolean,
+    /** The list of other ways to practice is open; kept by the caller, so it stays open after a round. */
+    modesOpen: Boolean,
+    onModesOpen: (Boolean) -> Unit,
     onStartSession: (extraPractice: Boolean) -> Unit,
     onProgress: () -> Unit,
     onSettings: () -> Unit,
@@ -90,122 +106,95 @@ fun HomeScreen(
     val colors = LocalMapPalette.current
     var topPx by remember { mutableFloatStateOf(0f) }
     var bottomPx by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(topPx, bottomPx) { camera.setFramePadding(topPx, bottomPx) }
+    val screen = LocalConfiguration.current
+    val screenWidth = screen.screenWidthDp.dp
+    val screenHeight = screen.screenHeightDp.dp
+    val landscape = screenWidth > screenHeight && screenHeight < LANDSCAPE_MAX_HEIGHT
+    // Little room for text (a small phone, or large text): the top card keeps to the essentials.
+    val compact = screenHeight / screen.fontScale < 640.dp
+    LaunchedEffect(topPx, bottomPx, landscape) {
+        // In landscape the map has its own part of the screen, with no card over it.
+        if (landscape) camera.setFramePadding(0f, 0f) else camera.setFramePadding(topPx, bottomPx)
+    }
+    var showSources by rememberSaveable { mutableStateOf(false) }
+    val title = stringResource(R.string.home_title)
+
+    // Nothing until this visit's state is in: never the numbers from before a session,
+    // and no card popping in a moment later.
+    if (!state.loaded) return
 
     // The trophy: every place you have practiced, colored by how well you know it today.
-    // Regions and districts cover the land and each other, so they get a lighter wash, and so
+    // Regions, districts and seas cover large areas and each other, so they get a lighter wash, and so
     // do highways, which run the length of the country.
     // Known places also get a heavier outline, so the map does not rely on color alone.
-    // Seas and neighboring countries are the frame around the map: painted, they would tint
-    // the whole background and outline the edge of the map data, so home leaves them out.
+    // Seas in practice show too, as the counts say. Neighboring countries are
+    // the frame around the map: painted, they would tint much of the screen, so home leaves them out.
     val decorations = content.places.mapNotNull { place ->
-        if (place.type == PlaceType.SEA || place.type == PlaceType.COUNTRY) return@mapNotNull null
+        if (place.type == PlaceType.COUNTRY) return@mapNotNull null
         state.mastery[place.id]?.let { m ->
             val alpha = when (place.type) {
-                PlaceType.REGION, PlaceType.DISTRICT -> 0.05 + 0.25 * m
+                PlaceType.REGION, PlaceType.DISTRICT, PlaceType.SEA -> 0.05 + 0.25 * m
                 PlaceType.ROAD -> 0.1 + 0.35 * m
                 else -> 0.15 + 0.7 * m
             }
             MapDecoration.Highlight(place.shape, colors.mastery, alpha = alpha.toFloat(), emphasis = place.id in state.knownPlaces)
         }
     }
-    var showSources by rememberSaveable { mutableStateOf(false) }
-    var modesOpen by rememberSaveable { mutableStateOf(false) }
-    val title = stringResource(R.string.home_title)
+    val map = @Composable { modifier: Modifier ->
+        MapView(
+            content.map, camera, modifier.testTag("map"), decorations, showGreenLine,
+            description = pluralStringResource(R.plurals.home_map_description, state.learned, state.learned, state.known),
+        )
+    }
+    val hasWork = state.dueNow + state.newAvailable > 0
+    val body = @Composable {
+        HomeBody(state, viewModel, modesOpen, { onModesOpen(!modesOpen) }, onMapTest, onBuild, onFocus, onBlitz, onRoadTrip)
+    }
+    // No button for a session that would be empty: the line above it says why.
+    val mainButton = @Composable { if (state.practiceReady) MainButton(state, hasWork, onStartSession) }
+    val sources = @Composable { MapChip(stringResource(R.string.home_sources)) { showSources = true } }
+    val density = LocalDensity.current
 
     Box(Modifier.fillMaxSize().semantics { paneTitle = title }) {
-        MapView(
-            content.map, camera, Modifier.fillMaxSize().testTag("map"), decorations, showGreenLine,
-            description = stringResource(R.string.home_map_description, state.learned, state.known),
-        )
-        // Small on purpose: the map is the screen. The rank leads, with the way to the next one under it.
-        Panel(
-            Modifier
-                .safeDrawingPadding()
-                .padding(16.dp)
-                .align(Alignment.TopCenter)
-                .onGloballyPositioned { topPx = it.boundsInRoot().bottom },
-            maxHeightFraction = 0.35f,
-        ) {
-            // A flow, not a row: with large text the buttons wrap under the rank instead of squeezing it.
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    if (state.loaded) stringResource(R.string.rank_line, rankName(Rank.of(state.known))) else title,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.align(Alignment.CenterVertically).semantics { heading() },
-                )
-                Row {
-                    TextButton(onClick = onProgress) { Text(stringResource(R.string.home_progress)) }
-                    TextButton(onClick = onSettings) { Text(stringResource(R.string.home_settings)) }
+        if (landscape) {
+            // Landscape on a phone: the cards go in a column at the side and the map has the rest.
+            Row(Modifier.fillMaxSize().safeDrawingPadding()) {
+                ActionCard(Modifier.fillMaxHeight().width(min(screenWidth * 0.46f, 420.dp)).padding(8.dp), mainButton) {
+                    HomeHeader(state, compact, onProgress, onSettings)
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                    body()
+                }
+                // The map draws past its bounds (it pans freely), so it is clipped beside the card.
+                Box(Modifier.weight(1f).fillMaxHeight().clipToBounds()) {
+                    map(Modifier.fillMaxSize())
+                    Box(Modifier.align(Alignment.TopEnd).padding(8.dp)) { sources() }
+                    if (state.learned > 0) Box(Modifier.align(Alignment.BottomStart).padding(8.dp)) { MasteryLegend() }
                 }
             }
-            if (state.loaded) {
-                RankProgress(state)
-                KnownCounts(state)
-            }
-        }
-        Column(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .safeDrawingPadding()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // Over the map, just above the card: what the colors mean, and where the map comes from.
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-                if (state.learned > 0) MasteryLegend()
+        } else {
+            // Portrait: a small card on top, the action card at the bottom, and the map between
+            // them always keeps at least about 40 percent of the screen. Both cards scroll when
+            // the text is large, and the main button never leaves the screen.
+            val height = screenHeight
+            map(Modifier.fillMaxSize())
+            Column(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
+                Panel(
+                    Modifier.testTag("home-top").onGloballyPositioned { topPx = it.boundsInRoot().bottom },
+                    maxHeight = height * TOP_SHARE,
+                ) { HomeHeader(state, compact, onProgress, onSettings) }
+                // What the colors mean, and where the map comes from: small, over the map, apart.
+                Box(Modifier.align(Alignment.End).padding(top = 8.dp)) { sources() }
                 Spacer(Modifier.weight(1f))
-                MapChip(stringResource(R.string.home_sources)) { showSources = true }
-            }
-            Panel(
-                // The open list of modes covers the south for a moment; the map keeps its framing.
-                Modifier.onGloballyPositioned { if (!modesOpen) bottomPx = it.size.height + 32f },
-                maxHeightFraction = 0.45f,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                if (state.loaded) {
-                    if (state.offerReminder) ReminderOffer(state.reminderMinutes, viewModel::answerReminderOffer)
-                    if (state.reminderJustSet) {
-                        Text(
-                            stringResource(R.string.reminder_set, formatTime(state.reminderMinutes)),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                        )
-                    }
-                    if (state.offerMapTest) MapTestOffer(onMapTest, viewModel::snoozeMapTest)
-                    StreakLine(state)
-                    // Once a day is the minimum, not the limit: after it, as many sessions as the player likes.
-                    val waiting = state.dueNow + state.newAvailable
-                    val hasWork = waiting > 0
-                    val practicedToday = state.streak.playedToday
-                    // After the daily session one line says both: done for today, and what is left if they like.
-                    Text(
-                        when {
-                            practicedToday && hasWork -> pluralStringResource(R.plurals.home_daily_done, waiting, waiting)
-                            hasWork && state.newAvailable == 0 -> stringResource(R.string.home_due_reviews, state.dueNow)
-                            hasWork && state.dueNow == 0 -> stringResource(R.string.home_due_new, state.newAvailable)
-                            hasWork -> stringResource(R.string.home_due, state.dueNow, state.newAvailable)
-                            state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
-                            else -> stringResource(R.string.home_nothing_due)
-                        },
-                        color = if (practicedToday && hasWork) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                        textAlign = TextAlign.Center,
-                    )
-                    Button(onClick = { onStartSession(!hasWork) }, Modifier.fillMaxWidth()) {
-                        Text(
-                            stringResource(
-                                when {
-                                    !hasWork -> R.string.home_practice_more
-                                    practicedToday -> R.string.home_more
-                                    else -> R.string.home_start
-                                },
-                            ),
-                        )
-                    }
-                    // The other ways to practice, once there are places to practice on. Folded away so
-                    // the daily session stays the one obvious thing to do.
-                    if (state.learned > 0) Modes(state, modesOpen, { modesOpen = !modesOpen }, onBuild, onFocus, onBlitz, onRoadTrip)
-                }
+                if (state.learned > 0) Box(Modifier.padding(bottom = 8.dp)) { MasteryLegend() }
+                ActionCard(
+                    Modifier
+                        .testTag("home-actions")
+                        .fillMaxWidth()
+                        .heightIn(max = height * if (modesOpen) BOTTOM_SHARE_MODES else if (height < TALL) BOTTOM_SHARE else BOTTOM_SHARE_TALL)
+                        // The open list of modes covers the south for a moment; the map keeps its framing.
+                        .onGloballyPositioned { if (!modesOpen) bottomPx = it.size.height + with(density) { 32.dp.toPx() } },
+                    mainButton,
+                ) { body() }
             }
         }
     }
@@ -213,9 +202,148 @@ fun HomeScreen(
     if (showSources) {
         AlertDialog(
             onDismissRequest = { showSources = false },
-            title = { Text(stringResource(R.string.home_sources)) },
-            text = { Text(stringResource(R.string.attribution)) },
+            title = { Text(stringResource(R.string.home_sources_title)) },
+            text = { Text(stringResource(R.string.map_sources)) },
             confirmButton = { TextButton(onClick = { showSources = false }) { Text(stringResource(R.string.home_sources_close)) } },
+        )
+    }
+}
+
+/** Landscape phones are at most this tall; taller wide screens keep the portrait layout. */
+private val LANDSCAPE_MAX_HEIGHT = 600.dp
+
+/** The most of the screen the top card takes, and the bottom one, closed and with the modes open. */
+private const val TOP_SHARE = 0.22f
+private const val BOTTOM_SHARE = 0.34f
+private const val BOTTOM_SHARE_TALL = 0.38f
+
+/** A phone this tall has room for a taller action card and still half of the screen for the map. */
+private val TALL = 700.dp
+private const val BOTTOM_SHARE_MODES = 0.6f
+
+/**
+ * The card with the one obvious thing to do: what is above the main button scrolls, and
+ * the button itself always stays in view.
+ */
+@Composable
+private fun ActionCard(modifier: Modifier, button: @Composable () -> Unit, content: @Composable () -> Unit) {
+    val scroll = rememberScrollState()
+    Card(modifier) {
+        Column(Modifier.padding(16.dp)) {
+            Column(
+                Modifier
+                    .weight(1f, fill = false)
+                    .scrollCue(scroll, CardDefaults.cardColors().containerColor, MaterialTheme.colorScheme.primary)
+                    .verticalScroll(scroll)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) { content() }
+            Spacer(Modifier.height(8.dp))
+            button()
+        }
+    }
+}
+
+/** The rank, the way to the next one, and the counts; with the ways to progress and settings. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HomeHeader(state: HomeState, compact: Boolean, onProgress: () -> Unit, onSettings: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // A flow, not a row: with large text the buttons wrap under the rank instead of squeezing it.
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                stringResource(R.string.rank_line, rankName(Rank.of(state.known))),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.align(Alignment.CenterVertically).semantics { heading() },
+            )
+            Row {
+                TextButton(onClick = onProgress) { Text(stringResource(R.string.home_progress)) }
+                TextButton(onClick = onSettings) { Text(stringResource(R.string.home_settings)) }
+            }
+        }
+        // The way to the next rank in words is also on the progress screen; the bar stays.
+        RankProgress(state, showNext = !compact)
+        KnownCounts(state)
+    }
+}
+
+/** What is left for today, the streak, the one-time offers, and the other ways to practice. */
+@Composable
+private fun HomeBody(
+    state: HomeState,
+    viewModel: HomeViewModel,
+    modesOpen: Boolean,
+    onToggleModes: () -> Unit,
+    onMapTest: () -> Unit,
+    onBuild: () -> Unit,
+    onFocus: () -> Unit,
+    onBlitz: () -> Unit,
+    onRoadTrip: () -> Unit,
+) {
+    // While the list of modes is open it has the card to itself, so every mode shows.
+    if (!modesOpen) {
+        if (state.offerReminder) ReminderOffer(state.reminderMinutes) { on, minutes -> viewModel.answerReminderOffer(on, minutes) }
+        if (state.reminderJustSet) {
+            Text(
+                stringResource(R.string.reminder_set, formatTime(state.reminderMinutes)),
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        if (state.offerMapTest) MapTestOffer(onMapTest, viewModel::snoozeMapTest)
+        TodayLine(state)
+        StreakLine(state.streak)
+    }
+    // The other ways to practice, once there are places to practice on. Folded away so
+    // the daily session stays the one obvious thing to do.
+    if (state.learned > 0) Modes(state, modesOpen, onToggleModes, onBuild, onFocus, onBlitz, onRoadTrip)
+}
+
+/**
+ * Where today stands. A day counts once its daily session is finished; after it, one line
+ * says both: done for today, and what is left if they like. Once a day is the minimum,
+ * not the limit.
+ */
+@Composable
+private fun TodayLine(state: HomeState) {
+    val waiting = state.dueNow + state.newAvailable
+    val hasWork = waiting > 0
+    Text(
+        when {
+            state.doneToday && hasWork && state.practiceReady -> pluralStringResource(R.plurals.home_daily_done, waiting, waiting)
+            // No session to offer now: say why, and never promise places a session would not give.
+            !state.practiceReady && state.newWaitsForLearning -> stringResource(R.string.home_new_waits)
+            !state.practiceReady && state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
+            !state.practiceReady -> stringResource(if (state.doneToday) R.string.home_nothing_due else R.string.home_nothing_now)
+            hasWork && state.dailyLeft != null -> pluralStringResource(R.plurals.home_daily_left, state.dailyLeft, state.dailyLeft)
+            hasWork && state.newAvailable == 0 -> pluralStringResource(R.plurals.home_due_reviews, state.dueNow, state.dueNow)
+            hasWork && state.dueNow == 0 -> pluralStringResource(R.plurals.home_due_new, state.newAvailable, state.newAvailable)
+            hasWork -> pluralStringResource(R.plurals.home_due, state.newAvailable, state.dueNow, state.newAvailable)
+            state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
+            state.doneToday -> stringResource(R.string.home_nothing_due)
+            // Nothing waiting and the day not done yet: a short practice of the weakest places makes the day.
+            else -> stringResource(R.string.home_nothing_due_yet)
+        },
+        color = if (state.doneToday) MaterialTheme.colorScheme.primary else Color.Unspecified,
+        textAlign = TextAlign.Center,
+    )
+}
+
+@Composable
+private fun MainButton(state: HomeState, hasWork: Boolean, onStartSession: (extraPractice: Boolean) -> Unit) {
+    Button(onClick = { onStartSession(!hasWork) }, Modifier.fillMaxWidth()) {
+        Text(
+            stringResource(
+                when {
+                    !hasWork -> R.string.home_practice_more
+                    state.doneToday -> R.string.home_more
+                    state.dailyLeft != null -> R.string.home_continue
+                    else -> R.string.home_start
+                },
+            ),
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -232,7 +360,7 @@ private fun KnownCounts(state: HomeState) {
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(
             if (state.known == 0) stringResource(R.string.home_counts_learning, learning, state.known, state.total)
-            else stringResource(R.string.home_counts_known, state.known, learning, state.total),
+            else pluralStringResource(R.plurals.home_counts_known, state.known, state.known, learning, state.total),
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.align(Alignment.CenterVertically),
         )
@@ -249,7 +377,7 @@ private fun KnownCounts(state: HomeState) {
 
 /** How far the known places are toward the next rank. */
 @Composable
-private fun RankProgress(state: HomeState) {
+private fun RankProgress(state: HomeState, showNext: Boolean) {
     val known = state.known
     val rank = Rank.of(known)
     val next = rank.next
@@ -261,22 +389,66 @@ private fun RankProgress(state: HomeState) {
             drawStopIndicator = {},
         )
     }
+    if (!showNext && next != null) return
     Text(
         if (next == null) stringResource(R.string.rank_top)
-        else stringResource(R.string.rank_next, next.knownPlaces - known, rankName(next)),
+        else pluralStringResource(R.plurals.rank_next, next.knownPlaces - known, next.knownPlaces - known, rankName(next)),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
+/**
+ * The streak, the best one so far, and the freezes: what one is and how one is earned on
+ * request, and a word when one just saved the streak. A streak not yet kept today gets a
+ * gentle reminder of how to keep it, never a warning.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun StreakLine(state: HomeState) {
-    val streak = state.streak
-    val text = if (streak.days == 0) stringResource(R.string.home_streak_none)
-    else pluralStringResource(R.plurals.home_streak, streak.days, streak.days)
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(text, style = MaterialTheme.typography.titleSmall)
-        if (streak.freezes > 0) Text(stringResource(R.string.home_freezes, streak.freezes), style = MaterialTheme.typography.titleSmall)
+private fun StreakLine(streak: Streak) {
+    var explained by rememberSaveable { mutableStateOf(false) }
+    val small = MaterialTheme.typography.bodySmall
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
+        Text(
+            if (streak.days == 0) stringResource(R.string.home_streak_none)
+            else pluralStringResource(R.plurals.home_streak, streak.days, streak.days),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.align(Alignment.CenterVertically),
+        )
+        if (streak.best > streak.days) {
+            Text(
+                pluralStringResource(R.plurals.home_streak_best, streak.best, streak.best),
+                style = small,
+                color = muted,
+                modifier = Modifier.align(Alignment.CenterVertically),
+            )
+        }
+    }
+    if (streak.frozen > 0) {
+        Text(pluralStringResource(R.plurals.home_frozen, streak.frozen, streak.frozen), style = small, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+    }
+    if (streak.days > 0 && !streak.playedToday) {
+        Text(stringResource(R.string.home_streak_keep), style = small, color = muted, textAlign = TextAlign.Center)
+    }
+    if (streak.freezes > 0) {
+        FlowRow(horizontalArrangement = Arrangement.Center) {
+            Text(
+                stringResource(R.string.home_freezes, streak.freezes),
+                style = small,
+                color = muted,
+                modifier = Modifier.align(Alignment.CenterVertically),
+            )
+            TextButton(onClick = { explained = !explained }) { Text(stringResource(R.string.home_freezes_what)) }
+        }
+        if (explained) {
+            Text(
+                stringResource(R.string.home_freezes_explained, Streak.DAYS_PER_FREEZE, Streak.MAX_FREEZES),
+                style = small,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
     }
 }
 
@@ -288,6 +460,7 @@ private fun MapChip(text: String, onClick: () -> Unit) {
             text,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
             modifier = Modifier.heightIn(min = 32.dp).padding(horizontal = 10.dp, vertical = 8.dp),
         )
     }
@@ -323,7 +496,11 @@ private fun LegendMark(color: Color, known: Boolean) {
     }
 }
 
-/** The other ways to practice, each saying what it is, and when locked, what opens it. */
+/**
+ * The other ways to practice, each saying what it is, and when locked, what opens it. The
+ * locks count in the same words as the top card: a place "in learning" opens free play once
+ * it has sunk in, after a few right answers in practice.
+ */
 @Composable
 private fun Modes(
     state: HomeState,
@@ -393,13 +570,18 @@ private fun MapTestOffer(onTake: () -> Unit, onLater: () -> Unit) {
 
 /**
  * Asked once, after the first session (docs/07): never a permission prompt on first run.
- * When Android will not ask (notifications turned off for the app), the card says so and
- * opens the phone's settings instead of quietly giving up.
+ * The player picks the time here. A "no" in Android's own question counts as "not now".
+ * When Android will not ask at all (notifications turned off for the app), the card says
+ * so and opens the phone's settings instead of quietly giving up.
  */
 @Composable
-private fun ReminderOffer(minutes: Int, onAnswer: (Boolean) -> Unit) {
+private fun ReminderOffer(initialMinutes: Int, onAnswer: (on: Boolean, minutes: Int) -> Unit) {
+    var minutes by rememberSaveable { mutableIntStateOf(initialMinutes) }
+    var pickingTime by rememberSaveable { mutableStateOf(false) }
     var blocked by remember { mutableStateOf(false) }
-    val access = rememberNotificationAccess { allowed -> if (allowed) onAnswer(true) else blocked = true }
+    val access = rememberNotificationAccess(onDeclined = { onAnswer(false, minutes) }) { allowed ->
+        if (allowed) onAnswer(true, minutes) else blocked = true
+    }
     OutlinedCard(Modifier.fillMaxWidth().testTag("reminder-offer")) {
         Column(
             Modifier.padding(12.dp).semantics { liveRegion = LiveRegionMode.Polite },
@@ -409,7 +591,10 @@ private fun ReminderOffer(minutes: Int, onAnswer: (Boolean) -> Unit) {
             if (blocked) {
                 Text(stringResource(R.string.reminder_blocked_explain), color = MaterialTheme.colorScheme.secondary)
             } else {
-                Text(stringResource(R.string.reminder_offer_body, formatTime(minutes)))
+                Text(stringResource(R.string.reminder_offer_body))
+                OutlinedButton(onClick = { pickingTime = true }) {
+                    Text(stringResource(R.string.settings_reminder_time, formatTime(minutes)))
+                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (blocked) {
@@ -417,8 +602,14 @@ private fun ReminderOffer(minutes: Int, onAnswer: (Boolean) -> Unit) {
                 } else {
                     Button(onClick = access.request) { Text(stringResource(R.string.reminder_offer_yes)) }
                 }
-                TextButton(onClick = { onAnswer(false) }) { Text(stringResource(R.string.reminder_offer_no)) }
+                TextButton(onClick = { onAnswer(false, minutes) }) { Text(stringResource(R.string.reminder_offer_no)) }
             }
+        }
+    }
+    if (pickingTime) {
+        TimeDialog(minutes, onDismiss = { pickingTime = false }) {
+            minutes = it
+            pickingTime = false
         }
     }
 }

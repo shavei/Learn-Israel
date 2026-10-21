@@ -55,16 +55,34 @@ class DrillsTest {
         assertEquals(Grader.MAX_POINTS, exact.points)
         // Fast and within half the tolerance: easy.
         assertEquals(Rating.EASY, Grader.gradeBuild(region, 2_000.0, 1_000.0, 5_000, firstReview = false, stabilityDays = 30.0).rating)
-        // 5 km off (3, 4): right; 10 km: close; 30 km: a miss.
+        // 5 km off (3, 4): right; 10 km: close (within twice the tolerance); 13 km: a miss.
         assertEquals(Rating.GOOD, Grader.gradeBuild(region, 3_000.0, 4_000.0, 12_000, false, stabilityDays = 30.0).rating)
         val close = Grader.gradeBuild(region, 0.0, -10_000.0, 12_000, false, stabilityDays = 30.0)
         assertEquals(Rating.HARD, close.rating)
         assertEquals(10_000.0, close.errorMeters!!, 1e-6)
-        assertEquals(Grader.points(10_000.0), close.points)
-        assertEquals(Rating.AGAIN, Grader.gradeBuild(region, 30_000.0, 0.0, 12_000, false, stabilityDays = 30.0).rating)
+        assertEquals(Grader.points(10_000.0, Rating.HARD), close.points)
+        assertTrue(close.points < Grader.RIGHT_MIN_POINTS)
+        assertEquals(Rating.AGAIN, Grader.gradeBuild(region, 13_000.0, 0.0, 12_000, false, stabilityDays = 30.0).rating)
         // A small region still gets 4 km.
         val small = region.copy(shape = Shape.Area(listOf(Polygon(listOf(doubleArrayOf(0.0, 0.0, 10_000.0, 0.0, 10_000.0, 10_000.0, 0.0, 0.0))))))
         assertEquals(4_000.0, Grader.buildTolerance(small))
+    }
+
+    @Test
+    fun aLargeRegionDroppedARegionAwayIsAMiss() {
+        // The size of the Negev (about 105 km across): 8 km at most, even though 15 percent would be 16.
+        val side = 105_000.0
+        val negev = region.copy(
+            shape = Shape.Area(listOf(Polygon(listOf(doubleArrayOf(0.0, 0.0, side, 0.0, side, side, 0.0, side, 0.0, 0.0))))),
+        )
+        assertEquals(Grader.BUILD_MAX_TOLERANCE_METERS, Grader.buildTolerance(negev))
+        // Dropped 68 km off while still young (stability 2 days): a miss, not "close".
+        val far = Grader.gradeBuild(negev, 68_000.0, 0.0, 12_000, false, stabilityDays = 2.0)
+        assertEquals(Rating.AGAIN, far.rating)
+        assertTrue(far.points < Grader.CLOSE_MIN_POINTS)
+        // 16 km off at that stage is right (8 km times 2), 30 km close.
+        assertEquals(Rating.GOOD, Grader.gradeBuild(negev, 16_000.0, 0.0, 12_000, false, stabilityDays = 2.0).rating)
+        assertEquals(Rating.HARD, Grader.gradeBuild(negev, 30_000.0, 0.0, 12_000, false, stabilityDays = 2.0).rating)
     }
 
     @Test

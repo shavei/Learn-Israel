@@ -6,22 +6,51 @@
 2. Immediately play: the map outline appears, Discover shows Tel Aviv, then
    "Tap Tel Aviv". Success, the city lights up. Then Jerusalem, then Haifa.
 3. "Want to skip what you know?" Placement test (optional) or continue.
-4. Ask for a daily reminder time *after* the first session, not before.
+4. Ask for a daily reminder time *after* the first session, not before: the offer on
+   home has a time picker (20:00 to start with). A "no" in Android's own permission
+   question counts as "not now"; only when Android refuses without asking (notifications
+   turned off for the app) does the card explain that and open the phone's settings.
 
-No signup, no permissions on first run.
+No signup, no permissions on first run. The welcome screen stays until the player has
+answered a question: backing out of a first session or the placement test returns to
+it, so the placement test and the map test are not lost to a curious tap. Settings can
+start the placement test again at any time; it only seeds places not yet started.
+
+All three ways in (start, placement test, map test) stay on screen at any text size and
+in landscape: the words above them scroll, with a cue, and the buttons do not.
 
 ## Key screens
 
 - **Home:** the player's mastery map (big), today's session button with a count
-  ("12 reviews, 4 new"), streak, current unit.
+  ("12 reviews, 4 new"), streak, current unit. The map always keeps a real share of the
+  screen: a compact top card, and a bottom card whose main button never leaves the
+  screen while what is above it scrolls (with a fade and an arrow when there is more).
+  In landscape the cards move to a side column. The list of other ways to practice
+  takes the bottom card while open, so every mode shows, and stays open after a round.
+  Home shows nothing until the current state is loaded, so it never flashes old counts.
 - **Session player:** full-screen map, question bar on top, minimal chrome, feedback
-  card sliding up from the bottom.
-- **Session summary:** the map animates the places strengthened today; stats (accuracy,
-  average error km, new places); single "Done" button.
+  card sliding up from the bottom. In landscape the question and the cards stand in a
+  side panel and the map is framed beside it, so a card never hides the place in
+  question. Leaving with an answer given and the session not over (Exit or system back)
+  asks first; leaving the map test says it discards the test, and its answers are deleted.
+  Between map test questions the tap stays on the map with "הסימון נקלט", never a sign of
+  right or wrong. Naming options a few kilometers apart are viewed close up, and a wrong
+  name is marked where that place is.
+- **Session summary:** the map lights up the places practiced in the session (a road
+  trip shows its route, solid to stops found and dashed to stops missed); stats fit the
+  kind of session (the daily session: accuracy, average error km, new places; Map Builder:
+  places found; focused practice: no new places line; the placement test lists the places
+  found). A hard session ends on a kind line. Practice rounds and free play offer "play
+  again" when another round can be planned. One button leads back, and says where (after
+  the pre-test, to the welcome screen).
 - **Explore:** pick a region, see its units, browse learned places (study view with
   labels on, which is allowed but does not count as practice).
 - **Progress:** region percentages, known places count, the rank, achievements,
-  learned confusable pairs, a history chart of average error over time.
+  learned confusable pairs, a history chart of average error over time (a scale from
+  0 km, lower is better, the first day and today written under its ends). Before the
+  first practice the screen invites the player to start one instead of showing
+  zeros, and sections with nothing in them yet start folded. Lines stop at 640 dp
+  wide in landscape. Counts use Hebrew plural forms ("מקום אחד", "יומיים").
 - **Settings:** session length, daily new cap, reminders, map layers,
   sounds/haptics, confidence buttons on/off, data and privacy.
 

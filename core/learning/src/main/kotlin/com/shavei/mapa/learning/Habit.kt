@@ -7,8 +7,10 @@ import java.time.temporal.ChronoUnit
  * The daily streak. [days] counts days played in a row; a freeze covers one missed day
  * without breaking it. [freezes] are earned one per [Streak.DAYS_PER_FREEZE] days of
  * streak, at most [Streak.MAX_FREEZES] saved. [best] is the longest streak so far.
+ * [frozen] is how many freezes were used since the last day played before today: the
+ * days a freeze just saved the streak, which home tells the player about.
  */
-data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean, val best: Int = days) {
+data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean, val best: Int = days, val frozen: Int = 0) {
     companion object {
         const val DAYS_PER_FREEZE = 7
         const val MAX_FREEZES = 2
@@ -23,15 +25,19 @@ data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean, val
             var days = 0
             var freezes = 0
             var best = 0
+            var frozen = 0
             var day = first
             while (day < today) {
                 if (day in daysPlayed) {
                     days++
+                    frozen = 0
                     if (days % DAYS_PER_FREEZE == 0) freezes = minOf(MAX_FREEZES, freezes + 1)
                 } else if (freezes > 0) {
                     freezes--
+                    frozen++
                 } else {
                     days = 0
+                    frozen = 0
                 }
                 best = maxOf(best, days)
                 day = day.plusDays(1)
@@ -41,7 +47,7 @@ data class Streak(val days: Int, val freezes: Int, val playedToday: Boolean, val
                 days++
                 if (days % DAYS_PER_FREEZE == 0) freezes = minOf(MAX_FREEZES, freezes + 1)
             }
-            return Streak(days, freezes, playedToday, maxOf(best, days))
+            return Streak(days, freezes, playedToday, maxOf(best, days), frozen)
         }
     }
 }

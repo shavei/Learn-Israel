@@ -103,6 +103,31 @@ class SessionEngineTest {
     }
 
     @Test
+    fun homeOffersNewPlacesOnlyWhenTheSessionWouldBringThemIn() {
+        val config = SessionConfig()
+        fun hasQuestions(cards: Map<CardKey, StudyCard>, c: SessionConfig = config) =
+            SessionEngine.hasQuestions(content, scheduler, cards, 0, c, now)
+        // A fresh player: a session's share of new places, and a session to play.
+        assertEquals(config.maxNewPerSession, SessionEngine.newPlacesOnOffer(content, emptyMap(), 0, config))
+        assertTrue(hasQuestions(emptyMap()))
+        // Four places still in their learning steps, due in an hour: no new place, and nothing to ask
+        // in either session, so home must not offer one ("5 more places" used to open an empty session).
+        val learning = (0 until 4).associate { i ->
+            key(i) to StudyCard(FsrsCard(CardState.LEARNING, 1, 2.3, 5.0, due = now + 60 * 60_000L, lastReview = now))
+        }
+        assertEquals(0, SessionEngine.newPlacesOnOffer(content, learning, 0, config))
+        assertTrue(!SessionEngine.hasRoomForNewPlace(learning, 0, config))
+        assertTrue(!hasQuestions(learning))
+        assertTrue(!hasQuestions(learning, config.copy(strengthenWeakest = true)))
+        // Three in learning: room again, as the engine agrees.
+        assertEquals(config.maxNewPerSession, SessionEngine.newPlacesOnOffer(content, learning - key(0), 0, config))
+        assertTrue(hasQuestions(learning - key(0)))
+        // The day's limit: what is left of it, then none.
+        assertEquals(2, SessionEngine.newPlacesOnOffer(content, emptyMap(), 18, config))
+        assertEquals(0, SessionEngine.newPlacesOnOffer(content, emptyMap(), 20, config))
+    }
+
+    @Test
     fun throughoutASessionFewPlacesAreBeingLearnedAtOnce() {
         val e = engine(config = SessionConfig(size = 25))
         while (true) {

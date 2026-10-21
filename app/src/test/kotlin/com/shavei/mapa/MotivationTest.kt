@@ -154,7 +154,7 @@ class MotivationTest {
             compose.onNodeWithText("התקדמות").performClick()
             waitForText("דרגה:")
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("hardest"))
-            waitForText("חיפה: 1 נכונות, 1 קרובות, 2 שגויות")
+            waitForText("חיפה: נכונות 1, קרובות 1, שגויות 2")
             Screenshots.save(scenario, "d5-progress-hardest")
         }
     }
@@ -171,6 +171,8 @@ class MotivationTest {
             waitForText("התחילו!")
             compose.onNodeWithText("התחילו!").performClick()
             waitForText("נותרו")
+            // One answer at least: a round with none earns nothing.
+            compose.onNodeWithTag("map").performTouchInput { click(center) }
             Thread.sleep(3_500)
             if (!has("נגמר הזמן!")) compose.onNodeWithTag("map").performTouchInput { click(center) }
             waitForText("הישג חדש: מקום ראשון")

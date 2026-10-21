@@ -6,9 +6,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import com.shavei.mapa.data.CardEntity
+import com.shavei.mapa.data.DailySessionEntity
 import com.shavei.mapa.data.LearningPace
 import com.shavei.mapa.data.ReviewEntity
 import com.shavei.mapa.data.SettingsStore
+import com.shavei.mapa.learning.fsrs.CardState
+import com.shavei.mapa.learning.fsrs.DAY_MS
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -31,10 +35,14 @@ class MoreSessionsTest {
     private fun waitForText(text: String) =
         compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty() }
 
-    /** Twenty places first practiced today: the normal pace's daily limit. */
+    /** Twenty places first practiced today, in a finished daily session: the normal pace's daily limit. */
     private fun learnTwentyToday() = runBlocking {
         val now = System.currentTimeMillis()
+        app.database.progressDao().insert(DailySessionEntity("earlier", now - 120_000, 20, finishedAt = now - 60_000))
         for (place in app.content.places.drop(10).take(20)) {
+            app.database.progressDao().upsert(
+                CardEntity(place.id, "LOCATE", CardState.REVIEW.value, null, 2.0, 5.0, now + DAY_MS, now - 60_000, 0),
+            )
             app.database.progressDao().insert(
                 ReviewEntity(
                     placeId = place.id, facet = "LOCATE", mode = "LOCATE", sessionId = "earlier", timestamp = now - 60_000,

@@ -127,7 +127,8 @@ class ThemesTest {
     fun theGatewaysAchievementIsPortsAndAirportsWithoutTheRoads() {
         val gateways = Achievements.progress(content, known = setOf("port.p"), records = emptyList(), bestStreak = 0)
             .getValue(Achievement.GATEWAYS)
-        assertEquals(AchievementProgress(1, 1), gateways)
+        assertEquals(1 to 1, gateways.done to gateways.total)
+        assertEquals(listOf("port.p"), gateways.places.map { it.id })
     }
 
     @Test

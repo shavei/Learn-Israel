@@ -51,6 +51,9 @@ class FreePlayTest {
         val missed = FreePlay.review(scheduler, dueLater, Rating.AGAIN, now)
         assertEquals(CardState.RELEARNING, missed.fsrs.state)
         assertEquals(1, missed.struggles)
+        // A place still in its learning steps keeps them for the daily session: a success changes nothing.
+        val learning = StudyCard(FsrsCard(CardState.LEARNING, 1, 1.0, 5.0, now, now))
+        assertSame(learning, FreePlay.review(scheduler, learning, Rating.GOOD, now))
     }
 
     @Test
@@ -59,13 +62,14 @@ class FreePlayTest {
             locate("city.c0") to learned(5.0),
             locate("city.c1") to learned(5.0),
             locate("city.c2") to learned(5.0),
-            // Still in its learning steps: not part of a blitz.
+            // Still in its learning steps, but in practice, as home counts it: part of a blitz.
             locate("city.c3") to StudyCard(FsrsCard(CardState.LEARNING, 1, 1.0, 5.0, now, now)),
-            // Another facet does not make a place learned.
+            // Another facet does not put a place in practice.
             CardKey("city.c4", Facet.NAME) to learned(5.0),
         )
         val blitz = Blitz(content, scheduler, cards, durationMs = 60_000, clock = { now }, random = Random(3))
-        assertEquals(setOf("city.c0", "city.c1", "city.c2"), blitz.places.map { it.id }.toSet())
+        val all = setOf("city.c0", "city.c1", "city.c2", "city.c3")
+        assertEquals(all, blitz.places.map { it.id }.toSet())
         assertEquals(60_000, blitz.remainingMs())
 
         val asked = mutableListOf<String>()
@@ -78,8 +82,8 @@ class FreePlayTest {
             blitz.submit(q, tapOn(q.place), 2_000)
         }
         // Each place once per pass, never the same place twice in a row.
-        assertEquals(setOf("city.c0", "city.c1", "city.c2"), asked.take(3).toSet())
-        assertEquals(setOf("city.c0", "city.c1", "city.c2"), asked.subList(3, 6).toSet())
+        assertEquals(all, asked.take(4).toSet())
+        assertEquals(3, asked.subList(4, 7).toSet().size)
         assertTrue(asked.zipWithNext().none { (a, b) -> a == b })
         // Under time pressure a fast answer is still only GOOD.
         assertTrue(blitz.answers.all { it.grade.rating == Rating.GOOD })

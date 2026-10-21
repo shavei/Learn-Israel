@@ -95,6 +95,19 @@ data class BlitzRoundEntity(
     val found: Int,
 )
 
+/**
+ * A daily session (from home's main button). A day counts for the streak once one is
+ * finished: run to its summary, or answered as many questions as it was planned for.
+ */
+@Entity(tableName = "daily_sessions")
+data class DailySessionEntity(
+    @PrimaryKey val sessionId: String,
+    val startedAt: Long,
+    /** Questions planned: the session length, or what was left of today's when it continues one. */
+    val size: Int,
+    val finishedAt: Long? = null,
+)
+
 @Dao
 interface ProgressDao {
     @Query("SELECT * FROM cards")
@@ -138,6 +151,9 @@ interface ProgressDao {
     @Query("SELECT * FROM map_tests ORDER BY finishedAt")
     suspend fun mapTests(): List<MapTestEntity>
 
+    @Query("DELETE FROM reviews WHERE sessionId = :sessionId AND mode = 'MAP_TEST'")
+    suspend fun deleteMapTestAnswers(sessionId: String)
+
     /** Distance errors of Pin It answers, for the history of average error. */
     @Query("SELECT placeId, timestamp, errorMeters FROM reviews WHERE mode = 'LOCATE' AND errorMeters IS NOT NULL ORDER BY timestamp")
     suspend fun locateErrors(): List<LocateError>
@@ -158,6 +174,30 @@ interface ProgressDao {
 
     @Query("SELECT * FROM blitz_rounds ORDER BY finishedAt")
     suspend fun blitzRounds(): List<BlitzRoundEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(session: DailySessionEntity)
+
+    /** Placement never replaces a card the player already has. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIfAbsent(card: CardEntity)
+
+    @Query("SELECT * FROM daily_sessions WHERE sessionId = :sessionId")
+    suspend fun dailySession(sessionId: String): DailySessionEntity?
+
+    /** Daily sessions started at or after [since], the latest first. */
+    @Query("SELECT * FROM daily_sessions WHERE startedAt >= :since ORDER BY startedAt DESC")
+    suspend fun dailySessionsSince(since: Long): List<DailySessionEntity>
+
+    @Query("UPDATE daily_sessions SET finishedAt = :at WHERE sessionId = :sessionId AND finishedAt IS NULL")
+    suspend fun finishDailySession(sessionId: String, at: Long)
+
+    /** When every finished daily session ended: the days of the streak. */
+    @Query("SELECT finishedAt FROM daily_sessions WHERE finishedAt IS NOT NULL ORDER BY finishedAt")
+    suspend fun dailyFinishTimes(): List<Long>
+
+    @Query("SELECT COUNT(*) FROM reviews WHERE sessionId = :sessionId")
+    suspend fun answersIn(sessionId: String): Int
 }
 
 data class LocateError(val placeId: String, val timestamp: Long, val errorMeters: Double)
@@ -165,8 +205,11 @@ data class LocateError(val placeId: String, val timestamp: Long, val errorMeters
 data class ConfusionRow(val asked: String, val tapped: String, val count: Int)
 
 @Database(
-    entities = [CardEntity::class, ReviewEntity::class, MapTestEntity::class, AchievementEntity::class, BlitzRoundEntity::class],
-    version = 5,
+    entities = [
+        CardEntity::class, ReviewEntity::class, MapTestEntity::class, AchievementEntity::class, BlitzRoundEntity::class,
+        DailySessionEntity::class,
+    ],
+    version = 6,
     exportSchema = false,
 )
 abstract class MapaDatabase : RoomDatabase() {
@@ -234,6 +277,24 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `blitz_rounds` (`sessionId` TEXT NOT NULL, `finishedAt` INTEGER NOT NULL, " +
                 "`points` INTEGER NOT NULL, `answers` INTEGER NOT NULL, `found` INTEGER NOT NULL, PRIMARY KEY(`sessionId`))",
+        )
+    }
+}
+
+/**
+ * Daily sessions: a day counts once its daily session is finished. Every practice session
+ * logged so far counted for its day, so each one comes over as a finished daily session
+ * and no streak changes.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `daily_sessions` (`sessionId` TEXT NOT NULL, `startedAt` INTEGER NOT NULL, " +
+                "`size` INTEGER NOT NULL, `finishedAt` INTEGER, PRIMARY KEY(`sessionId`))",
+        )
+        db.execSQL(
+            "INSERT INTO `daily_sessions` SELECT sessionId, MIN(timestamp), COUNT(*), MAX(timestamp) FROM `reviews` " +
+                "WHERE mode NOT IN ('PLACEMENT', 'MAP_TEST') GROUP BY sessionId",
         )
     }
 }

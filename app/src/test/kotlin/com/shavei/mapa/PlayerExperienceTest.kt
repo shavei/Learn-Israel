@@ -3,6 +3,7 @@ package com.shavei.mapa
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.shavei.mapa.data.CardEntity
+import com.shavei.mapa.data.DailySessionEntity
 import com.shavei.mapa.data.ReviewEntity
 import com.shavei.mapa.data.ThemeChoice
 import com.shavei.mapa.learning.fsrs.CardState
@@ -47,18 +49,21 @@ class PlayerExperienceTest {
             waitForText("כבר מכירים את הארץ? בדיקת רמה")
             compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
 
-            // No Discover card: the test asks straight away, starting with the frame.
-            waitForText("סמנו על המפה: הים התיכון")
-            compose.onNodeWithText("בדיקת רמה · שאלה 1").assertExists()
+            // No Discover card: the test asks straight away, starting with the first places taught.
+            waitForText("סמנו על המפה: תל אביב-יפו")
+            compose.onNodeWithText("בדיקת רמה · שאלה 1 מתוך 20 לכל היותר").assertExists()
             Screenshots.save(scenario, "c1-placement-ask")
+            // Far out at sea: not Tel Aviv.
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
-            waitForText("מצוין!")
+            waitForText("לא הפעם")
             compose.onNodeWithText("המשך").performClick()
 
-            waitForText("סמנו על המפה: מפרץ אילת")
-            compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.4f)) }
-            waitForText("לא הפעם")
+            waitForText("סמנו על המפה: הים התיכון")
+            compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
+            waitForText("מצוין!")
             compose.onNodeWithText("יציאה").performClick()
+            waitForText("לצאת מבדיקת הרמה?")
+            compose.onNodeWithTag("leave-confirm").performClick()
 
             // Only the Mediterranean was found, so only it has a card.
             waitForText("1 בלמידה · 0 ידועים · מתוך 209")
@@ -83,8 +88,9 @@ class PlayerExperienceTest {
             for ((city, stability) in listOf("city.tel_aviv" to 30.0, "city.ramat_gan" to 5.0, "city.haifa" to 2.0)) {
                 dao.upsert(CardEntity(city, "LOCATE", CardState.REVIEW.value, null, stability, 5.0, now + DAY_MS, now - DAY_MS, 0))
             }
-            // Three days of Pin It answers, getting more precise.
+            // Three days of daily sessions with Pin It answers, getting more precise.
             for ((daysAgo, km) in listOf(2 to 9.0, 1 to 5.5, 0 to 2.0)) {
+                dao.insert(DailySessionEntity("s$daysAgo", now - daysAgo * DAY_MS, 2, finishedAt = now - daysAgo * DAY_MS))
                 for (city in listOf("city.tel_aviv", "city.haifa")) {
                     dao.insert(
                         ReviewEntity(
@@ -102,11 +108,13 @@ class PlayerExperienceTest {
             compose.onNodeWithText("התקדמות").performClick()
             waitForText("סטייה ממוצעת בערים לפי יום (ק״מ)")
             compose.onNodeWithTag("error-chart").assertExists()
-            compose.onNodeWithText("1 מקומות ידועים").assertExists()
+            compose.onNodeWithText("מקום אחד ידוע").assertExists()
             Screenshots.save(scenario, "c3-progress")
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("גוש דן", substring = true))
             Screenshots.save(scenario, "c4-progress-regions")
-            // After the regions: nature, ports and heritage, not started yet.
+            // After the regions: nature, ports and heritage, not started yet, so folded until asked for.
+            compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("themes-fold"))
+            compose.onNodeWithTag("themes-fold").performClick()
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("מורשת: 0 מתוך 22", substring = true))
             compose.onNode(hasContentDescription("טבע: 0 מתוך 22", substring = true)).assertExists()
             Screenshots.save(scenario, "c4b-progress-themes")
