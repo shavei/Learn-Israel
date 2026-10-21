@@ -15,7 +15,7 @@ Inputs:
                                          countries and the Dead Sea (ODbL)
   content/palestine.geojson              Gaza and the West Bank, UN OCHA (CC BY-IGO); the
                                          West Bank's western edge is the Green Line
-  content/osm_places.geojson             rivers and craters of places.yaml, from OSM (ODbL)
+  content/osm_places.geojson             rivers, craters and highways of places.yaml, from OSM (ODbL)
   (the content files above are refreshed by tools/fetch_sources.py)
   GeoNames cities via the geonamescache package (CC BY 4.0)
 
@@ -80,6 +80,7 @@ COAST_NORTH_OF_WINDOW = [
 # Simplification tolerance in meters, per layer.
 SIMPLIFY = {
     "land": 40, "neighbors": 120, "lakes": 30, "rivers": 60, "seas": 120, "green_line": 40, "regions": 150,
+    "roads": 100,
 }
 
 LAKE_CODE = 99  # the Kinneret and the Dead Sea in the official natural regions
@@ -407,6 +408,8 @@ def main() -> int:
         f["properties"]["source"]: shape(f["geometry"])
         for f in json.loads((ROOT / "content" / "osm_places.geojson").read_text())["features"]
     }
+    # Highways are taken by their number, which roads in the neighboring countries may share.
+    israel_roads = project(ops.unary_union([land_ll, ocha["gaza"]])).buffer(1_000)
 
     # ---------- places ----------
     curriculum = yaml.safe_load((ROOT / "content" / "places.yaml").read_text())["places"]
@@ -487,12 +490,15 @@ def main() -> int:
             river = clean(river_geoms[arg], SIMPLIFY["rivers"])
             geometry["lines"] = encode_lines(river)
             label = line_label(river)
-        elif kind == "osm":
+        elif kind in ("osm", "road"):
             source = osm_places.get(p["geometry"])
             if source is None:
                 errors.append(f"{p['id']}: {p['geometry']} is not in content/osm_places.geojson (run tools/fetch_sources.py)")
                 continue
-            course = clean(source.intersection(WINDOW), SIMPLIFY["rivers"])
+            if kind == "road":
+                course = project(source).intersection(israel_roads).simplify(SIMPLIFY["roads"])
+            else:
+                course = clean(source.intersection(WINDOW), SIMPLIFY["rivers"])
             if course.geom_type in ("Polygon", "MultiPolygon"):
                 geometry["polygons"] = encode_polygons(course)
                 label = area_label(course)
@@ -500,8 +506,10 @@ def main() -> int:
                 course = ops.linemerge(lines(course)) if lines(course) else course
                 geometry["lines"] = encode_lines(course)
                 label = line_label(course)
-            # A stream or a crater counts toward the region at the middle of its course.
-            region = min(region_geoms, key=lambda k: region_geoms[k].distance(label))
+            # A stream or a crater counts toward the region at the middle of its course; a
+            # highway crosses too many regions to count toward one.
+            if kind == "osm":
+                region = min(region_geoms, key=lambda k: region_geoms[k].distance(label))
         else:
             errors.append(f"{p['id']}: unknown geometry source {p['geometry']}")
             continue

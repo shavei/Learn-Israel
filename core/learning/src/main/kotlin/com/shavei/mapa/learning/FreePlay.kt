@@ -157,7 +157,8 @@ class RoadTrip(
         fun isStop(type: PlaceType) = when (type) {
             PlaceType.CITY, PlaceType.LAKE, PlaceType.MOUNTAIN, PlaceType.CRATER, PlaceType.RESERVE,
             PlaceType.SITE, PlaceType.AIRPORT, PlaceType.PORT -> true
-            PlaceType.SEA, PlaceType.COUNTRY, PlaceType.REGION, PlaceType.DISTRICT, PlaceType.RIVER, PlaceType.STREAM -> false
+            PlaceType.SEA, PlaceType.COUNTRY, PlaceType.REGION, PlaceType.DISTRICT, PlaceType.RIVER, PlaceType.STREAM,
+            PlaceType.ROAD -> false
         }
 
         /**

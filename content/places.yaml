@@ -17,7 +17,8 @@
 #                       (judea_samaria: the natural regions of Judea and Samaria)
 #   osm:<way|relation>/<id>  an OpenStreetMap way or relation: a river's main stream, or
 #                       a crater's length (OSM maps craters as a line along the valley)
-#   (osm: geometry comes from content/osm_places.geojson, which
+#   road:<number>       every main road way that carries this highway number in OSM
+#   (osm: and road: geometry comes from content/osm_places.geojson, which
 #   tools/fetch_sources.py downloads; points of tiers 4 to 6 are copied from the OSM
 #   object named in the comment beside them)
 #
@@ -1642,6 +1643,63 @@ places:
     confusables: [airport.ramon]
 
   # ===================== Tier 5: infrastructure =====================
+  # ---------- Unit: highways ----------
+  - id: road.1
+    type: road
+    unit: highways
+    importance: 1
+    geometry: road:1
+    name: כביש 1
+    hint: מתל אביב לירושלים, ומשם יורד אל בקעת הירדן
+    fact: חוצה את הארץ ממערב למזרח, מהחוף דרך שער הגיא ועד הירדן.
+    aliases: [כביש מספר 1, דרך 1, כביש ירושלים תל אביב]
+  - id: road.2
+    type: road
+    unit: highways
+    importance: 1
+    geometry: road:2
+    name: כביש החוף
+    hint: לאורך החוף, מתל אביב לחיפה
+    fact: כביש 2. עובר ליד נתניה, חדרה וקיסריה, קרוב לים.
+    aliases: [כביש 2, כביש מספר 2, דרך 2]
+    confusables: [road.4]
+  - id: road.6
+    type: road
+    unit: highways
+    importance: 1
+    geometry: road:6
+    name: כביש חוצה ישראל
+    hint: לאורך הארץ, ממזרח לגוש דן ולשרון
+    fact: כביש 6, כביש האגרה הארוך בישראל, מהנגב ועד הגליל.
+    aliases: [כביש 6, חוצה ישראל, כביש מספר 6, דרך 6]
+  - id: road.4
+    type: road
+    unit: highways
+    importance: 2
+    geometry: road:4
+    name: כביש 4
+    hint: לאורך מישור החוף, מגבול רצועת עזה עד ראש הנקרה
+    fact: הכביש הוותיק של מישור החוף, דרך אשקלון, גוש דן, חיפה ונהריה.
+    aliases: [כביש מספר 4, דרך 4]
+  - id: road.90
+    type: road
+    unit: highways
+    importance: 2
+    geometry: road:90
+    name: כביש 90
+    hint: לאורך הגבול המזרחי, ממטולה ועד אילת
+    fact: הכביש הארוך בישראל. עובר בעמק הירדן, לאורך ים המלח ובערבה.
+    aliases: [כביש מספר 90, דרך 90, כביש הערבה]
+  - id: road.40
+    type: road
+    unit: highways
+    importance: 3
+    geometry: road:40
+    name: כביש 40
+    hint: ממרכז הארץ דרך באר שבע ומצפה רמון אל הערבה
+    fact: הכביש שחוצה את הנגב מצפון לדרום, ויורד אל תוך מכתש רמון.
+    aliases: [כביש מספר 40, דרך 40]
+
   # ---------- Unit: airports and ports ----------
   - id: airport.ben_gurion
     type: airport

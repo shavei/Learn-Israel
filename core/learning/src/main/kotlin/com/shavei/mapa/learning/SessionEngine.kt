@@ -427,8 +427,8 @@ class SessionEngine(
 
     /**
      * Places of one kind stand in for each other as wrong names: cities, regions,
-     * districts, the frame, mountains and craters, streams, reserves and sites, and
-     * airports and ports.
+     * districts, the frame, mountains and craters, streams, reserves and sites, roads,
+     * and airports and ports.
      */
     private val PlaceType.kind: PlaceType
         get() = when (this) {

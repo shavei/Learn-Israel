@@ -15,6 +15,7 @@ import com.shavei.mapa.learning.fsrs.Rating
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -28,12 +29,12 @@ class ThemesTest {
         return Place(id, type, unit, 1, id, "", "", Shape.Point(at), at, toleranceMeters = toleranceMeters)
     }
 
-    private fun stream(id: String, y: Double): Place {
+    private fun stream(id: String, y: Double, type: PlaceType = PlaceType.STREAM): Place {
         val line = Shape.Lines(listOf(Line(doubleArrayOf(0.0, y, 100_000.0, y))))
-        return Place(id, PlaceType.STREAM, "streams", 1, id, "", "", line, MapPoint(50_000.0, y))
+        return Place(id, type, "streams", 1, id, "", "", line, MapPoint(50_000.0, y))
     }
 
-    /** The test cities, then mountains, a crater, streams, a port and sites to the north. */
+    /** The test cities, then mountains, a crater, streams, a road, a port and sites to the north. */
     private val content: Content = run {
         val base = testContent()
         val more = listOf(
@@ -45,6 +46,7 @@ class ThemesTest {
             ),
             stream("stream.1", 140_000.0),
             stream("stream.2", 145_000.0),
+            stream("road.r", 170_000.0, PlaceType.ROAD),
             point("port.p", PlaceType.PORT, "gateways", 80_000.0, 200_000.0),
             point("site.a", PlaceType.SITE, "heritage", 0.0, 200_000.0),
             point("site.b", PlaceType.SITE, "heritage", 2_000.0, 200_000.0),
@@ -67,6 +69,7 @@ class ThemesTest {
         assertEquals(Theme.CORE, PlaceType.RIVER.theme)
         assertEquals(Theme.NATURE, PlaceType.STREAM.theme)
         assertEquals(Theme.NATURE, PlaceType.CRATER.theme)
+        assertEquals(Theme.INFRASTRUCTURE, PlaceType.ROAD.theme)
         assertEquals(Theme.INFRASTRUCTURE, PlaceType.AIRPORT.theme)
         assertEquals(Theme.INFRASTRUCTURE, PlaceType.PORT.theme)
         assertEquals(Theme.HERITAGE, PlaceType.SITE.theme)
@@ -76,6 +79,7 @@ class ThemesTest {
     fun smallTargetsAskFor3KmAndALongRidgeHasItsOwnTolerance() {
         assertEquals(3_000.0, Grader.tolerance(content.place("site.a")!!))
         assertEquals(3_000.0, Grader.tolerance(content.place("stream.1")!!))
+        assertEquals(3_000.0, Grader.tolerance(content.place("road.r")!!))
         assertEquals(4_000.0, Grader.tolerance(content.place("mountain.a")!!))
         assertEquals(8_000.0, Grader.tolerance(content.place("mountain.b")!!))
         // 6 km from the middle of a long ridge is still on it.
@@ -88,6 +92,14 @@ class ThemesTest {
         val g = Grader.grade(content.place("stream.1")!!, MapPoint(80_000.0, 142_000.0), 6_000, false, stabilityDays = 30.0)
         assertEquals(Rating.GOOD, g.rating)
         assertEquals(2_000.0, g.errorMeters)
+    }
+
+    @Test
+    fun aRoadIsFoundAnywhereAlongItButIsNoRoadTripStop() {
+        val g = Grader.grade(content.place("road.r")!!, MapPoint(10_000.0, 172_000.0), 6_000, false, stabilityDays = 30.0)
+        assertEquals(Rating.GOOD, g.rating)
+        assertEquals(2_000.0, g.errorMeters)
+        assertFalse(RoadTrip.isStop(PlaceType.ROAD))
     }
 
     @Test
@@ -129,7 +141,7 @@ class ThemesTest {
 
     @Test
     fun themeScoresCountPracticedAndKnownPlaces() {
-        val scores = themeScores(content, practiced = setOf("site.a", "reserve.c", "port.p", "city.c0"), known = setOf("site.a"))
+        val scores = themeScores(content, practiced = setOf("site.a", "reserve.c", "port.p", "road.r", "city.c0"), known = setOf("site.a"))
         assertEquals(listOf(Theme.NATURE, Theme.INFRASTRUCTURE, Theme.HERITAGE), scores.map { it.theme })
         val nature = scores[0]
         // The reserve is nature, though it is taught in a heritage unit.
@@ -139,6 +151,8 @@ class ThemesTest {
         assertEquals(2, heritage.places)
         assertEquals(1, heritage.practiced)
         assertEquals(1, heritage.known)
-        assertEquals(1, scores[1].practiced)
+        // The road and the port.
+        assertEquals(2, scores[1].places)
+        assertEquals(2, scores[1].practiced)
     }
 }

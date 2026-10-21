@@ -67,7 +67,7 @@ object Grader {
      */
     fun tolerance(place: Place): Double = place.toleranceMeters ?: when (place.type) {
         PlaceType.CITY, PlaceType.RIVER, PlaceType.MOUNTAIN, PlaceType.CRATER -> 4_000.0
-        PlaceType.STREAM, PlaceType.RESERVE, PlaceType.AIRPORT, PlaceType.PORT, PlaceType.SITE -> 3_000.0
+        PlaceType.STREAM, PlaceType.ROAD, PlaceType.RESERVE, PlaceType.AIRPORT, PlaceType.PORT, PlaceType.SITE -> 3_000.0
         PlaceType.LAKE, PlaceType.SEA, PlaceType.COUNTRY, PlaceType.REGION, PlaceType.DISTRICT ->
             max(2_000.0, 0.1 * (place.shape as Shape.Area).characteristicSize())
     }

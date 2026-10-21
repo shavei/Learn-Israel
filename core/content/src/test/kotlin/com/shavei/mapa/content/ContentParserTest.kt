@@ -22,8 +22,9 @@ class ContentParserTest {
         assertEquals(19, byType[PlaceType.REGION])
         assertEquals(7, byType[PlaceType.DISTRICT])
         assertEquals(118, byType[PlaceType.CITY])
+        assertEquals(6, byType[PlaceType.ROAD])
         assertEquals(22, content.places.count { it.type.theme == Theme.NATURE })
-        assertEquals(5, content.places.count { it.type.theme == Theme.INFRASTRUCTURE })
+        assertEquals(11, content.places.count { it.type.theme == Theme.INFRASTRUCTURE })
         assertEquals(22, content.places.count { it.type.theme == Theme.HERITAGE })
         assertEquals(content.places.size, content.places.map { it.id }.toSet().size)
         assertTrue(content.places.all { it.name.isNotBlank() && it.fact.isNotBlank() && it.hint.isNotBlank() })
@@ -35,7 +36,9 @@ class ContentParserTest {
         for (city in content.places.filter { it.type == PlaceType.CITY }) assertTrue(city.region in regions, city.id)
         assertEquals("gush_dan", content.place("city.tel_aviv")?.region)
         // Nature and heritage count toward a region too; a line by the middle of its course.
-        for (p in content.places.filter { it.type.theme != Theme.CORE }) assertTrue(p.region in regions, p.id)
+        // A highway crosses too many regions to count toward one.
+        for (p in content.places.filter { it.type.theme != Theme.CORE && it.type != PlaceType.ROAD }) assertTrue(p.region in regions, p.id)
+        for (p in content.places.filter { it.type == PlaceType.ROAD }) assertEquals(null, p.region, p.id)
         assertEquals("judean_desert", content.place("site.masada")?.region)
         assertEquals("negev", content.place("crater.ramon")?.region)
     }
@@ -47,7 +50,7 @@ class ContentParserTest {
                 PlaceType.CITY -> assertIs<Shape.Point>(p.shape, p.id)
                 PlaceType.SEA, PlaceType.LAKE, PlaceType.COUNTRY, PlaceType.REGION, PlaceType.DISTRICT ->
                     assertIs<Shape.Area>(p.shape, p.id)
-                PlaceType.RIVER, PlaceType.STREAM, PlaceType.CRATER -> assertIs<Shape.Lines>(p.shape, p.id)
+                PlaceType.RIVER, PlaceType.STREAM, PlaceType.ROAD, PlaceType.CRATER -> assertIs<Shape.Lines>(p.shape, p.id)
                 PlaceType.MOUNTAIN, PlaceType.RESERVE, PlaceType.AIRPORT, PlaceType.PORT, PlaceType.SITE ->
                     assertIs<Shape.Point>(p.shape, p.id)
             }
@@ -99,13 +102,26 @@ class ContentParserTest {
     }
 
     @Test
-    fun natureSitesAndPortsAreWhereExpected() {
+    fun natureRoadsSitesAndPortsAreWhereExpected() {
         fun at(id: String) = (content.place(id)!!.shape as Shape.Point).at
         fun shape(id: String) = content.place(id)!!.shape
         val deadSea = shape("lake.dead_sea")
         assertTrue(deadSea.distanceTo(at("site.masada")) < 6_000.0, "Masada over the Dead Sea (its shore has receded)")
         assertTrue(deadSea.distanceTo(at("reserve.ein_gedi")) < 3_000.0, "Ein Gedi on its shore")
         assertTrue(shape("crater.ramon").distanceTo(at("city.mitzpe_ramon")) < 4_000.0, "Mitzpe Ramon on the crater's rim")
+        assertTrue(shape("road.90").distanceTo(at("city.eilat")) < 3_000.0, "Route 90 reaches Eilat")
+        assertTrue(shape("road.90").distanceTo(at("city.kiryat_shmona")) < 3_000.0, "and Kiryat Shmona")
+        assertTrue(shape("road.90").distanceTo(at("city.jericho")) < 4_000.0, "through the Jordan Valley")
+        assertTrue(shape("road.1").distanceTo(at("city.jerusalem")) < 4_000.0, "Route 1 reaches Jerusalem")
+        assertTrue(shape("road.1").distanceTo(at("city.tel_aviv")) < 4_000.0, "from Tel Aviv")
+        assertTrue(shape("road.2").distanceTo(at("city.netanya")) < 4_000.0, "the coastal highway passes Netanya")
+        assertTrue(shape("road.2").distanceTo(at("city.haifa")) < 6_000.0, "on its way to Haifa")
+        assertTrue(shape("road.4").distanceTo(at("city.ashkelon")) < 4_000.0, "Route 4 passes Ashkelon")
+        assertTrue(shape("road.4").distanceTo(at("city.nahariya")) < 4_000.0, "and Nahariya")
+        assertTrue(shape("road.6").distanceTo(at("city.rosh_haayin")) < 4_000.0, "Route 6 passes Rosh HaAyin")
+        assertTrue(shape("road.6").distanceTo(at("city.tel_aviv")) > 10_000.0, "east of Gush Dan, not through it")
+        assertTrue(shape("road.40").distanceTo(at("city.beersheba")) < 4_000.0, "Route 40 through Be'er Sheva")
+        assertTrue(shape("road.40").distanceTo(at("city.mitzpe_ramon")) < 3_000.0, "and Mitzpe Ramon")
         assertTrue(at("port.eilat").distanceTo(at("city.eilat")) < 5_000.0, "Eilat's port by the city")
         assertTrue(shape("sea.gulf_of_eilat").distanceTo(at("port.eilat")) < 1_000.0, "on the gulf")
         assertTrue(shape("sea.mediterranean").distanceTo(at("port.ashdod")) < 1_000.0, "Ashdod's port on the sea")

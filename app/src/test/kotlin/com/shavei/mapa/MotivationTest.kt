@@ -74,7 +74,7 @@ class MotivationTest {
             }
         }
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("12 ידועים · 4 בלמידה · מתוך 202")
+            waitForText("12 ידועים · 4 בלמידה · מתוך 208")
             // The legend over the map uses the same two words.
             compose.onNodeWithText("בלמידה").assertExists()
             compose.onNodeWithText("מה זה ידוע?").performClick()
