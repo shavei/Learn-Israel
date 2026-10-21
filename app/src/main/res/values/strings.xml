@@ -165,7 +165,7 @@
     <string name="focus_counter">אימון ממוקד · שאלה %1$d מתוך %2$d</string>
     <string name="focus_summary_title">סיום האימון הממוקד</string>
     <string name="blitz_title">בליץ</string>
-    <string name="blitz_rules">דקה אחת: סמנו כמה שיותר מקומות שכבר למדתם. השעון לא עוצר בין שאלה לשאלה.</string>
+    <string name="blitz_rules">דקה אחת: סמנו כמה שיותר מהמקומות שאתם מתרגלים. השעון לא עוצר בין שאלה לשאלה.</string>
     <string name="blitz_go">התחילו!</string>
     <string name="blitz_counter">בליץ · שאלה %1$d</string>
     <plurals name="blitz_clock">
@@ -195,7 +195,7 @@
     <string name="trip_from">יוצאים מ%1$s</string>
     <string name="trip_rules">בכל תחנה סמנו על המפה את היעד הבא. הדרך תסומן על המפה בכל תחנה שתמצאו.</string>
     <string name="trip_go">יוצאים לדרך</string>
-    <string name="trip_none">עדיין אין מספיק מקומות קרובים שלמדתם בשביל מסע. המשיכו באימון היומי.</string>
+    <string name="trip_none">עדיין אין מספיק מקומות קרובים שאתם מתרגלים בשביל מסע. המשיכו באימון היומי.</string>
     <string name="trip_counter">מסע בדרכים · תחנה %1$d מתוך %2$d</string>
     <string name="trip_summary_title">הגעתם ליעד!</string>
     <string name="trip_summary_title_short">סוף המסע</string>
