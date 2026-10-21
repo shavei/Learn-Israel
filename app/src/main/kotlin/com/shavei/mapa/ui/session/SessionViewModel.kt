@@ -317,6 +317,8 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         if (!accepts(ui.question)) return
         // A tap after the blitz clock ran out does not count.
         if (blitz?.isOver == true) return onTimeUp()
+        // A blitz moves on at once: the second tap of a double tap would answer a place not yet read.
+        if (blitz != null && System.currentTimeMillis() - askedAt < BLITZ_TAP_GUARD_MS) return
         val answer = engine.submit(ui.question, response, System.currentTimeMillis() - askedAt)
         val previous = saving
         saving = viewModelScope.launch {
@@ -418,5 +420,8 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         /** How long a blitz lasts; tests shorten it. */
         @VisibleForTesting
         var blitzDurationMs = Blitz.DURATION_MS
+
+        /** A blitz tap this soon after its question is the rest of the last tap, not an answer. */
+        const val BLITZ_TAP_GUARD_MS = 300L
     }
 }

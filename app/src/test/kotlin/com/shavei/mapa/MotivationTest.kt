@@ -171,7 +171,9 @@ class MotivationTest {
             waitForText("התחילו!")
             compose.onNodeWithText("התחילו!").performClick()
             waitForText("נותרו")
-            // One answer at least: a round with none earns nothing.
+            // One answer at least: a round with none earns nothing. A tap right after a
+            // question is taken for the end of the last one.
+            Thread.sleep(SessionViewModel.BLITZ_TAP_GUARD_MS + 50)
             compose.onNodeWithTag("map").performTouchInput { click(center) }
             Thread.sleep(3_500)
             if (!has("נגמר הזמן!")) compose.onNodeWithTag("map").performTouchInput { click(center) }

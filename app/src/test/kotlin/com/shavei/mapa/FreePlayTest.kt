@@ -81,9 +81,14 @@ class FreePlayTest {
             compose.onNodeWithText("התחילו!").performClick()
 
             waitForText("נותרו")
+            // A tap right after a question is taken for the end of the last one.
+            Thread.sleep(SessionViewModel.BLITZ_TAP_GUARD_MS + 50)
+            // A double tap answers once: its second tap never reaches a place not yet read.
+            tapMap()
             tapMap()
             // No feedback card: the next place at once, with the last answer above it.
-            compose.waitUntil(10_000) { has("נקודות") && !has("המשך") }
+            compose.waitUntil(10_000) { has("שאלה 2") && !has("המשך") }
+            assertTrue(!has("שאלה 3"))
             Screenshots.save(scenario, "f2-blitz-next")
             tapMap()
             // Once the time is up, the round ends; a tap after it does not count.
@@ -126,6 +131,8 @@ class FreePlayTest {
                 if (has("נגמר הזמן!")) break
                 compose.onNodeWithTag("map").performTouchInput { click(Offset(width * x, height * y)) }
                 compose.waitForIdle()
+                // A tap right after a question is taken for the end of the last one.
+                Thread.sleep(SessionViewModel.BLITZ_TAP_GUARD_MS + 50)
             }
             Thread.sleep(8_500)
             if (!has("נגמר הזמן!")) tapMap()

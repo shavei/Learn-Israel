@@ -281,6 +281,9 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                     Note(stringResource(R.string.map_test_tap_noted), MaterialTheme.colorScheme.secondary)
                 ask.last != null -> blitzNote(ask.last)
                 viewModel.kind == SessionKind.ROAD_TRIP -> trip.getOrNull(ask.number - 1)?.let { Note(stringResource(R.string.trip_from, it.name)) }
+                // The first blitz question keeps the line empty, so the card (and the map under it)
+                // does not shift when the first answer arrives.
+                viewModel.kind == SessionKind.BLITZ -> Note("\u00A0")
                 else -> null
             }
             PromptCard(ask.question, counter, score, note)
@@ -399,7 +402,7 @@ private fun PromptCard(question: Question, counter: String, score: Int?, note: N
                     )
                 }
             }
-            note?.let { Text(it.text, style = MaterialTheme.typography.titleSmall, color = it.color ?: Color.Unspecified) }
+            note?.let { Text(it.text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = it.color ?: Color.Unspecified) }
             Text(promptText(question), style = MaterialTheme.typography.headlineSmall)
             val hint = when (question) {
                 is Question.Locate -> question.hint
@@ -496,7 +499,9 @@ private fun blitzNote(last: Answer): Note {
         Rating.HARD -> colors.closeText
         Rating.AGAIN -> colors.missText
     }
-    return Note(pluralStringResource(R.plurals.blitz_last, last.grade.points, last.place.name, formatPoints(last.grade.points)), color)
+    // A mark as well as a color, so a miss never rests on color alone.
+    val mark = if (last.grade.isCorrect) "✓" else "✗"
+    return Note("$mark " + pluralStringResource(R.plurals.blitz_last, last.grade.points, last.place.name, formatPoints(last.grade.points)), color)
 }
 
 /** Free play before it starts: the rules of a blitz, or a road trip's start. */
@@ -910,10 +915,14 @@ private fun mapTestTapDecorations(answer: Answer, colors: MapPalette): List<MapD
     return listOf(MapDecoration.Marker(tap, colors.tap, radiusPx = 7f))
 }
 
-/** The last blitz answer, faint: where the place is and where the tap landed. */
+/**
+ * The last blitz answer, faint: where the place is and where the tap landed, and on a miss
+ * the place's name, so the true spot is not mistaken for the tap.
+ */
 private fun blitzDecorations(answer: Answer, colors: MapPalette): List<MapDecoration> {
     val color = if (answer.grade.isCorrect) colors.good else colors.target
-    return listOf(MapDecoration.Highlight(answer.place.shape, color, alpha = 0.3f)) + blitzTap(answer, colors)
+    return listOf(MapDecoration.Highlight(answer.place.shape, color, alpha = fillAlpha(answer.place.shape, 0.3f))) + blitzTap(answer, colors) +
+        listOfNotNull(MapDecoration.Label(answer.place.label, answer.place.name, colors.missText).takeIf { !answer.grade.isCorrect })
 }
 
 /** Where a blitz tap landed, and a line from it to the place when it missed. */
@@ -932,10 +941,20 @@ private fun blitzTap(answer: Answer, colors: MapPalette): List<MapDecoration> {
  */
 private fun blitzSummaryDecorations(summary: SessionSummary, colors: MapPalette): List<MapDecoration> {
     val places = summary.results.map { it.place }.distinct()
-    return places.map { p -> MapDecoration.Highlight(p.shape, if (p in summary.found) colors.good else colors.target) } +
+    return places.map { p -> MapDecoration.Highlight(p.shape, if (p in summary.found) colors.good else colors.target, fillAlpha(p.shape, 0.45f)) } +
         summary.results.flatMap { blitzTap(it, colors) } +
         places.map { p -> MapDecoration.Label(p.label, p.name, if (p in summary.found) null else colors.missText) }
 }
+
+/**
+ * A blitz fill: [alpha] for a town or a lake, a third of it for a region or a sea, which would
+ * otherwise cover the places around it.
+ */
+private fun fillAlpha(shape: Shape, alpha: Float): Float =
+    if (shape is Shape.Area && shape.area > LARGE_AREA_M2) alpha / 3 else alpha
+
+/** An area larger than this (map square meters, 400 km²) is filled faintly in a blitz. */
+private const val LARGE_AREA_M2 = 400_000_000.0
 
 /** Naming options closer together than this are viewed close up (map meters). */
 private const val CLOSE_OPTIONS_METERS = 30_000.0
