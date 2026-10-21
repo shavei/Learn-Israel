@@ -49,7 +49,8 @@ find and name places on a blank map. Every answer gets instant spatial feedback 
 line from your tap to the true spot, the distance in km, and one memorable fact). A
 spaced repetition scheduler (FSRS) brings each place back right before you would
 forget it. Places you master light up on your map; places you neglect slowly fade.
-You learn the big frame first (coast, seas, neighbors, the big three cities), then
+You start with the big three cities and the sea beside them, then the rest of the big
+frame (seas, lakes, neighbors), then
 regions, then the cities and towns inside them, then nature, roads, and heritage
 sites.
 
