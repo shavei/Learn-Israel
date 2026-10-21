@@ -152,6 +152,36 @@ class FreePlayTest {
         assertEquals(3, RoadTrip.plan(road, allLearned(listOf("city.r0", "city.r1", "city.r2")), Random(1)).size)
     }
 
+    private fun city(id: String, x: Double, y: Double) =
+        Place(id, PlaceType.CITY, "u", 1, id, "", "", Shape.Point(MapPoint(x, y)), MapPoint(x, y))
+
+    @Test
+    fun townsSideBySideStillMakeAFullTrip() {
+        // Ten towns 8 km apart, too close for a usual leg: shorter legs make the trip.
+        val dense = Content(content.map, (0 until 10).map { city("city.d$it", it * 8_000.0, 0.0) })
+        val trip = RoadTrip.plan(dense, allLearned(dense.places.map { it.id }), Random(3))
+        assertEquals(RoadTrip.STOPS, trip.size)
+        assertTrue(trip.zipWithNext { a, b -> a.label.distanceTo(b.label) }.all { it >= RoadTrip.DENSE_MIN_LEG_M })
+    }
+
+    @Test
+    fun aRemotePlaceIsReachedByALongerLeg() {
+        // A line of towns, and one 120 km beyond the last: a trip can start there.
+        val south = Content(content.map, (0 until 4).map { city("city.s$it", 0.0, it * -20_000.0) } + city("city.eilat", 0.0, -180_000.0))
+        val cards = allLearned(south.places.map { it.id })
+        assertTrue((0 until 30).any { seed -> RoadTrip.plan(south, cards, Random(seed)).any { it.id == "city.eilat" } })
+    }
+
+    @Test
+    fun aFullTripIsFoundWheneverOneExists() {
+        // A road of five towns with dead-end side towns off it: every plan finds the five.
+        val places = (0 until 5).map { city("city.m$it", it * 30_000.0, 0.0) } +
+            (0 until 5).map { city("city.side$it", it * 30_000.0 + 15_000.0, 60_000.0) }
+        val map = Content(content.map, places)
+        val cards = allLearned(places.map { it.id })
+        repeat(30) { seed -> assertEquals(RoadTrip.STOPS, RoadTrip.plan(map, cards, Random(seed)).size, "seed $seed") }
+    }
+
     @Test
     fun aTripAsksEveryStopAfterTheStart() {
         val cards = allLearned(road.places.map { it.id })
