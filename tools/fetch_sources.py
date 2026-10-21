@@ -365,7 +365,11 @@ def overpass(query: str) -> dict:
             req = urllib.request.Request(url, data=data, headers={"User-Agent": USER_AGENT})
             try:
                 with urllib.request.urlopen(req, timeout=300) as r:
-                    return json.loads(r.read())
+                    result = json.loads(r.read())
+                # A query that ran out of time or memory still answers 200, with what it found so far.
+                if "remark" in result:
+                    raise ConnectionError(result["remark"])
+                return result
             except (urllib.error.URLError, TimeoutError, ConnectionError, json.JSONDecodeError) as e:
                 print(f"  {url}: {e}")
         time.sleep(30 * (attempt + 1))
@@ -416,7 +420,7 @@ def osm_places() -> None:
                 found += [w for w in json.loads(cached.read_text()) if w["id"] not in {f["id"] for f in found}]
             if not found:
                 sys.exit(f"no ways with ref {arg}")
-            # Both carriageways of a divided road merge into one line once simplified.
+            # tools/build_content.py drops the short pieces left by junctions and carriageways.
             parts = [LineString([(p["lon"], p["lat"]) for p in w["geometry"]]) for w in found]
             geom = ops.linemerge(ops.unary_union(parts))
             name = f"road {arg}, {len(found)} ways"

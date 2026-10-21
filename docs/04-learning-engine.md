@@ -149,7 +149,8 @@ points  = 5000                          if d <= 1
           points: 5000  4353  3789 2679  1340  167   5
 
 Map Builder: d is how far the shape landed from its place
-NAME, RELATE: 5000 when right (a spelling slip included), 0 when wrong
+NAME, RELATE: 5000 when right (a spelling slip included, but never a wrong digit:
+             כביש 4 for Route 1 is wrong), 0 when wrong
 ```
 
 - **Points never change the schedule.** The grade above decides what FSRS learns; points
@@ -300,7 +301,8 @@ today's essential work is done.
 
 - Seeded by hand in content data (`confusables`).
 - Learned automatically: when a player taps place B while asked for A (tap lands
-  inside or nearest to B), the answer logs `tappedNear = B`. A pair mixed up twice or
+  inside or nearest to B), the answer logs `tappedNear = B`. A missed highway only
+  ever names another highway: it runs through cities, which the player did not mean. A pair mixed up twice or
   more, either way round, becomes a confusable for that player (personal only for now;
   a global threshold waits for the log upload in Phase 2e).
 - Learned pairs join the seeded ones everywhere: asked back to back in review once

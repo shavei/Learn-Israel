@@ -39,7 +39,8 @@ releases, each playable on its own.
 - [x] Skills per place: `LOCATE`, `NAME`, `RELATE`, each with its own FSRS card
 - [x] Name It: multiple choice (confusables and nearby places as distractors), then
       typed once stable, with Hebrew spelling-variant matching and aliases; one
-      typo on a longer name still counts as correct (feedback shows the spelling)
+      typo on a longer name still counts as correct (feedback shows the spelling),
+      never a wrong digit (כביש 4 is not כביש 1)
 - [x] Which Way: further north/south/east/west, and closer to a third known city
 - [x] Facet ladder: naming and relations unlock once finding the place has been
       stable for a week
@@ -118,7 +119,8 @@ What 1c simplified, on purpose:
 
 What 1d simplified, on purpose:
 - No upload and no dashboard: beta results come in through the share button. The
-  opt-in anonymous log upload stays in Phase 2.
+  opt-in anonymous log upload was planned for Phase 2 (2e), and is now postponed
+  until after launch.
 - The long-term retention probe uses ordinary reviews that came after 30+ days, not
   extra probe questions. Calibration is shown as mean predicted vs actual recall, not
   log loss. Engagement cohorts (D1, D7, D30) need many players, so they wait for the
@@ -276,7 +278,10 @@ smaller releases, in order of learning value, each playable on its own.
       that carries the number, within 1 km of Israel's land or Gaza (the numbers repeat
       across the borders), from the Overpass API
 - [x] Pin It anywhere along the road, 3 km like a stream; Name It offers roads with
-      roads; a missed tap names the other road the player probably meant
+      roads; a missed tap names the other road the player probably meant, never a city
+      the road runs through; a typed road number is never forgiven as a typo
+- [x] The home map gives a practiced highway a lighter wash than other places, so the
+      long ones do not cover it
 - [x] A highway counts toward no region percentage (each crosses many), is not a Road
       Trip stop, and leaves the gateways achievement to ports and airports
 - [x] The six roads as built: `docs/images/highways.png`

@@ -125,6 +125,18 @@ def polygons(geom) -> list[Polygon]:
     return []
 
 
+ROAD_STUB_M = 300  # a piece of a highway shorter than this, beside a longer piece, is a ramp or the other carriageway
+
+
+def road_course(geom):
+    """A highway's ways as few lines as possible. The ways split at every junction and run in
+    two carriageways, which leaves hundreds of short pieces once simplified; the short ones
+    lying beside a longer piece add nothing to grading or drawing, so they are dropped."""
+    pieces = lines(ops.linemerge(lines(geom.simplify(SIMPLIFY["roads"]))))
+    long = MultiLineString([p for p in pieces if p.length >= ROAD_STUB_M])
+    return MultiLineString([p for p in pieces if p.length >= ROAD_STUB_M or long.distance(p) > SIMPLIFY["roads"]])
+
+
 def lines(geom) -> list[LineString]:
     if geom.is_empty:
         return []
@@ -496,7 +508,7 @@ def main() -> int:
                 errors.append(f"{p['id']}: {p['geometry']} is not in content/osm_places.geojson (run tools/fetch_sources.py)")
                 continue
             if kind == "road":
-                course = project(source).intersection(israel_roads).simplify(SIMPLIFY["roads"])
+                course = road_course(project(source).intersection(israel_roads))
             else:
                 course = clean(source.intersection(WINDOW), SIMPLIFY["rivers"])
             if course.geom_type in ("Polygon", "MultiPolygon"):

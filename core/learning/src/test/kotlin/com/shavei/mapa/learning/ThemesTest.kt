@@ -124,6 +124,13 @@ class ThemesTest {
     }
 
     @Test
+    fun theGatewaysAchievementIsPortsAndAirportsWithoutTheRoads() {
+        val gateways = Achievements.progress(content, known = setOf("port.p"), records = emptyList(), bestStreak = 0)
+            .getValue(Achievement.GATEWAYS)
+        assertEquals(AchievementProgress(1, 1), gateways)
+    }
+
+    @Test
     fun aMissedRoadNamesAnotherRoadNeverACityOnIt() {
         val base = testContent()
         // Two roads 6 km apart, the first passing 6 km north of the cities at y = 0.
