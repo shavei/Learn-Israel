@@ -13,8 +13,11 @@ android {
         applicationId = "com.shavei.mapa"
         minSdk = 26
         targetSdk = 35
-        // CI run number, so every published build installs as an update over the last one.
-        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        // Minutes from 2025 to the commit built, so every build of a newer commit installs as an
+        // update over the last one, whichever workflow built it. (A workflow's run number is
+        // not enough: it restarted at 1 when publishing moved to release.yml, below the builds
+        // already installed, and phones refused the update as "invalid".)
+        versionCode = commitVersionCode()
         versionName = "0.1.0"
     }
 
@@ -84,3 +87,9 @@ dependencies {
 tasks.withType<Test>().configureEach {
     systemProperty("screenshotDir", layout.buildDirectory.dir("screenshots").get().asFile.absolutePath)
 }
+
+/** Minutes from 2025 to the checked out commit; 1 where there is no git to ask. */
+fun commitVersionCode(): Int = runCatching {
+    val seconds = providers.exec { commandLine("git", "log", "-1", "--format=%ct") }.standardOutput.asText.get().trim().toLong()
+    ((seconds - 1_735_689_600L) / 60).toInt().coerceAtLeast(1)
+}.getOrDefault(1)
