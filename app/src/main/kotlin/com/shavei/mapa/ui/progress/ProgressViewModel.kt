@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shavei.mapa.MapaApplication
 import com.shavei.mapa.content.PlaceType
+import com.shavei.mapa.data.BlitzRecord
 import com.shavei.mapa.data.Motivation
 import com.shavei.mapa.learning.AnswerTally
 import com.shavei.mapa.learning.Facet
@@ -48,6 +49,8 @@ data class ProgressState(
     val mixedPairs: List<MixedPair> = emptyList(),
     /** Places this player misses most when finding them on the map, the most missed first. */
     val hardest: List<HardPlace> = emptyList(),
+    /** The best blitz and how many were played; null before the first. */
+    val blitz: BlitzRecord? = null,
 )
 
 /** A place by name and how finding it has gone. */
@@ -93,6 +96,7 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
                 mapTestNext = MapTest.nextDue(daysPlayed.minOrNull(), lastTest),
                 appVersion = app.progress.appVersion,
                 motivation = app.progress.motivation(app.content, now, zone),
+                blitz = app.progress.blitzRecord(),
                 mixedPairs = LearnedConfusables.pairs(app.progress.confusions()).mapNotNull { pair ->
                     val first = app.content.place(pair.first) ?: return@mapNotNull null
                     val second = app.content.place(pair.second) ?: return@mapNotNull null

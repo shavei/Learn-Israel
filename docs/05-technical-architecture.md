@@ -102,10 +102,13 @@ ReviewEntity(reviewId PK, cardId, ts, grade, errorKm, tapX, tapY, chosenOptionId
 UnitProgressEntity(unitId PK, unlockedAt, completedAt)
 ConfusionEntity(askedPlaceId, tappedPlaceId, count, PK(asked, tapped))
 AchievementEntity(id PK, unlockedAt)
+BlitzRoundEntity(sessionId PK, finishedAt, points, answers, found)
 ```
 
-As built (database version 4): confusions are not a table of their own but a query
-over `reviews.tappedNear`; `achievements(id, unlockedAt)` arrived with Phase 2d.
+As built (database version 5): confusions are not a table of their own but a query
+over `reviews.tappedNear`; `achievements(id, unlockedAt)` arrived with Phase 2d
+(version 4) and `blitz_rounds(sessionId, finishedAt, points, answers, found)` with
+the Blitz records (version 5, `MIGRATION_4_5`).
 
 ## Testing strategy
 

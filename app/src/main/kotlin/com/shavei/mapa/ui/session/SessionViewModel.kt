@@ -7,6 +7,7 @@ import com.shavei.mapa.MapaApplication
 import com.shavei.mapa.content.Place
 import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.data.AnswerSource
+import com.shavei.mapa.data.BlitzRecord
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.learning.Achievement
 import com.shavei.mapa.learning.Answer
@@ -64,6 +65,12 @@ data class SessionSummary(
     val preTest: MapTestResult? = null,
     /** A blitz: the time ran out. */
     val blitz: Boolean = false,
+    /**
+     * A blitz, once saved: the record it had to beat, null for the first round. [points]
+     * above it is a new record.
+     */
+    val blitzRecordBefore: BlitzRecord? = null,
+    val blitzSaved: Boolean = false,
     /** A road trip: its stops, from the start. */
     val trip: List<Place> = emptyList(),
     /** Achievements earned for the first time in this session. */
@@ -233,19 +240,28 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
 
     /**
      * The summary at once; then, once every answer is saved, any achievement earned for
-     * the first time and a new rank are added to it.
+     * the first time and a new rank are added to it, and a blitz is saved with its score.
      */
     private fun finish() {
-        _ui.value = SessionUi.Finished(summary())
+        val summary = summary()
+        _ui.value = SessionUi.Finished(summary)
         val previous = saving
         viewModelScope.launch {
             previous?.join()
-            val motivation = app.progress.motivation(app.content, System.currentTimeMillis())
+            val now = System.currentTimeMillis()
+            val recordBefore = if (summary.blitz) {
+                app.progress.saveBlitz(sessionId, now, summary.points, summary.answers, summary.correct)
+            } else {
+                null
+            }
+            val motivation = app.progress.motivation(app.content, now)
             val finished = _ui.value as? SessionUi.Finished ?: return@launch
             _ui.value = finished.copy(
                 summary = finished.summary.copy(
                     newAchievements = motivation.newlyEarned,
                     newRank = motivation.rank.takeIf { it > rankBefore },
+                    blitzRecordBefore = recordBefore,
+                    blitzSaved = summary.blitz,
                 ),
             )
         }

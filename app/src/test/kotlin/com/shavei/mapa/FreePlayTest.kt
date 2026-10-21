@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import com.shavei.mapa.data.BlitzRoundEntity
 import com.shavei.mapa.data.CardEntity
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
@@ -88,10 +89,15 @@ class FreePlayTest {
             Thread.sleep(10_500)
             if (!has("נגמר הזמן!")) tapMap()
             waitForText("נגמר הזמן!")
+            // The first round to run out its clock sets the record.
+            waitForText("הבליץ הראשון שלכם")
             Screenshots.save(scenario, "f3-blitz-summary")
         }
         val reviews = runBlocking { app.database.progressDao().reviews() }
         assertTrue(reviews.size in 1..2)
+        val round = runBlocking { app.database.progressDao().blitzRounds() }.single()
+        assertEquals(reviews.size, round.answers)
+        assertEquals(reviews.count { it.rating >= 3 }, round.found)
         assertTrue(reviews.all { it.mode == "BLITZ" && it.placeId in towns })
         // The places are not due for days: a success is logged without moving the review,
         // and a miss counts in full.
@@ -100,6 +106,31 @@ class FreePlayTest {
             val card = cards.getValue(r.placeId)
             if (r.rating == 1) assertEquals(CardState.RELEARNING.value, card.state) else assertEquals(CardState.REVIEW.value, card.state)
         }
+    }
+
+    @Test
+    fun aBlitzIsMeasuredAgainstTheRecord() {
+        seed()
+        runBlocking {
+            app.database.progressDao().insert(BlitzRoundEntity("earlier", System.currentTimeMillis() - DAY_MS, 99_000, 25, 20))
+        }
+        SessionViewModel.blitzDurationMs = 3_000
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForText("עוד דרכים לתרגל")
+            compose.onNodeWithText("עוד דרכים לתרגל").performScrollTo().performClick()
+            waitForText("השיא שלכם: 99,000 נקודות")
+            compose.onNodeWithText("בליץ").performScrollTo().performClick()
+            waitForText("התחילו!")
+            compose.onNodeWithText("התחילו!").performClick()
+            waitForText("נותרו")
+            Thread.sleep(3_500)
+            if (!has("נגמר הזמן!")) tapMap()
+            waitForText("נגמר הזמן!")
+            // Two places in three seconds do not beat 99,000 points.
+            waitForText("השיא שלכם: 99,000 נקודות")
+            assertTrue(!has("שיא חדש"))
+        }
+        assertEquals(2, runBlocking { app.database.progressDao().blitzRounds() }.size)
     }
 
     @Test

@@ -47,6 +47,7 @@ import com.shavei.mapa.learning.RegionScore
 import com.shavei.mapa.learning.ThemeScore
 import com.shavei.mapa.ui.formatDate
 import com.shavei.mapa.ui.formatKm
+import com.shavei.mapa.ui.formatPoints
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -250,7 +251,7 @@ private fun StatsCard(state: ProgressState) {
     }
     val motivationLines = state.motivation?.let { m ->
         listOf(stringResource(R.string.stats_motivation, rankName(m.rank), m.earned.size, m.progress.size, state.mixedPairs.size))
-    }.orEmpty()
+    }.orEmpty() + listOfNotNull(state.blitz?.let { stringResource(R.string.stats_blitz, formatPoints(it.best), it.rounds) })
     val shareText = (
         listOf(stringResource(R.string.stats_share_header, state.appVersion), title) + lines + themeLines + motivationLines +
             listOf(stringResource(R.string.map_test_title)) + mapTestLines(state)

@@ -29,6 +29,7 @@
     <string name="home_build_locked">ייפתח כשתתחילו ללמוד אזורים</string>
     <string name="home_focus_note">המקומות שהכי קשים לכם כרגע</string>
     <string name="home_blitz_note">דקה אחת, כמה שיותר מקומות שלמדתם</string>
+    <string name="home_blitz_note_record">דקה אחת, כמה שיותר מקומות · השיא שלכם: %1$s נקודות</string>
     <string name="home_blitz_locked">ייפתח אחרי %1$d מקומות שלמדתם (עכשיו %2$d)</string>
     <string name="home_trip_note">מסלול על המפה בין מקומות שלמדתם</string>
     <string name="home_trip_locked">ייפתח כשתלמדו כמה מקומות קרובים זה לזה</string>
@@ -86,6 +87,9 @@
     <string name="blitz_clock">נותרו %1$d שניות</string>
     <string name="blitz_last">%1$s: %2$s נקודות</string>
     <string name="blitz_summary_title">נגמר הזמן!</string>
+    <string name="blitz_record_first">הבליץ הראשון שלכם: זה השיא לשבור</string>
+    <string name="blitz_record_new">שיא חדש! הקודם היה %1$s נקודות</string>
+    <string name="blitz_record">השיא שלכם: %1$s נקודות</string>
     <plurals name="blitz_summary_found">
         <item quantity="one">מקום אחד נכון מתוך %2$d</item>
         <item quantity="two">2 מקומות נכונים מתוך %2$d</item>
@@ -191,6 +195,7 @@
     <string name="stats_share">שיתוף התוצאות</string>
     <string name="stats_share_header">תוצאות מפה (גרסה %1$s)</string>
     <string name="stats_motivation">%1$s, %2$d מתוך %3$d הישגים, %4$d זוגות מבלבלים</string>
+    <string name="stats_blitz">בליץ: שיא %1$s נקודות, %2$d סבבים</string>
 
     <string name="rank_line">דרגה: %1$s</string>
     <string name="rank_next">עוד %1$d מקומות ידועים לדרגת %2$s</string>

@@ -504,6 +504,7 @@ private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
                 Text(stringResource(R.string.blitz_summary_title), style = MaterialTheme.typography.headlineSmall)
                 SummaryPoints(summary)
                 Text(pluralStringResource(R.plurals.blitz_summary_found, summary.correct, summary.correct, summary.answers))
+                BlitzRecordLine(summary)
             } else if (summary.trip.isNotEmpty()) {
                 Text(stringResource(R.string.trip_summary_title), style = MaterialTheme.typography.headlineSmall)
                 SummaryPoints(summary)
@@ -526,6 +527,25 @@ private fun SummaryCard(summary: SessionSummary, onDone: () -> Unit) {
             Button(onClick = onDone, Modifier.fillMaxWidth()) { Text(stringResource(R.string.summary_done)) }
         }
     }
+}
+
+/** A blitz against the record: the first one sets it, a higher score beats it (shown once saved). */
+@Composable
+private fun BlitzRecordLine(summary: SessionSummary) {
+    if (!summary.blitzSaved) return
+    val before = summary.blitzRecordBefore
+    val text = when {
+        before == null -> stringResource(R.string.blitz_record_first)
+        summary.points > before.best -> stringResource(R.string.blitz_record_new, formatPoints(before.best))
+        else -> stringResource(R.string.blitz_record, formatPoints(before.best))
+    }
+    val record = before == null || summary.points > before.best
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = if (record) FontWeight.Bold else null,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 /** A rank gained and achievements earned in this session; they arrive once the answers are saved. */
