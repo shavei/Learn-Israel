@@ -40,7 +40,9 @@ while the sources keep changing. Rerun this only to refresh them, then rebuild.
                                     Defence and Space GmbH 2014-2018, provided under COPERNICUS
                                     by the European Union and ESA; free to use with attribution.
   content/osm_places.geojson        The places of content/places.yaml drawn from OpenStreetMap
-                                    (ODbL): rivers and craters by their OSM way or relation.
+                                    (ODbL): rivers and craters by their OSM way or relation,
+                                    and highways as every main road way with their number
+                                    (from the Overpass API).
   content/palestine.geojson         The Gaza Strip and the West Bank from the UN OCHA common
                                     operational dataset (HDX "cod-ab-pse", CC BY-IGO). The West
                                     Bank's western edge is the 1949 armistice line (Green Line).
@@ -338,6 +340,42 @@ def region_overrides() -> None:
     print(f"  {out.relative_to(ROOT)}: {len(features)} areas")
 
 
+OVERPASS = [
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass-api.de/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+]
+# Israel and its edges in four bands, south to north (south, west, north, east, the
+# Overpass order): small queries are answered when one big one times out.
+ISRAEL_BANDS = ["29.4,34.2,30.6,35.95", "30.6,34.2,31.6,35.95", "31.6,34.2,32.5,35.95", "32.5,34.2,33.4,35.95"]
+# Road classes that carry a highway's number; ramps and side roads are left out.
+ROAD_CLASSES = "motorway|trunk|primary|secondary"
+# Road queries are kept here once answered, so a rerun after a failure fetches only the rest.
+# Delete the folder to fetch the roads again.
+OSM_CACHE = ROOT / "tools" / "raw" / "osm_places"
+
+
+def overpass(query: str) -> dict:
+    """Runs an Overpass query on the first server that answers (they are often busy)."""
+    import time
+
+    data = urllib.parse.urlencode({"data": query}).encode()
+    for attempt in range(4):
+        for url in OVERPASS:
+            req = urllib.request.Request(url, data=data, headers={"User-Agent": USER_AGENT})
+            try:
+                with urllib.request.urlopen(req, timeout=300) as r:
+                    result = json.loads(r.read())
+                # A query that ran out of time or memory still answers 200, with what it found so far.
+                if "remark" in result:
+                    raise ConnectionError(result["remark"])
+                return result
+            except (urllib.error.URLError, TimeoutError, ConnectionError, json.JSONDecodeError) as e:
+                print(f"  {url}: {e}")
+        time.sleep(30 * (attempt + 1))
+    sys.exit("no Overpass server answered")
+
+
 def osm_feature(ref: str):
     """An OSM way or relation as an area (closed ways, multipolygons, boundaries) or as lines
     (rivers: the relation's main stream, or all its ways when it has no roles), with its name."""
@@ -358,7 +396,7 @@ def osm_feature(ref: str):
 
 def osm_places() -> None:
     """The geometry of places.yaml entries taken from OpenStreetMap: "osm:<way|relation>/<id>"
-    (rivers, craters)."""
+    (rivers, craters) and "road:<number>" (every way of the highway with that number)."""
     import yaml
 
     sources = [p["geometry"] for p in yaml.safe_load((CONTENT / "places.yaml").read_text())["places"]]
@@ -369,6 +407,23 @@ def osm_places() -> None:
             print(f"fetching OSM {arg}")
             geom, tags = osm_feature(arg)
             name = tags.get("name")
+        elif kind == "road":
+            print(f"fetching road {arg}")
+            found = []
+            for band in ISRAEL_BANDS:
+                cached = OSM_CACHE / f"road_{arg}_{band}.json"
+                if not cached.exists():
+                    result = overpass(f'[out:json][timeout:200];way["highway"~"^({ROAD_CLASSES})$"]["ref"="{arg}"]'
+                                      f'({band});out geom;')
+                    cached.parent.mkdir(parents=True, exist_ok=True)
+                    cached.write_text(json.dumps(result["elements"]))
+                found += [w for w in json.loads(cached.read_text()) if w["id"] not in {f["id"] for f in found}]
+            if not found:
+                sys.exit(f"no ways with ref {arg}")
+            # tools/build_content.py drops the short pieces left by junctions and carriageways.
+            parts = [LineString([(p["lon"], p["lat"]) for p in w["geometry"]]) for w in found]
+            geom = ops.linemerge(ops.unary_union(parts))
+            name = f"road {arg}, {len(found)} ways"
         else:
             continue
         features.append({"type": "Feature", "properties": {"source": source, "name": name},

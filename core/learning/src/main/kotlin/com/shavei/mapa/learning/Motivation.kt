@@ -97,7 +97,7 @@ object Achievements {
                 Achievement.WHOLE_REGION -> wholeRegion(content, known)
                 Achievement.ALL_CITIES -> allKnown(ofType(PlaceType.CITY))
                 Achievement.NATURE -> allKnown(ofTheme(Theme.NATURE))
-                Achievement.GATEWAYS -> allKnown(ofTheme(Theme.INFRASTRUCTURE))
+                Achievement.GATEWAYS -> allKnown(ofType(PlaceType.PORT, PlaceType.AIRPORT))
                 Achievement.HERITAGE -> allKnown(ofTheme(Theme.HERITAGE))
                 Achievement.NO_MISS -> atLeast(if (hasNoMissSession(records)) 1 else 0, 1)
                 Achievement.LONG_MEMORY -> atLeast(

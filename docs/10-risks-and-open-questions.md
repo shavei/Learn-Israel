@@ -13,14 +13,14 @@
 | 7 | Backend for social features? | Decide later | Phases 0 to 2 are fully offline; choose Supabase or Firebase at the start of Phase 3 |
 | 8 | Team? | One developer working with Claude Code | Tight scope per phase, heavy automated testing, each phase ships something usable |
 | 9 | When do nature, ports and heritage (tiers 4 to 6) come in? (2026-10-20) | After the whole core (frame, regions, cities), as the curriculum is ordered | Several weeks of play before the first mountain or site; revisit if the exit test shows players stop before Tier 4 |
-| 10 | Highways? (2026-10-20) | Left out for now, to be added later | Routes 1, 2, 4, 6, 40 and 90 wait for a later release (with Trace It or once the OSM download works) |
+| 10 | Highways? (2026-10-20, built 2026-10-21) | Routes 1, 2, 4, 6, 40, 60 and 90, found with Pin It anywhere along them | They count toward no region percentage (each crosses many), are no Road Trip stops, and the gateways achievement stays ports and airports |
 | 11 | Heritage sites inside a known city (the Old City, Yad Vashem, Old Jaffa, the Bahá'í Gardens, Old Akko)? (2026-10-20) | Kept, with Pin It and Name It like any place | Easy to find once the city is known; they still teach the name and the fact |
 | 12 | Review of the tier 4 to 6 Hebrew text? (2026-10-20) | Shipped without a separate review | Names, hints and facts are fixed as testers report problems |
 | 13 | Do nature and heritage places count in the region percentages? (2026-10-20) | Yes: a region counts every place in it | A region is 100 percent only when its cities, mountains, streams and sites are all known; percentages drop once tier 4 places exist |
 | 14 | More tier 4 to 6 places now? (2026-10-20) | No: 49 are enough until the playtest shows players reach them | More reserves, valleys and sites wait; Haifa airport and Tel Dan stay out (each sits beside another place) |
 | 15 | Where do Map Builder and Trace It live? (2026-10-20) | Both in the daily session, as another way to find a known region or line, and as rounds from home | They share the LOCATE card with Pin It; a home round brings no new places |
 | 16 | What is one Map Builder question? (2026-10-20) | One shape per question, dragged into place | One card per question, as in the rest of the session; a whole-puzzle round can come later |
-| 17 | Which lines can Trace It ask for? (2026-10-20) | The Jordan and all 8 streams, the Dan and the Hermon included | The craters stay Pin It only; the highways join Trace It when they are added |
+| 17 | Which lines can Trace It ask for? (2026-10-20) | The Jordan and all 8 streams, the Dan and the Hermon included | The craters stay Pin It only; the highways were to join it, but Trace It was later removed (24) |
 | 18 | What can free play ask? (2026-10-20) | Only places past their learning steps, for Blitz and Road Trip alike | Free play never teaches a new place; Blitz needs 4 learned places, Road Trip a trip of 3 stops |
 | 19 | Does a road trip count fully for the scheduler? (2026-10-20) | No: the same reduced weight as Blitz (a miss always, a success only when due within 2 days) | Playing for fun never pushes reviews far ahead; a road trip still catches places being forgotten |
 | 20 | Written trips or trips planned from the player's places? (2026-10-20) | Planned on the spot from learned places | Every player gets trips from the first days; written story trips (Ben Gurion to Eilat) can come later, once players know tiers 4 to 6 |
@@ -29,6 +29,7 @@
 | 23 | When does a pair of places become a learned confusable? (2026-10-20) | After 2 confusions, either way round, for that player | Pairs appear quickly from real mistakes; global pairs wait for the log upload (2e) |
 | 24 | Trace It, or a mode run by the answer log? (2026-10-20) | Focused practice replaces Trace It on home, and Trace It is removed everywhere | Rivers and streams are found with Pin It only; older logs keep their TRACE answers |
 | 25 | What does focused practice ask, and does it move the schedule? (2026-10-20) | Every place met, by one score of recent misses and few answers; 10 places, each the way most in need, a miss once more; answers update the tally only | The round adapts to the player without pulling reviews earlier or pushing them later |
+| 26 | Opt-in log upload (2e) before launch? (2026-10-21) | Postponed until after the public launch | A global parameter fit needs many players; until then results come through "Share results", and the game stays fully offline. Personal parameter fitting on the phone (Phase 4) needs no server |
 
 ## Still open
 

@@ -15,6 +15,7 @@ import com.shavei.mapa.learning.fsrs.Rating
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -28,12 +29,12 @@ class ThemesTest {
         return Place(id, type, unit, 1, id, "", "", Shape.Point(at), at, toleranceMeters = toleranceMeters)
     }
 
-    private fun stream(id: String, y: Double): Place {
+    private fun stream(id: String, y: Double, type: PlaceType = PlaceType.STREAM): Place {
         val line = Shape.Lines(listOf(Line(doubleArrayOf(0.0, y, 100_000.0, y))))
-        return Place(id, PlaceType.STREAM, "streams", 1, id, "", "", line, MapPoint(50_000.0, y))
+        return Place(id, type, "streams", 1, id, "", "", line, MapPoint(50_000.0, y))
     }
 
-    /** The test cities, then mountains, a crater, streams, a port and sites to the north. */
+    /** The test cities, then mountains, a crater, streams, a road, a port and sites to the north. */
     private val content: Content = run {
         val base = testContent()
         val more = listOf(
@@ -45,6 +46,7 @@ class ThemesTest {
             ),
             stream("stream.1", 140_000.0),
             stream("stream.2", 145_000.0),
+            stream("road.r", 170_000.0, PlaceType.ROAD),
             point("port.p", PlaceType.PORT, "gateways", 80_000.0, 200_000.0),
             point("site.a", PlaceType.SITE, "heritage", 0.0, 200_000.0),
             point("site.b", PlaceType.SITE, "heritage", 2_000.0, 200_000.0),
@@ -67,6 +69,7 @@ class ThemesTest {
         assertEquals(Theme.CORE, PlaceType.RIVER.theme)
         assertEquals(Theme.NATURE, PlaceType.STREAM.theme)
         assertEquals(Theme.NATURE, PlaceType.CRATER.theme)
+        assertEquals(Theme.INFRASTRUCTURE, PlaceType.ROAD.theme)
         assertEquals(Theme.INFRASTRUCTURE, PlaceType.AIRPORT.theme)
         assertEquals(Theme.INFRASTRUCTURE, PlaceType.PORT.theme)
         assertEquals(Theme.HERITAGE, PlaceType.SITE.theme)
@@ -76,6 +79,7 @@ class ThemesTest {
     fun smallTargetsAskFor3KmAndALongRidgeHasItsOwnTolerance() {
         assertEquals(3_000.0, Grader.tolerance(content.place("site.a")!!))
         assertEquals(3_000.0, Grader.tolerance(content.place("stream.1")!!))
+        assertEquals(3_000.0, Grader.tolerance(content.place("road.r")!!))
         assertEquals(4_000.0, Grader.tolerance(content.place("mountain.a")!!))
         assertEquals(8_000.0, Grader.tolerance(content.place("mountain.b")!!))
         // 6 km from the middle of a long ridge is still on it.
@@ -88,6 +92,14 @@ class ThemesTest {
         val g = Grader.grade(content.place("stream.1")!!, MapPoint(80_000.0, 142_000.0), 6_000, false, stabilityDays = 30.0)
         assertEquals(Rating.GOOD, g.rating)
         assertEquals(2_000.0, g.errorMeters)
+    }
+
+    @Test
+    fun aRoadIsFoundAnywhereAlongItButIsNoRoadTripStop() {
+        val g = Grader.grade(content.place("road.r")!!, MapPoint(10_000.0, 172_000.0), 6_000, false, stabilityDays = 30.0)
+        assertEquals(Rating.GOOD, g.rating)
+        assertEquals(2_000.0, g.errorMeters)
+        assertFalse(RoadTrip.isStop(PlaceType.ROAD))
     }
 
     @Test
@@ -112,6 +124,30 @@ class ThemesTest {
     }
 
     @Test
+    fun theGatewaysAchievementIsPortsAndAirportsWithoutTheRoads() {
+        val gateways = Achievements.progress(content, known = setOf("port.p"), records = emptyList(), bestStreak = 0)
+            .getValue(Achievement.GATEWAYS)
+        assertEquals(AchievementProgress(1, 1), gateways)
+    }
+
+    @Test
+    fun aMissedRoadNamesAnotherRoadNeverACityOnIt() {
+        val base = testContent()
+        // Two roads 6 km apart, the first passing 6 km north of the cities at y = 0.
+        val roads = Content(base.map, base.places + stream("road.a", 6_000.0, PlaceType.ROAD) + stream("road.b", 12_000.0, PlaceType.ROAD))
+        fun missed(tap: MapPoint): Place? {
+            val e = SessionEngine(roads, scheduler, mapOf(CardKey("road.a", Facet.LOCATE) to known(4.0)), 0,
+                SessionConfig(maxNewPerDay = 0, drillShare = 0.0), { now }, Random(3))
+            val q = e.next()!!
+            assertEquals("road.a", q.place.id)
+            return e.submit(q, Response.Tap(tap), 3_000).tappedNear
+        }
+        // 1 km from city.c3 and 5 km from the road: not "you marked city.c3".
+        assertEquals(null, missed(MapPoint(60_000.0, 1_000.0)))
+        assertEquals("road.b", missed(MapPoint(30_000.0, 12_500.0))?.id)
+    }
+
+    @Test
     fun newPlacesOfTheThemesComeAfterTheCore() {
         val e = SessionEngine(content, scheduler, emptyMap(), 0, SessionConfig(maxNewPerDay = null, maxInLearning = 100), { now }, Random(1))
         val firstNew = generateSequence { e.next()?.also { q -> e.submit(q, Response.Tap(q.place.label), 3_000) } }
@@ -129,7 +165,7 @@ class ThemesTest {
 
     @Test
     fun themeScoresCountPracticedAndKnownPlaces() {
-        val scores = themeScores(content, practiced = setOf("site.a", "reserve.c", "port.p", "city.c0"), known = setOf("site.a"))
+        val scores = themeScores(content, practiced = setOf("site.a", "reserve.c", "port.p", "road.r", "city.c0"), known = setOf("site.a"))
         assertEquals(listOf(Theme.NATURE, Theme.INFRASTRUCTURE, Theme.HERITAGE), scores.map { it.theme })
         val nature = scores[0]
         // The reserve is nature, though it is taught in a heritage unit.
@@ -139,6 +175,8 @@ class ThemesTest {
         assertEquals(2, heritage.places)
         assertEquals(1, heritage.practiced)
         assertEquals(1, heritage.known)
-        assertEquals(1, scores[1].practiced)
+        // The road and the port.
+        assertEquals(2, scores[1].places)
+        assertEquals(2, scores[1].practiced)
     }
 }

@@ -39,7 +39,8 @@ releases, each playable on its own.
 - [x] Skills per place: `LOCATE`, `NAME`, `RELATE`, each with its own FSRS card
 - [x] Name It: multiple choice (confusables and nearby places as distractors), then
       typed once stable, with Hebrew spelling-variant matching and aliases; one
-      typo on a longer name still counts as correct (feedback shows the spelling)
+      typo on a longer name still counts as correct (feedback shows the spelling),
+      never a wrong digit (כביש 4 is not כביש 1)
 - [x] Which Way: further north/south/east/west, and closer to a third known city
 - [x] Facet ladder: naming and relations unlock once finding the place has been
       stable for a week
@@ -118,7 +119,8 @@ What 1c simplified, on purpose:
 
 What 1d simplified, on purpose:
 - No upload and no dashboard: beta results come in through the share button. The
-  opt-in anonymous log upload stays in Phase 2.
+  opt-in anonymous log upload was planned for Phase 2 (2e), and is now postponed
+  until after launch.
 - The long-term retention probe uses ordinary reviews that came after 30+ days, not
   extra probe questions. Calibration is shown as mean predicted vs actual recall, not
   log loss. Engagement cohorts (D1, D7, D30) need many players, so they wait for the
@@ -176,7 +178,8 @@ smaller releases, in order of learning value, each playable on its own.
 ### 2a. Tiers 4 to 6 - built
 - [x] 49 new places after the core, in 10 themed units: 22 of nature (mountains,
       craters, streams, springs and reserves), 5 of infrastructure (two airports, three
-      ports) and 22 heritage sites (docs/03-content-curriculum.md)
+      ports) and 22 heritage sites (docs/03-content-curriculum.md); the highways
+      followed later (below)
 - [x] Geometry from OpenStreetMap: rivers and craters by their way or relation, points
       copied from the OSM object named beside each place
 - [x] Each place type belongs to a theme (core, nature, infrastructure, heritage);
@@ -195,8 +198,7 @@ smaller releases, in order of learning value, each playable on its own.
   stay; region percentages include nature and heritage; 49 places are enough until the
   playtest shows players reach them; Haifa airport and Tel Dan stay out; the new Hebrew text ships without a separate review and is fixed as testers
   report problems
-- Not yet: the highways (Routes 1, 2, 4, 6, 40 and 90), left out for now and still
-  wanted later
+- Left out at first: the highways, since built (below)
 
 ### 2b. Map Builder and Trace It - built
 - [x] Map Builder: drag a region or district shape into place on the outline, one shape
@@ -215,7 +217,7 @@ smaller releases, in order of learning value, each playable on its own.
       the drawn path
 - Decided (doc 10): in the daily session and as rounds from home; one shape per
   question; the Jordan and all 8 streams, craters Pin It only
-- Not yet: roads (with the highways), the coastline, and seas or neighbors in Map Builder
+- Not yet: roads, the coastline, and seas or neighbors in Map Builder
 - Later removed: Trace It, replaced on home by focused practice (below); rivers and
   streams are Pin It only, and older logs keep their TRACE answers
 
@@ -238,7 +240,7 @@ smaller releases, in order of learning value, each playable on its own.
 - Decided (doc 10): free play only on learned places; the same reduced weight for Road
   Trip as for Blitz; trips are planned from the player's own places, not written by hand
 - Not yet: written trips with a story ("You land at Ben Gurion..."), trips along the
-  highways (with the highways), and a best Blitz score (points are not stored yet)
+  highways, and a best Blitz score (points are not stored yet)
 
 ### 2d. Motivation - built
 - [x] Ranks by known places (LOCATE stable for 21 days): Tourist, Hiker (10), Guide
@@ -270,8 +272,27 @@ smaller releases, in order of learning value, each playable on its own.
 - Decided (doc 10): Trace It removed everywhere; places in their learning steps count;
   missed most and answered least weigh together in one score
 
-### 2e. Data
+### Highways - built
+- [x] Routes 1, 2 (the coastal highway), 4, 6 (Trans-Israel), 40, 60 (the ridge road
+      from Be'er Sheva through Hebron, Jerusalem and Shechem to Nazareth) and 90, in their own
+      unit at the start of tier 5: every motorway to secondary road in OpenStreetMap
+      that carries the number, within 1 km of Israel's land or Gaza (the numbers repeat
+      across the borders), from the Overpass API
+- [x] Pin It anywhere along the road, 3 km like a stream; Name It offers roads with
+      roads; a missed tap names the other road the player probably meant, never a city
+      the road runs through; a typed road number is never forgiven as a typo
+- [x] The home map gives a practiced highway a lighter wash than other places, so the
+      long ones do not cover it
+- [x] A highway counts toward no region percentage (each crosses many), is not a Road
+      Trip stop, and leaves the gateways achievement to ports and airports
+- [x] The seven roads as built: `docs/images/highways.png`
+- Not yet: trips along the highways in Road Trip, and roads in Map Builder
+
+### 2e. Data - postponed until after launch
 - [ ] Opt-in anonymous log upload; first global FSRS parameter fit
+- Decided (doc 10): postponed. A global fit needs many players, so it waits for the
+  public launch; until then beta results come through "Share results", and the game
+  stays fully offline
 
 **Exit test:** players who finish Tier 3 continue into Tier 4+ at a healthy rate.
 

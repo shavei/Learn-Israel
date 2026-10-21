@@ -53,7 +53,7 @@ Map answers are not binary. We convert error to an FSRS grade.
 d       = distance from tap to the place (km); a tap inside a city polygon is d = 0
 tol     = base tolerance x learning multiplier
           base: city, the Jordan, mountain and crater 4 km; site, reserve, port,
-          airport and stream 3 km (small targets, often next to a city);
+          airport, stream and road 3 km (small targets, often next to a city);
           a long ridge its own (the Carmel 8 km, the Hermon and the Gilboa 6 km);
           areas max(2 km, 10% of their size)
           multiplier by the LOCATE card's stability (how well the place is known):
@@ -76,7 +76,7 @@ target; precision is asked for once the memory is stable.
 Tap inside the polygon = Good (Easy with the speed/confidence rule). Outside: `d` is
 the distance to the polygon edge, `tol` scales with the square root of the area.
 
-### LOCATE on a line item (river, stream, crater; later roads) in Pin It
+### LOCATE on a line item (river, stream, road, crater) in Pin It
 "Tap anywhere on Route 90". Distance to the nearest segment, tolerance by line type.
 A crater is drawn in OpenStreetMap as a line along its floor, so it is graded as one.
 
@@ -149,7 +149,8 @@ points  = 5000                          if d <= 1
           points: 5000  4353  3789 2679  1340  167   5
 
 Map Builder: d is how far the shape landed from its place
-NAME, RELATE: 5000 when right (a spelling slip included), 0 when wrong
+NAME, RELATE: 5000 when right (a spelling slip included, but never a wrong digit:
+             כביש 4 for Route 1 is wrong), 0 when wrong
 ```
 
 - **Points never change the schedule.** The grade above decides what FSRS learns; points
@@ -300,7 +301,8 @@ today's essential work is done.
 
 - Seeded by hand in content data (`confusables`).
 - Learned automatically: when a player taps place B while asked for A (tap lands
-  inside or nearest to B), the answer logs `tappedNear = B`. A pair mixed up twice or
+  inside or nearest to B), the answer logs `tappedNear = B`. A missed highway only
+  ever names another highway: it runs through cities, which the player did not mean. A pair mixed up twice or
   more, either way round, becomes a confusable for that player (personal only for now;
   a global threshold waits for the log upload in Phase 2e).
 - Learned pairs join the seeded ones everywhere: asked back to back in review once

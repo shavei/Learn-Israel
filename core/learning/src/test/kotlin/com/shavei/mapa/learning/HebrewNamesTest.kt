@@ -30,4 +30,15 @@ class HebrewNamesTest {
         assertEquals(Match.WRONG, HebrewNames.match("עכה", listOf("עכו")), "short names need to be exact")
         assertEquals(Match.WRONG, HebrewNames.match("", listOf("עכו")))
     }
+
+    @Test
+    fun aRoadNumberIsNeverASlip() {
+        val route1 = listOf("כביש 1", "כביש מספר 1", "דרך 1")
+        assertEquals(Match.EXACT, HebrewNames.match("כביש 1", route1))
+        assertEquals(Match.WRONG, HebrewNames.match("כביש 4", route1))
+        assertEquals(Match.WRONG, HebrewNames.match("כביש 40", listOf("כביש 90")))
+        assertEquals(Match.WRONG, HebrewNames.match("כביש מספר 6", listOf("כביש מספר 2")))
+        // A slip in the letters around the number is still forgiven.
+        assertEquals(Match.CLOSE, HebrewNames.match("כביש מספ 1", route1))
+    }
 }

@@ -92,14 +92,19 @@ fun HomeScreen(
     LaunchedEffect(topPx, bottomPx) { camera.setFramePadding(topPx, bottomPx) }
 
     // The trophy: every place you have practiced, colored by how well you know it today.
-    // Regions and districts cover the land and each other, so they get a lighter wash.
+    // Regions and districts cover the land and each other, so they get a lighter wash, and so
+    // do highways, which run the length of the country.
     // Known places also get a heavier outline, so the map does not rely on color alone.
     // Seas and neighboring countries are the frame around the map: painted, they would tint
     // the whole background and outline the edge of the map data, so home leaves them out.
     val decorations = content.places.mapNotNull { place ->
         if (place.type == PlaceType.SEA || place.type == PlaceType.COUNTRY) return@mapNotNull null
         state.mastery[place.id]?.let { m ->
-            val alpha = if (place.type == PlaceType.REGION || place.type == PlaceType.DISTRICT) 0.05 + 0.25 * m else 0.15 + 0.7 * m
+            val alpha = when (place.type) {
+                PlaceType.REGION, PlaceType.DISTRICT -> 0.05 + 0.25 * m
+                PlaceType.ROAD -> 0.1 + 0.35 * m
+                else -> 0.15 + 0.7 * m
+            }
             MapDecoration.Highlight(place.shape, colors.mastery, alpha = alpha.toFloat(), emphasis = place.id in state.knownPlaces)
         }
     }

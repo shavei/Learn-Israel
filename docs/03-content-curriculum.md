@@ -80,12 +80,14 @@ Example units (each 4 to 10 places):
 | Negev | Dimona, Arad, Yeruham, Mitzpe Ramon, Rahat |
 | Arava and Eilat | Eilat, Yotvata, Ein Yahav |
 
-## Tiers 4 to 6: nature, infrastructure and heritage (49 items, built in Phase 2a)
+## Tiers 4 to 6: nature, infrastructure and heritage (56 items, built in Phase 2a)
 
 Taught after the core (tiers 0 to 3), in themed units. Each place type belongs to one
 theme, which the progress screen counts separately. Geometry: points copied from
 OpenStreetMap objects (named beside each place in `content/places.yaml`), rivers and
-craters from OSM ways and relations.
+craters from OSM ways and relations, highways as every main road with their number
+(motorway to secondary, within 1 km of Israel's land or Gaza, so roads of the same
+number across the borders stay out).
 
 **Tier 4, nature (22):**
 - *Mountains:* Hermon, Meron, the Carmel, Tabor, Gilboa, Arbel.
@@ -94,7 +96,10 @@ craters from OSM ways and relations.
 - *Springs and reserves:* the Dan and the Hermon stream (Banias), the Hula reserve,
   Ein Gedi, Ein Avdat, Timna Park.
 
-**Tier 5, infrastructure (5):**
+**Tier 5, infrastructure (12):**
+- *Highways:* Route 1, the coastal highway (2), the Trans-Israel Highway (6), Route 4,
+  Route 60 (the Way of the Patriarchs, along the mountain ridge), Route 90, Route 40. A highway crosses many regions, so it counts toward none of the
+  region percentages.
 - *Gateways:* Ben Gurion and Ramon airports; the ports of Haifa, Ashdod and Eilat.
 
 **Tier 6, heritage (22):**
@@ -109,9 +114,7 @@ craters from OSM ways and relations.
 Left out on purpose: the Jordan (already in the frame), the Hula and Jezreel valleys,
 the Jordan Valley and the Arava (already natural regions), Haifa airport (a kilometer
 from Haifa port), Tel Dan (beside the Dan springs), the Hasbani (mostly in Lebanon).
-Still to come: the highways (Routes 1, 2, 4, 6, 40 and 90), left out for now and to be
-added later (the OSM servers that give a highway by its number were not answering);
-more nature reserves and valleys, and a richer fact card for heritage sites.
+Still to come: more nature reserves and valleys, and a richer fact card for heritage sites.
 
 ## Tier 7: Deep cuts (open ended, 300+ items)
 

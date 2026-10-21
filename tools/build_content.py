@@ -15,7 +15,7 @@ Inputs:
                                          countries and the Dead Sea (ODbL)
   content/palestine.geojson              Gaza and the West Bank, UN OCHA (CC BY-IGO); the
                                          West Bank's western edge is the Green Line
-  content/osm_places.geojson             rivers and craters of places.yaml, from OSM (ODbL)
+  content/osm_places.geojson             rivers, craters and highways of places.yaml, from OSM (ODbL)
   (the content files above are refreshed by tools/fetch_sources.py)
   GeoNames cities via the geonamescache package (CC BY 4.0)
 
@@ -80,6 +80,7 @@ COAST_NORTH_OF_WINDOW = [
 # Simplification tolerance in meters, per layer.
 SIMPLIFY = {
     "land": 40, "neighbors": 120, "lakes": 30, "rivers": 60, "seas": 120, "green_line": 40, "regions": 150,
+    "roads": 100,
 }
 
 LAKE_CODE = 99  # the Kinneret and the Dead Sea in the official natural regions
@@ -122,6 +123,18 @@ def polygons(geom) -> list[Polygon]:
     if isinstance(geom, (MultiPolygon, GeometryCollection)):
         return [p for g in geom.geoms for p in polygons(g)]
     return []
+
+
+ROAD_STUB_M = 300  # a piece of a highway shorter than this, beside a longer piece, is a ramp or the other carriageway
+
+
+def road_course(geom):
+    """A highway's ways as few lines as possible. The ways split at every junction and run in
+    two carriageways, which leaves hundreds of short pieces once simplified; the short ones
+    lying beside a longer piece add nothing to grading or drawing, so they are dropped."""
+    pieces = lines(ops.linemerge(lines(geom.simplify(SIMPLIFY["roads"]))))
+    long = MultiLineString([p for p in pieces if p.length >= ROAD_STUB_M])
+    return MultiLineString([p for p in pieces if p.length >= ROAD_STUB_M or long.distance(p) > SIMPLIFY["roads"]])
 
 
 def lines(geom) -> list[LineString]:
@@ -407,6 +420,8 @@ def main() -> int:
         f["properties"]["source"]: shape(f["geometry"])
         for f in json.loads((ROOT / "content" / "osm_places.geojson").read_text())["features"]
     }
+    # Highways are taken by their number, which roads in the neighboring countries may share.
+    israel_roads = project(ops.unary_union([land_ll, ocha["gaza"]])).buffer(1_000)
 
     # ---------- places ----------
     curriculum = yaml.safe_load((ROOT / "content" / "places.yaml").read_text())["places"]
@@ -487,12 +502,15 @@ def main() -> int:
             river = clean(river_geoms[arg], SIMPLIFY["rivers"])
             geometry["lines"] = encode_lines(river)
             label = line_label(river)
-        elif kind == "osm":
+        elif kind in ("osm", "road"):
             source = osm_places.get(p["geometry"])
             if source is None:
                 errors.append(f"{p['id']}: {p['geometry']} is not in content/osm_places.geojson (run tools/fetch_sources.py)")
                 continue
-            course = clean(source.intersection(WINDOW), SIMPLIFY["rivers"])
+            if kind == "road":
+                course = road_course(project(source).intersection(israel_roads))
+            else:
+                course = clean(source.intersection(WINDOW), SIMPLIFY["rivers"])
             if course.geom_type in ("Polygon", "MultiPolygon"):
                 geometry["polygons"] = encode_polygons(course)
                 label = area_label(course)
@@ -500,8 +518,10 @@ def main() -> int:
                 course = ops.linemerge(lines(course)) if lines(course) else course
                 geometry["lines"] = encode_lines(course)
                 label = line_label(course)
-            # A stream or a crater counts toward the region at the middle of its course.
-            region = min(region_geoms, key=lambda k: region_geoms[k].distance(label))
+            # A stream or a crater counts toward the region at the middle of its course; a
+            # highway crosses too many regions to count toward one.
+            if kind == "osm":
+                region = min(region_geoms, key=lambda k: region_geoms[k].distance(label))
         else:
             errors.append(f"{p['id']}: unknown geometry source {p['geometry']}")
             continue
