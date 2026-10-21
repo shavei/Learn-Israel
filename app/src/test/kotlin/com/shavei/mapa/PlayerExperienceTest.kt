@@ -110,6 +110,7 @@ class PlayerExperienceTest {
             compose.onNodeWithTag("error-chart").assertExists()
             compose.onNode(hasContentDescription("1 ידוע · ", substring = true)).assertExists()
             Screenshots.save(scenario, "c3-progress")
+            compose.onNodeWithTag("tab-regions").performClick()
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("גוש דן", substring = true))
             Screenshots.save(scenario, "c4-progress-regions")
             // After the regions: nature, ports and heritage, not started yet, so folded until asked for.

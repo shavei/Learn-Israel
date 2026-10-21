@@ -311,6 +311,25 @@
         <item quantity="many">הרצף הארוך ביותר: %d ימים</item>
         <item quantity="other">הרצף הארוך ביותר: %d ימים</item>
     </plurals>
+    <!-- The progress screen in three tabs, and the questions its summary cards answer. -->
+    <string name="progress_tab_summary">סיכום</string>
+    <string name="progress_tab_regions">אזורים</string>
+    <string name="progress_tab_achievements">הישגים</string>
+    <string name="progress_known_title">כמה אתם יודעים</string>
+    <string name="progress_habit_title">ההרגל היומי</string>
+    <string name="progress_memory_title">כמה אתם זוכרים</string>
+    <string name="progress_stat_streak">ימים ברצף</string>
+    <string name="progress_stat_best">השיא</string>
+    <string name="progress_stat_week_value">%1$d/7</string>
+    <string name="progress_stat_week">ימי אימון השבוע</string>
+    <string name="progress_week_days">ימי אימון ב־7 הימים האחרונים: %1$d</string>
+    <plurals name="progress_memory_label">
+        <item quantity="one">נזכרתם בחזרה האחרונה (30 יום)</item>
+        <item quantity="two">מהמקומות שחזרו נזכרתם (%d חזרות, 30 יום)</item>
+        <item quantity="many">מהמקומות שחזרו נזכרתם (%d חזרות, 30 יום)</item>
+        <item quantity="other">מהמקומות שחזרו נזכרתם (%d חזרות, 30 יום)</item>
+    </plurals>
+    <string name="achievements_count">הושגו, מתוך %1$d</string>
     <string name="progress_known_explained">מקום ידוע הוא מקום שהזיכרון שלו יציב לשלושה שבועות לפחות.</string>
 
     <string name="onboarding_map_test">מבחן מפה קצר לפני שמתחילים</string>
@@ -344,7 +363,7 @@
     <string name="map_test_first_next">מבחן המפה ייפתח ב־%1$s: 20 מקומות בלי משוב, כדי לראות כמה למדתם.</string>
     <string name="map_test_opens">המבחן ייפתח חודש אחרי האימון הראשון.</string>
 
-    <string name="stats_title">נתוני למידה, 30 הימים האחרונים</string>
+    <string name="stats_title">כל הנתונים, 30 הימים האחרונים</string>
     <string name="stats_empty">הנתונים יופיעו אחרי האימון הראשון.</string>
     <plurals name="stats_retention">
         <item quantity="one">בחזרות על מקומות שלמדתם זכרתם %1$d%% (חזרה אחת).</item>

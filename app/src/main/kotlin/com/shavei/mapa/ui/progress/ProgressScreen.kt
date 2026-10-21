@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,15 +24,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -69,6 +75,7 @@ import com.shavei.mapa.learning.ThemeScore
 import com.shavei.mapa.ui.IconTextButton
 import com.shavei.mapa.ui.MapCard
 import com.shavei.mapa.ui.PlaceCounts
+import com.shavei.mapa.ui.Stat
 import com.shavei.mapa.ui.formatDate
 import com.shavei.mapa.ui.formatKm
 import com.shavei.mapa.ui.formatPoints
@@ -84,19 +91,29 @@ private val MAX_CONTENT_WIDTH = 640.dp
 private const val RETENTION_LOW = 0.85
 private const val RETENTION_HIGH = 0.92
 
+/** The three parts of the screen, each short enough to take in at once. */
+private enum class ProgressTab(val label: Int, val tag: String) {
+    SUMMARY(R.string.progress_tab_summary, "tab-summary"),
+    REGIONS(R.string.progress_tab_regions, "tab-regions"),
+    ACHIEVEMENTS(R.string.progress_tab_achievements, "tab-achievements"),
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: () -> Unit, onStart: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val list = rememberLazyListState()
+    var tab by rememberSaveable { mutableStateOf(ProgressTab.SUMMARY) }
     // Nothing practiced yet: one invitation instead of screens of zeros.
     val newPlayer = state.loaded && state.learned == 0 && (state.stats?.answers ?: 0) == 0
     // Sections with nothing in them yet start folded into one line; the player can open them.
     var achievementsOpen by rememberSaveable { mutableStateOf(false) }
     var regionsOpen by rememberSaveable { mutableStateOf(false) }
     var themesOpen by rememberSaveable { mutableStateOf(false) }
+    // The full numbers are for the curious and for sharing: folded until asked for.
+    var detailsOpen by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = MAX_CONTENT_WIDTH).fillMaxSize()) {
-            // The title and the way back stay in place while the cards scroll.
+            // The title, the way back and the tabs stay in place while each part scrolls.
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     stringResource(R.string.progress_title),
@@ -105,10 +122,18 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: 
                 )
                 IconTextButton(stringResource(R.string.back), Icons.AutoMirrored.Filled.ArrowBack, onBack)
             }
-            // A line under the title once the cards scroll beneath it.
-            HorizontalDivider(
-                color = if (list.canScrollBackward) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.background,
-            )
+            PrimaryTabRow(selectedTabIndex = tab.ordinal, containerColor = MaterialTheme.colorScheme.background) {
+                for (t in ProgressTab.entries) {
+                    Tab(
+                        selected = t == tab,
+                        onClick = { tab = t },
+                        text = { Text(stringResource(t.label), style = MaterialTheme.typography.titleSmall) },
+                        modifier = Modifier.testTag(t.tag),
+                    )
+                }
+            }
+            // Each part starts from its own top.
+            val list = key(tab) { rememberLazyListState() }
             LazyColumn(
                 Modifier.fillMaxWidth().weight(1f).testTag("progress"),
                 state = list,
@@ -116,77 +141,103 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: 
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (!state.loaded) return@LazyColumn
-                item { Summary(state) }
-                if (newPlayer) item { FirstPractice(onStart) } else item { ErrorHistory(state.errorByDay) }
-                item { MapTestCard(state, onMapTest) }
-                if (!newPlayer) item { StatsCard(state) }
-                state.motivation?.let { motivation ->
-                    val started = motivation.earned.isNotEmpty() || motivation.progress.values.any { it.done > 0 }
-                    item {
-                        FoldableTitle(
-                            stringResource(R.string.achievements_title), "achievements",
-                            foldable = !started, open = achievementsOpen, onToggle = { achievementsOpen = !achievementsOpen },
-                        )
-                        Text(
-                            if (started || achievementsOpen) stringResource(R.string.achievements_note)
-                            else stringResource(R.string.achievements_empty, motivation.progress.size),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                when (tab) {
+                    ProgressTab.SUMMARY -> {
+                        item { KnownCard(state) }
+                        if (newPlayer) {
+                            item { FirstPractice(onStart) }
+                            item { MapTestCard(state, onMapTest) }
+                            return@LazyColumn
+                        }
+                        item { HabitCard(state) }
+                        state.stats?.takeIf { it.retention != null }?.let { item { MemoryCard(it) } }
+                        item { ErrorHistory(state.errorByDay) }
+                        item { MapTestCard(state, onMapTest) }
+                        item { StatsCard(state, detailsOpen) { detailsOpen = !detailsOpen } }
                     }
-                    if (started || achievementsOpen) {
-                        // Earned first, in the order they were earned; then the rest, closest first.
-                        val order = motivation.progress.entries.sortedWith(
-                            compareBy<Map.Entry<Achievement, AchievementProgress>>(
-                                { motivation.earned[it.key] ?: Long.MAX_VALUE },
-                                { -it.value.done.toDouble() / it.value.total.coerceAtLeast(1) },
-                            ),
-                        )
-                        items(order, key = { it.key.name }) { (a, p) -> AchievementRow(a, p, motivation.earned[a]) }
+                    ProgressTab.REGIONS -> {
+                        // What to work on comes first: it is what the numbers below are for.
+                        if (state.hardest.isNotEmpty()) item { HardestCard(state.hardest) }
+                        if (state.mixedPairs.isNotEmpty()) item { MixedPairsCard(state.mixedPairs) }
+                        val regionsStarted = state.regions.any { it.practiced > 0 }
+                        item {
+                            FoldableTitle(
+                                stringResource(R.string.progress_regions), "regions",
+                                foldable = !regionsStarted, open = regionsOpen, onToggle = { regionsOpen = !regionsOpen },
+                            )
+                            if (!regionsStarted) Text(stringResource(R.string.progress_regions_empty), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (regionsStarted || regionsOpen) items(state.regions, key = { it.region.id }) { RegionRow(it) }
+                        val themesStarted = state.themes.any { it.practiced > 0 }
+                        item {
+                            FoldableTitle(
+                                stringResource(R.string.progress_themes), "themes",
+                                foldable = !themesStarted, open = themesOpen, onToggle = { themesOpen = !themesOpen },
+                            )
+                            Text(
+                                stringResource(if (themesStarted) R.string.progress_themes_note else R.string.progress_themes_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        if (themesStarted || themesOpen) items(state.themes, key = { it.theme.name }) { ThemeRow(it) }
+                    }
+                    ProgressTab.ACHIEVEMENTS -> state.motivation?.let { motivation ->
+                        val started = motivation.earned.isNotEmpty() || motivation.progress.values.any { it.done > 0 }
+                        item {
+                            AchievementsHeader(motivation.earned.size, motivation.progress.size)
+                            FoldableTitle(
+                                null, "achievements",
+                                foldable = !started, open = achievementsOpen, onToggle = { achievementsOpen = !achievementsOpen },
+                            ) {
+                                Text(
+                                    if (started || achievementsOpen) stringResource(R.string.achievements_note)
+                                    else stringResource(R.string.achievements_empty, motivation.progress.size),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                        if (started || achievementsOpen) {
+                            // Earned first, in the order they were earned; then the rest, closest first.
+                            val order = motivation.progress.entries.sortedWith(
+                                compareBy<Map.Entry<Achievement, AchievementProgress>>(
+                                    { motivation.earned[it.key] ?: Long.MAX_VALUE },
+                                    { -it.value.done.toDouble() / it.value.total.coerceAtLeast(1) },
+                                ),
+                            )
+                            items(order, key = { it.key.name }) { (a, p) -> AchievementRow(a, p, motivation.earned[a]) }
+                        }
                     }
                 }
-                if (state.mixedPairs.isNotEmpty()) item { MixedPairsCard(state.mixedPairs) }
-                if (state.hardest.isNotEmpty()) item { HardestCard(state.hardest) }
-                val regionsStarted = state.regions.any { it.practiced > 0 }
-                item {
-                    FoldableTitle(
-                        stringResource(R.string.progress_regions), "regions",
-                        foldable = !regionsStarted, open = regionsOpen, onToggle = { regionsOpen = !regionsOpen },
-                    )
-                    if (!regionsStarted) Text(stringResource(R.string.progress_regions_empty), style = MaterialTheme.typography.bodyMedium)
-                }
-                if (regionsStarted || regionsOpen) items(state.regions, key = { it.region.id }) { RegionRow(it) }
-                val themesStarted = state.themes.any { it.practiced > 0 }
-                item {
-                    FoldableTitle(
-                        stringResource(R.string.progress_themes), "themes",
-                        foldable = !themesStarted, open = themesOpen, onToggle = { themesOpen = !themesOpen },
-                    )
-                    Text(
-                        stringResource(if (themesStarted) R.string.progress_themes_note else R.string.progress_themes_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-                if (themesStarted || themesOpen) items(state.themes, key = { it.theme.name }) { ThemeRow(it) }
             }
         }
     }
 }
 
-/** A section title; a section with nothing in it yet also gets a button that shows or hides its rows. */
+/**
+ * A section title; a section with nothing in it yet also gets a button that shows or hides
+ * its rows. Without a title, [text] takes its place beside the button.
+ */
 @Composable
-private fun FoldableTitle(title: String, tag: String, foldable: Boolean, open: Boolean, onToggle: () -> Unit) {
+private fun FoldableTitle(
+    title: String?,
+    tag: String,
+    foldable: Boolean,
+    open: Boolean,
+    onToggle: () -> Unit,
+    text: @Composable () -> Unit = {},
+) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.weight(1f).semantics { heading() },
-        )
+        Box(Modifier.weight(1f)) {
+            if (title != null) Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            else text()
+        }
         if (foldable) {
             TextButton(onClick = onToggle, modifier = Modifier.testTag("$tag-fold")) {
                 Text(stringResource(if (open) R.string.progress_hide else R.string.progress_show))
             }
         }
     }
+    if (title != null) text()
 }
 
 /** What a new player sees in place of empty charts: what will appear here, and the way to start. */
@@ -201,39 +252,119 @@ private fun FirstPractice(onStart: () -> Unit) {
     }
 }
 
+/** A summary card: a question as its title, a big answer, and a line on what it means. */
 @Composable
-private fun Summary(state: ProgressState) {
-    MapCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            PlaceCounts(state.known, state.learned - state.known, state.total)
-            Text(stringResource(R.string.progress_known_explained), style = MaterialTheme.typography.bodyMedium)
-            state.motivation?.let { m ->
-                Text(stringResource(R.string.rank_line, rankName(m.rank)), style = MaterialTheme.typography.titleMedium)
-                val next = m.rank.next
-                val missing = (next?.knownPlaces ?: 0) - m.known
-                Text(
-                    if (next == null) stringResource(R.string.rank_top)
-                    else pluralStringResource(R.plurals.rank_next, missing, missing, rankName(next)),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            val streak = state.streak
-            Text(
-                if (streak.days == 0) stringResource(R.string.home_streak_none)
-                else pluralStringResource(R.plurals.home_streak, streak.days, streak.days),
-                color = if (streak.days > 0) MaterialTheme.colorScheme.secondary else Color.Unspecified,
-            )
-            // The longest streak, once there was one longer than today's: a record to come back to.
-            if (streak.best > streak.days && streak.best > 1) {
-                Text(
-                    pluralStringResource(R.plurals.progress_streak_best, streak.best, streak.best),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (streak.freezes > 0) Text(stringResource(R.string.home_freezes, streak.freezes))
+private fun SummaryCard(title: String, tag: String, content: @Composable () -> Unit) {
+    MapCard(Modifier.fillMaxWidth().testTag(tag)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+            content()
         }
     }
+}
+
+/** How much you know: the places as on home, what "known" means, and the rank they make. */
+@Composable
+private fun KnownCard(state: ProgressState) {
+    SummaryCard(stringResource(R.string.progress_known_title), "summary-known") {
+        PlaceCounts(state.known, state.learned - state.known, state.total)
+        Text(
+            stringResource(R.string.progress_known_explained),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        val m = state.motivation ?: return@SummaryCard
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Text(stringResource(R.string.rank_line, rankName(m.rank)), style = MaterialTheme.typography.titleMedium)
+        val next = m.rank.next
+        if (next != null) {
+            LinearProgressIndicator(
+                progress = { (m.known - m.rank.knownPlaces).toFloat() / (next.knownPlaces - m.rank.knownPlaces) },
+                modifier = Modifier.fillMaxWidth().height(6.dp),
+                color = MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.secondaryContainer,
+                drawStopIndicator = {},
+            )
+        }
+        val missing = (next?.knownPlaces ?: 0) - m.known
+        Text(
+            if (next == null) stringResource(R.string.rank_top)
+            else pluralStringResource(R.plurals.rank_next, missing, missing, rankName(next)),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+/** Whether the habit holds: the streak, the best one, and the days practiced this week. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HabitCard(state: ProgressState) {
+    val streak = state.streak
+    SummaryCard(stringResource(R.string.progress_habit_title), "summary-habit") {
+        val week = state.stats?.daysLast7 ?: 0
+        val sentence = listOfNotNull(
+            if (streak.days == 0) stringResource(R.string.home_streak_none)
+            else pluralStringResource(R.plurals.home_streak, streak.days, streak.days),
+            pluralStringResource(R.plurals.progress_streak_best, streak.best, streak.best).takeIf { streak.best > 0 },
+            stringResource(R.string.progress_week_days, week),
+        ).joinToString(". ")
+        FlowRow(
+            Modifier.clearAndSetSemantics { contentDescription = sentence },
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Stat(
+                streak.days.toString(),
+                stringResource(R.string.progress_stat_streak),
+                color = if (streak.days > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+            )
+            Stat(streak.best.toString(), stringResource(R.string.progress_stat_best), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Stat(stringResource(R.string.progress_stat_week_value, week), stringResource(R.string.progress_stat_week))
+        }
+        if (streak.days == 0) Text(stringResource(R.string.home_streak_none), style = MaterialTheme.typography.bodyMedium)
+        if (streak.freezes > 0) {
+            Text(
+                stringResource(R.string.home_freezes, streak.freezes),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/**
+ * How well you remember: the share of places recalled when they came back for review, and
+ * in words what that means and what to do. Olive when on track, terracotta when it asks for
+ * a change.
+ */
+@Composable
+private fun MemoryCard(stats: LearningStats) {
+    val retention = stats.retention ?: return
+    val percent = (retention * 100).roundToInt()
+    val low = retention < RETENTION_LOW
+    SummaryCard(stringResource(R.string.progress_memory_title), "summary-memory") {
+        Stat(
+            stringResource(R.string.progress_percent, percent),
+            pluralStringResource(R.plurals.progress_memory_label, stats.dueReviews, stats.dueReviews),
+            color = if (low) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
+        )
+        Text(
+            stringResource(
+                when {
+                    low -> R.string.stats_retention_low
+                    retention > RETENTION_HIGH -> R.string.stats_retention_high
+                    else -> R.string.stats_retention_good
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+/** How many achievements are earned, large, as the top of their tab. */
+@Composable
+private fun AchievementsHeader(earned: Int, total: Int) {
+    val color = if (earned > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+    Stat(earned.toString(), stringResource(R.string.achievements_count, total), color = color)
 }
 
 /** The top of the error scale in km: a round number at or above the worst day, never under 5 km. */
@@ -373,10 +504,11 @@ private fun mapTestLines(state: ProgressState): List<String> {
 /**
  * The learning metrics of docs/08-measurement.md for this player, and a button that
  * shares them as text: the closed beta collects results this way until log upload
- * exists (Phase 2), so nothing leaves the phone unless the player sends it.
+ * exists (Phase 2), so nothing leaves the phone unless the player sends it. The cards
+ * above say what matters in words, so these full numbers stay folded until asked for.
  */
 @Composable
-private fun StatsCard(state: ProgressState) {
+private fun StatsCard(state: ProgressState, open: Boolean, onToggle: () -> Unit) {
     val stats = state.stats ?: return
     val lines = statsLines(stats)
     val context = LocalContext.current
@@ -400,12 +532,19 @@ private fun StatsCard(state: ProgressState) {
     val chooserTitle = stringResource(R.string.stats_share)
     MapCard(Modifier.fillMaxWidth().testTag("stats")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
             if (stats.answers == 0) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.stats_empty))
                 return@Column
             }
-            for (line in lines) Text(line)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                TextButton(onClick = onToggle, modifier = Modifier.testTag("stats-fold")) {
+                    Text(stringResource(if (open) R.string.progress_hide else R.string.progress_show))
+                }
+            }
+            if (!open) return@Column
+            for (line in lines) Text(line, style = MaterialTheme.typography.bodyMedium)
             OutlinedButton(
                 onClick = {
                     val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, shareText)

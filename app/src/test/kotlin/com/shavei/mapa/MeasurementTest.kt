@@ -184,10 +184,12 @@ class MeasurementTest {
             compose.onNodeWithText("התקדמות").performClick()
             waitForText("סטייה ממוצעת בערים לפי יום (ק״מ)")
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("stats"))
+            compose.onNodeWithTag("stats-fold").performClick()
             waitForText("בחזרות על מקומות שלמדתם זכרתם 75% (4\u00A0חזרות).")
             compose.onNodeWithText("לפי התחזית שלנו ציפינו ל־90%.").assertExists()
             // Below the target the player is told what to do, in plain words.
-            compose.onNodeWithText("זה פחות מהרגיל", substring = true).assertExists()
+            // Said in the memory card at the top, and again with the full numbers.
+            assertTrue(compose.onAllNodes(hasText("זה פחות מהרגיל", substring = true)).fetchSemanticsNodes().isNotEmpty())
             compose.onNodeWithText("ימי אימון: 4 ב־7 הימים האחרונים, 4 ב־30").assertExists()
             compose.onNodeWithText("לפני האימון: 4 מתוך 20, סטייה חציונית 21\u00A0ק״מ").assertExists()
             compose.onNodeWithText("9 מקומות יותר מבפעם הראשונה").assertExists()

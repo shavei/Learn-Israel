@@ -129,8 +129,10 @@ class MotivationTest {
             waitForText("עוד 18 מקומות ידועים לדרגת מדריך/ת טיולים")
             Screenshots.save(scenario, "d1-progress-rank")
 
+            compose.onNodeWithTag("tab-achievements").performClick()
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("achievement-FIRST_KNOWN"))
             Screenshots.save(scenario, "d2-progress-achievements")
+            compose.onNodeWithTag("tab-regions").performClick()
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("mixed-pairs"))
             waitForText("קריית גת וקריית מלאכי: 2 פעמים")
             assertTrue(!has("אשדוד ואשקלון"))
@@ -154,6 +156,7 @@ class MotivationTest {
             waitForText("התקדמות")
             compose.onNodeWithText("התקדמות").performClick()
             waitForText("דרגה:")
+            compose.onNodeWithTag("tab-regions").performClick()
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("hardest"))
             waitForText("חיפה: נכונות 1, קרובות 1, שגויות 2")
             Screenshots.save(scenario, "d5-progress-hardest")
