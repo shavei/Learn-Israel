@@ -435,7 +435,6 @@
     <string name="summary_new_rank">דרגה חדשה: %1$s!</string>
     <string name="summary_new_achievement">הישג חדש: %1$s</string>
 
-    <string name="achievements_title">הישגים</string>
     <string name="achievements_note">כל הישג הוא ידע אמיתי. הישג שהושג נשאר, גם אם מקום בו נשכח.</string>
     <string name="achievement_earned">הושג ב־%1$s</string>
     <string name="achievement_progress">%1$d מתוך %2$d</string>
