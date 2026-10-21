@@ -140,6 +140,10 @@ class FreePlayTest {
             waitForText("סבב נוסף")
             compose.waitForIdle()
             Screenshots.save(scenario, "f3b-blitz-summary-map")
+            // Picking an answer shows it alone: the tap, the line, and the place named.
+            compose.onNodeWithTag("blitz-answer-1").performScrollTo().performClick()
+            compose.waitForIdle()
+            Screenshots.save(scenario, "f3c-blitz-summary-picked")
         }
     }
 

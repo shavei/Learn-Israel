@@ -181,6 +181,8 @@
         <item quantity="other">%1$s: %2$s נקודות</item>
     </plurals>
     <string name="blitz_summary_title">נגמר הזמן!</string>
+    <string name="blitz_answers_hint">לחצו על תשובה כדי לראות איפה סימנתם ואיפה המקום באמת</string>
+    <string name="blitz_answer_km">%1$s ק״מ</string>
     <string name="blitz_record_first">הבליץ הראשון שלכם: זה השיא לשבור</string>
     <string name="blitz_record_new">שיא חדש! הקודם היה %1$s נקודות</string>
     <string name="blitz_record">השיא שלכם: %1$s נקודות</string>
