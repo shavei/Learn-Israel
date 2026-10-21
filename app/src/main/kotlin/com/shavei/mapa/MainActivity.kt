@@ -205,7 +205,12 @@ private fun App(app: MapaApplication, settings: Settings) {
         }
         Screen.PROGRESS -> ForThisVisit {
             val vm: ProgressViewModel = viewModel(factory = viewModelFactory { initializer { ProgressViewModel(app) } })
-            ProgressScreen(vm, onBack = { home() }, onMapTest = { startSession(SessionKind.MAP_TEST) })
+            ProgressScreen(
+                vm,
+                onBack = { home() },
+                onMapTest = { startSession(SessionKind.MAP_TEST) },
+                onStart = { startSession(SessionKind.DAILY) },
+            )
         }
         Screen.SETTINGS -> SettingsScreen(
             settings,

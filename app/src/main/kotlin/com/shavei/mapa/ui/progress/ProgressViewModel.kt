@@ -82,14 +82,15 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
             val zone = ZoneId.systemDefault()
             val lastTest = mapTests.lastOrNull()?.let { Instant.ofEpochMilli(it.finishedAt).atZone(zone).toLocalDate() }
             val records = app.progress.reviewRecords()
+            val known = locate.filterValues { isKnown(it.fsrs) }.keys
             _state.value = ProgressState(
                 loaded = true,
                 known = locate.values.count { isKnown(it.fsrs) },
                 learned = locate.size,
                 total = app.content.places.size,
                 streak = Streak.of(daysPlayed, LocalDate.now()),
-                regions = regionScores(app.content, mastery, locate.filterValues { isKnown(it.fsrs) }.keys),
-                themes = themeScores(app.content, locate.keys, locate.filterValues { isKnown(it.fsrs) }.keys),
+                regions = regionScores(app.content, mastery, known),
+                themes = themeScores(app.content, locate.keys, known),
                 errorByDay = cityErrors.entries.sortedBy { it.key }.takeLast(HISTORY_DAYS).map { it.key to it.value.average() },
                 stats = LearningStats.of(records, app.content, now, zone),
                 mapTests = mapTests,
@@ -111,3 +112,4 @@ class ProgressViewModel(private val app: MapaApplication) : ViewModel() {
         }
     }
 }
+

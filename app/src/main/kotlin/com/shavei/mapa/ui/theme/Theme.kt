@@ -1,6 +1,7 @@
 package com.shavei.mapa.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -9,6 +10,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 
 // Text colors meet WCAG AA (4.5:1) on the card color of their theme.
@@ -153,6 +155,22 @@ val DarkMapPalette = MapPalette(
 
 val LocalMapPalette = staticCompositionLocalOf { LightMapPalette }
 
+/**
+ * Material's title and label styles are Medium (500), but Android's Hebrew font comes in
+ * Regular and Bold only, so Hebrew letters fall back to Regular while digits and Latin,
+ * set in Roboto which has a Medium, come out heavier in the same line ("30 הימים").
+ * Regular everywhere keeps a line even; size still sets titles apart.
+ */
+private val typography = Typography().run {
+    copy(
+        titleMedium = titleMedium.copy(fontWeight = FontWeight.Normal),
+        titleSmall = titleSmall.copy(fontWeight = FontWeight.Normal),
+        labelLarge = labelLarge.copy(fontWeight = FontWeight.Normal),
+        labelMedium = labelMedium.copy(fontWeight = FontWeight.Normal),
+        labelSmall = labelSmall.copy(fontWeight = FontWeight.Normal),
+    )
+}
+
 /** The app is Hebrew only, so the whole UI is right-to-left regardless of device locale. */
 @Composable
 fun MapaTheme(dark: Boolean = false, content: @Composable () -> Unit) {
@@ -160,6 +178,6 @@ fun MapaTheme(dark: Boolean = false, content: @Composable () -> Unit) {
         LocalLayoutDirection provides LayoutDirection.Rtl,
         LocalMapPalette provides if (dark) DarkMapPalette else LightMapPalette,
     ) {
-        MaterialTheme(colorScheme = if (dark) darkColors else lightColors, content = content)
+        MaterialTheme(colorScheme = if (dark) darkColors else lightColors, typography = typography, content = content)
     }
 }

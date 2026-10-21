@@ -143,7 +143,7 @@ fun HomeScreen(
     val map = @Composable { modifier: Modifier ->
         MapView(
             content.map, camera, modifier.testTag("map"), decorations, showGreenLine,
-            description = stringResource(R.string.home_map_description, state.learned, state.known),
+            description = pluralStringResource(R.plurals.home_map_description, state.learned, state.learned, state.known),
         )
     }
     val hasWork = state.dueNow + state.newAvailable > 0
@@ -318,9 +318,9 @@ private fun TodayLine(state: HomeState) {
             !state.practiceReady && state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
             !state.practiceReady -> stringResource(if (state.doneToday) R.string.home_nothing_due else R.string.home_nothing_now)
             hasWork && state.dailyLeft != null -> pluralStringResource(R.plurals.home_daily_left, state.dailyLeft, state.dailyLeft)
-            hasWork && state.newAvailable == 0 -> stringResource(R.string.home_due_reviews, state.dueNow)
-            hasWork && state.dueNow == 0 -> stringResource(R.string.home_due_new, state.newAvailable)
-            hasWork -> stringResource(R.string.home_due, state.dueNow, state.newAvailable)
+            hasWork && state.newAvailable == 0 -> pluralStringResource(R.plurals.home_due_reviews, state.dueNow, state.dueNow)
+            hasWork && state.dueNow == 0 -> pluralStringResource(R.plurals.home_due_new, state.newAvailable, state.newAvailable)
+            hasWork -> pluralStringResource(R.plurals.home_due, state.newAvailable, state.dueNow, state.newAvailable)
             state.newCapReached -> stringResource(R.string.home_new_cap, state.newPerDay ?: 0)
             state.doneToday -> stringResource(R.string.home_nothing_due)
             // Nothing waiting and the day not done yet: a short practice of the weakest places makes the day.
@@ -360,7 +360,7 @@ private fun KnownCounts(state: HomeState) {
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(
             if (state.known == 0) stringResource(R.string.home_counts_learning, learning, state.known, state.total)
-            else stringResource(R.string.home_counts_known, state.known, learning, state.total),
+            else pluralStringResource(R.plurals.home_counts_known, state.known, state.known, learning, state.total),
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.align(Alignment.CenterVertically),
         )
@@ -392,7 +392,7 @@ private fun RankProgress(state: HomeState, showNext: Boolean) {
     if (!showNext && next != null) return
     Text(
         if (next == null) stringResource(R.string.rank_top)
-        else stringResource(R.string.rank_next, next.knownPlaces - known, rankName(next)),
+        else pluralStringResource(R.plurals.rank_next, next.knownPlaces - known, next.knownPlaces - known, rankName(next)),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

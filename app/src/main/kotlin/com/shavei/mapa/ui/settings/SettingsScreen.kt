@@ -1,8 +1,10 @@
 package com.shavei.mapa.ui.settings
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
@@ -98,6 +100,7 @@ fun SettingsScreen(
         if (ok) onChange { it.copy(reminderOn = true, reminderOffered = true) }
     }
 
+    val scroll = rememberScrollState()
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         // The title and the way back stay in place while the settings scroll.
         Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -108,8 +111,10 @@ fun SettingsScreen(
             )
             TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
         }
+        // A line under the title once the settings scroll beneath it.
+        HorizontalDivider(color = if (scroll.value > 0) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.background)
         Column(
-            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.fillMaxWidth().weight(1f).verticalScroll(scroll).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Section(stringResource(R.string.settings_session_length))
@@ -126,6 +131,11 @@ fun SettingsScreen(
                     )
                 },
                 onSelect = { length -> onChange { it.copy(sessionLength = length) } },
+            )
+            Text(
+                stringResource(R.string.settings_length_note),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             HorizontalDivider()
@@ -153,7 +163,7 @@ fun SettingsScreen(
             HorizontalDivider()
             Section(stringResource(R.string.settings_reminder))
             Toggle(
-                title = stringResource(R.string.settings_reminder),
+                title = stringResource(R.string.settings_reminder_switch),
                 note = stringResource(R.string.settings_reminder_note),
                 checked = settings.reminderOn,
             ) { on ->
@@ -286,13 +296,29 @@ private fun MapStyles(map: MapData, selected: MapStyle, onSelect: (MapStyle) -> 
                 val preview by produceState<TerrainLayers?>(null, terrain, style, palette) {
                     value = terrain?.preview(style, palette, frame.expandedBy(PREVIEW_MARGIN))
                 }
-                MapView(
-                    map, camera,
-                    Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(10.dp)),
-                    interactive = false,
-                    look = MapLook(style, null),
-                    terrainOverride = preview,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    MapView(
+                        map, camera,
+                        Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(10.dp)),
+                        interactive = false,
+                        look = MapLook(style, null),
+                        terrainOverride = preview,
+                    )
+                    // Until the terrain is built the relief preview would look just like the standard one.
+                    if (style == MapStyle.RELIEF && preview == null) {
+                        Text(
+                            stringResource(R.string.map_style_loading),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .testTag("relief-loading"),
+                        )
+                    }
+                }
                 Text(name, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
                 Text(
                     note,
@@ -352,6 +378,7 @@ internal fun TimeDialog(minutes: Int, onDismiss: () -> Unit, onPick: (Int) -> Un
     val state = rememberTimePickerState(initialHour = minutes / 60, initialMinute = minutes % 60, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_reminder_pick)) },
         confirmButton = { TextButton(onClick = { onPick(state.hour * 60 + state.minute) }) { Text(stringResource(R.string.time_ok)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.time_cancel)) } },
         text = { TimePicker(state) },

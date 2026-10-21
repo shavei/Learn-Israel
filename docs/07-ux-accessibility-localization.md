@@ -35,7 +35,11 @@ in landscape: the words above them scroll, with a cue, and the buttons do not.
 - **Explore:** pick a region, see its units, browse learned places (study view with
   labels on, which is allowed but does not count as practice).
 - **Progress:** region percentages, known places count, the rank, achievements,
-  learned confusable pairs, a history chart of average error over time.
+  learned confusable pairs, a history chart of average error over time (a scale from
+  0 km, lower is better, the first day and today written under its ends). Before the
+  first practice the screen invites the player to start one instead of showing
+  zeros, and sections with nothing in them yet start folded. Lines stop at 640 dp
+  wide in landscape. Counts use Hebrew plural forms ("מקום אחד", "יומיים").
 - **Settings:** session length, daily new cap, reminders, map layers,
   sounds/haptics, confidence buttons on/off, data and privacy.
 
