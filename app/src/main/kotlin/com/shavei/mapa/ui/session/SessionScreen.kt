@@ -246,7 +246,7 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 // does not announce every second; it can still be read on demand.
                 if (blitzRunning) {
                     Text(
-                        stringResource(R.string.blitz_clock, ((remainingMs + 999) / 1000).toInt()),
+                        ((remainingMs + 999) / 1000).toInt().let { pluralStringResource(R.plurals.blitz_clock, it, it) },
                         Modifier.testTag("blitz-clock"),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
@@ -384,7 +384,7 @@ private fun PromptCard(question: Question, counter: String, score: Int?, note: N
                 Text(counter, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
                 if (score != null) {
                     Text(
-                        stringResource(R.string.points, formatPoints(score)),
+                        pluralStringResource(R.plurals.points, score, formatPoints(score)),
                         Modifier.testTag("score"),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
@@ -489,7 +489,7 @@ private fun blitzNote(last: Answer): Note {
         Rating.HARD -> colors.closeText
         Rating.AGAIN -> colors.missText
     }
-    return Note(stringResource(R.string.blitz_last, last.place.name, formatPoints(last.grade.points)), color)
+    return Note(pluralStringResource(R.plurals.blitz_last, last.grade.points, last.place.name, formatPoints(last.grade.points)), color)
 }
 
 /** Free play before it starts: the rules of a blitz, or a road trip's start. */
@@ -568,7 +568,7 @@ private fun FeedbackCard(answer: Answer, content: Content, onContinue: () -> Uni
 private fun PointsBar(points: Int, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            stringResource(R.string.points, formatPoints(points)),
+            pluralStringResource(R.plurals.points, points, formatPoints(points)),
             Modifier.testTag("answer-points"),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
@@ -691,9 +691,9 @@ private fun SummaryCard(
                     Text(stringResource(if (kind == SessionKind.FOCUS) R.string.focus_summary_title else R.string.summary_title), style = title)
                     SummaryPoints(summary)
                     val percent = if (summary.answers == 0) 0 else summary.correct * 100 / summary.answers
-                    Text(stringResource(R.string.summary_answers, summary.answers, percent))
+                    Text(pluralStringResource(R.plurals.summary_answers, summary.answers, summary.answers, percent))
                     // Focused practice only reviews: it never brings new places.
-                    if (kind != SessionKind.FOCUS) Text(stringResource(R.string.summary_new, summary.newPlaces))
+                    if (kind != SessionKind.FOCUS) Text(pluralStringResource(R.plurals.summary_new, summary.newPlaces, summary.newPlaces))
                 }
             }
             if (test == null && kind != SessionKind.BUILD) {
@@ -786,7 +786,7 @@ private fun Motivation(summary: SessionSummary) {
 private fun SummaryPoints(summary: SessionSummary) {
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            stringResource(R.string.points, formatPoints(summary.points)),
+            pluralStringResource(R.plurals.points, summary.points, formatPoints(summary.points)),
             Modifier.testTag("session-points"),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,

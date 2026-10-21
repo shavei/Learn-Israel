@@ -167,7 +167,12 @@ private fun App(app: MapaApplication, settings: Settings) {
                 key = "progress-$visit",
                 factory = viewModelFactory { initializer { ProgressViewModel(app) } },
             )
-            ProgressScreen(vm, onBack = { screen = Screen.HOME }, onMapTest = { startSession(SessionKind.MAP_TEST) })
+            ProgressScreen(
+                vm,
+                onBack = { screen = Screen.HOME },
+                onMapTest = { startSession(SessionKind.MAP_TEST) },
+                onStart = { startSession(SessionKind.DAILY) },
+            )
         }
         Screen.SETTINGS -> SettingsScreen(
             settings,

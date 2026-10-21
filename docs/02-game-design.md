@@ -164,10 +164,14 @@ answers or more, all remembered); a place remembered after 30+ days without revi
 
 An achievement is stored when first earned and kept, even if a place in it later
 fades: the rank and the map stay honest instead. The progress screen lists the earned
-ones with their date, then the rest with how far along they are ("5 of 14"), and for
-a set of places which ones are still missing; a one-off achievement (a no-miss session,
-a long memory, the first known place) shows no count. The session summary names any
-earned in that session, and a new rank; a session with no answers earns nothing.
+ones with their date on a tinted row with a check badge, then the rest with a ring
+that fills as they get closer and how far along they are ("5 of 14"), and for a set
+of places which ones are still missing (named once six or fewer are left); one whole
+region names the region it is measuring. A one-off achievement (a no-miss session, a
+long memory, the first known place) shows no count, only "not earned yet". Nature and
+heritage are named "נוף הארץ" and "שורשים", apart from the theme rows below them. The
+session summary names any earned in that session, and a new rank; a session with no
+answers earns nothing.
 
 ### Social (opt in)
 Friends list, weekly league of ~20 players with promotion/demotion, daily challenge

@@ -21,6 +21,15 @@ reviews that came after 30+ days without one, and the pre/post test is the fixed
 20-place map test, taken without feedback. Players see them on the progress screen and
 can share them as text.
 
+The screen says them in the player's words, not ours: "in reviews of places you
+learned you remembered 88%" and what we expected, then what it means. Below the
+85 percent target it suggests practicing daily (and a normal pace of new places);
+inside the target it says reviews come just as places start to fade; above 92
+percent it praises, since the places will simply come back less often. A post-test
+with fewer places found than the pre-test is framed kindly (no hints or feedback in
+a test; the missed places return in daily practice), and a player who never took the
+pre-test is told when the map test opens, not when "the next" one does.
+
 The FSRS model's own prediction error (log loss / calibration of predicted vs actual
 recall) tells us how well the scheduler fits map learning, and guides parameter
 fitting.
