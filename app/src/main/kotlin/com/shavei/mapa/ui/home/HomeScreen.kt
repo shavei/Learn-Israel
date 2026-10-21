@@ -1,5 +1,6 @@
 package com.shavei.mapa.ui.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,11 +19,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -69,6 +68,7 @@ import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Rank
 import com.shavei.mapa.learning.Streak
+import com.shavei.mapa.ui.MapCard
 import com.shavei.mapa.ui.Panel
 import com.shavei.mapa.ui.formatPoints
 import com.shavei.mapa.ui.formatTime
@@ -228,7 +228,7 @@ private const val BOTTOM_SHARE_MODES = 0.6f
 @Composable
 private fun ActionCard(modifier: Modifier, button: @Composable () -> Unit, content: @Composable () -> Unit) {
     val scroll = rememberScrollState()
-    Card(modifier) {
+    MapCard(modifier) {
         Column(Modifier.padding(16.dp)) {
             Column(
                 Modifier
@@ -455,7 +455,7 @@ private fun StreakLine(streak: Streak) {
 /** A small button over the map, on a card so it reads on any terrain. */
 @Composable
 private fun MapChip(text: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)) {
+    Surface(onClick = onClick, shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), border = legendRule()) {
         Text(
             text,
             style = MaterialTheme.typography.labelMedium,
@@ -466,11 +466,15 @@ private fun MapChip(text: String, onClick: () -> Unit) {
     }
 }
 
+/** The fine rule around the small boxes over the map, as around a map's legend. */
+@Composable
+private fun legendRule() = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f))
+
 /** What the marks on the home map mean: the same two words as the counts in the top card. */
 @Composable
 private fun MasteryLegend() {
     val color = LocalMapPalette.current.mastery
-    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)) {
+    Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), border = legendRule()) {
         Row(
             Modifier.padding(horizontal = 10.dp, vertical = 6.dp).semantics(mergeDescendants = true) {},
             verticalAlignment = Alignment.CenterVertically,

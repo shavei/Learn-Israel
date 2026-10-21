@@ -25,7 +25,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -77,6 +76,7 @@ import com.shavei.mapa.learning.center
 import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.RoadTrip
 import com.shavei.mapa.learning.fsrs.Rating
+import com.shavei.mapa.ui.MapCard
 import com.shavei.mapa.ui.formatKm
 import com.shavei.mapa.ui.formatPoints
 import com.shavei.mapa.ui.map.MapDecoration
@@ -425,7 +425,7 @@ private fun LeaveDialog(kind: SessionKind, onStay: () -> Unit, onLeave: () -> Un
 
 @Composable
 private fun PromptCard(question: Question, counter: String, score: Int?, note: Note? = null) {
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         // Read as one announcement when a new question appears.
         Column(Modifier.padding(16.dp).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
             // The counter wraps within its own side; the score stays on one line, so at a large
@@ -482,7 +482,7 @@ private fun promptText(q: Question): String = when (q) {
 
 @Composable
 private fun OptionsCard(options: List<Place>, onChoose: (String) -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (option in options) {
                 OutlinedButton(onClick = { onChoose(option.id) }, Modifier.fillMaxWidth()) {
@@ -499,7 +499,7 @@ private fun TypingCard(number: Int, onSubmit: (String) -> Unit) {
     var text by remember(number) { mutableStateOf("") }
     val focus = remember { FocusRequester() }
     LaunchedEffect(number) { focus.requestFocus() }
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = text,
@@ -520,7 +520,7 @@ private fun TypingCard(number: Int, onSubmit: (String) -> Unit) {
 /** Map Builder: the shape is dragged on the map; this confirms where it is, once it has [moved]. */
 @Composable
 private fun BuildCard(moved: Boolean, onPlace: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.build_help), style = MaterialTheme.typography.bodyMedium)
             Button(onClick = onPlace, Modifier.fillMaxWidth(), enabled = moved) { Text(stringResource(R.string.build_place)) }
@@ -547,7 +547,7 @@ private fun blitzNote(last: Answer): Note {
 /** Free play before it starts: the rules of a blitz, or a road trip's start. */
 @Composable
 private fun ReadyCard(kind: SessionKind, start: Place?, onStart: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (kind == SessionKind.BLITZ) {
                 Text(stringResource(R.string.blitz_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -568,7 +568,7 @@ private fun ReadyCard(kind: SessionKind, start: Place?, onStart: () -> Unit) {
 
 @Composable
 private fun DiscoverCard(place: Place, onContinue: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(stringResource(R.string.discover_title), style = MaterialTheme.typography.labelMedium)
             Text(place.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
@@ -590,7 +590,7 @@ private fun FeedbackCard(answer: Answer, content: Content, onContinue: () -> Uni
             Rating.AGAIN -> stringResource(R.string.feedback_miss) to colors.missText
         }
     }
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(
             Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite },
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -703,7 +703,7 @@ private fun SummaryCard(
     picked: Int? = null,
     onPick: (Int?) -> Unit = {},
 ) {
-    Card(Modifier.fillMaxWidth()) {
+    MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val test = summary.mapTest
             val title = MaterialTheme.typography.headlineSmall

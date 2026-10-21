@@ -1,6 +1,8 @@
 package com.shavei.mapa.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -10,8 +12,13 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import com.shavei.mapa.R
 
 // Text colors meet WCAG AA (4.5:1) on the card color of their theme.
 private val lightColors = lightColorScheme(
@@ -156,20 +163,55 @@ val DarkMapPalette = MapPalette(
 val LocalMapPalette = staticCompositionLocalOf { LightMapPalette }
 
 /**
- * Material's title and label styles are Medium (500), but Android's Hebrew font comes in
- * Regular and Bold only, so Hebrew letters fall back to Regular while digits and Latin,
- * set in Roboto which has a Medium, come out heavier in the same line ("30 הימים").
- * Regular everywhere keeps a line even; size still sets titles apart.
+ * The text of an atlas: Rubik for everything read in passing, with a real Medium in Hebrew
+ * as in Latin, so a line like "30 הימים" keeps one weight. Android's own Hebrew font has
+ * Regular and Bold only.
  */
+private val Rubik = FontFamily(
+    Font(R.font.rubik_regular, FontWeight.Normal),
+    Font(R.font.rubik_medium, FontWeight.Medium),
+    Font(R.font.rubik_bold, FontWeight.Bold),
+)
+
+/** The titles of an atlas: a Hebrew book serif, for screen titles and headings only. */
+private val FrankRuhl = FontFamily(
+    Font(R.font.frank_ruhl_medium, FontWeight.Medium),
+    Font(R.font.frank_ruhl_bold, FontWeight.Bold),
+)
+
 private val typography = Typography().run {
+    fun TextStyle.title() = copy(fontFamily = FrankRuhl, fontWeight = FontWeight.Bold)
+    fun TextStyle.text() = copy(fontFamily = Rubik)
     copy(
-        titleMedium = titleMedium.copy(fontWeight = FontWeight.Normal),
-        titleSmall = titleSmall.copy(fontWeight = FontWeight.Normal),
-        labelLarge = labelLarge.copy(fontWeight = FontWeight.Normal),
-        labelMedium = labelMedium.copy(fontWeight = FontWeight.Normal),
-        labelSmall = labelSmall.copy(fontWeight = FontWeight.Normal),
+        displayLarge = displayLarge.title(),
+        displayMedium = displayMedium.title(),
+        displaySmall = displaySmall.title(),
+        headlineLarge = headlineLarge.title(),
+        headlineMedium = headlineMedium.title(),
+        headlineSmall = headlineSmall.title(),
+        titleLarge = titleLarge.title(),
+        titleMedium = titleMedium.text(),
+        titleSmall = titleSmall.text(),
+        bodyLarge = bodyLarge.text(),
+        bodyMedium = bodyMedium.text(),
+        bodySmall = bodySmall.text(),
+        labelLarge = labelLarge.text(),
+        labelMedium = labelMedium.text(),
+        labelSmall = labelSmall.text(),
     )
 }
+
+/**
+ * Cards are the legend boxes of the map: nearly square corners, with the double rule
+ * drawn by [com.shavei.mapa.ui.MapCard]. Buttons keep their own rounded shape.
+ */
+private val shapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(6.dp),
+    medium = RoundedCornerShape(6.dp),
+    large = RoundedCornerShape(8.dp),
+    extraLarge = RoundedCornerShape(12.dp),
+)
 
 /** The app is Hebrew only, so the whole UI is right-to-left regardless of device locale. */
 @Composable
@@ -178,6 +220,6 @@ fun MapaTheme(dark: Boolean = false, content: @Composable () -> Unit) {
         LocalLayoutDirection provides LayoutDirection.Rtl,
         LocalMapPalette provides if (dark) DarkMapPalette else LightMapPalette,
     ) {
-        MaterialTheme(colorScheme = if (dark) darkColors else lightColors, typography = typography, content = content)
+        MaterialTheme(colorScheme = if (dark) darkColors else lightColors, typography = typography, shapes = shapes, content = content)
     }
 }
