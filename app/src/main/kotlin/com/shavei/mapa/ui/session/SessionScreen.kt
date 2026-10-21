@@ -149,9 +149,9 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 viewModel.trip.takeIf { it.isNotEmpty() }?.let { trip ->
                     camera.ensureVisible((if (s is SessionUi.Ready) trip.take(1) else trip).map { it.label }, frameTop, frameBottom)
                 }
-                // A blitz ends on every place it asked and every tap, above the summary.
+                // A blitz ends on every place it asked, above the summary.
                 (s as? SessionUi.Finished)?.summary?.results?.takeIf { it.isNotEmpty() }?.let { results ->
-                    camera.ensureVisible(results.flatMap { feedbackPoints(it, content) }, frameTop, frameBottom)
+                    camera.ensureVisible(results.map { it.place.label }.distinct(), frameTop, frameBottom)
                 }
             }
             is SessionUi.Feedback -> {
@@ -935,14 +935,14 @@ private fun blitzTap(answer: Answer, colors: MapPalette): List<MapDecoration> {
 }
 
 /**
- * The end of a blitz: every place it asked, as its answers were shown in play, green where
- * it was found and in the target color where it was missed, each tap with its line, and
- * every place named (a missed one in the miss color, so the result never rests on color alone).
+ * The end of a blitz: every place it asked, colored as in play, green where it was found
+ * and in the target color where it was missed, and named (a missed one in the miss color,
+ * so the result never rests on color alone). The taps stay off: a round's worth of lines
+ * would hide the places.
  */
 private fun blitzSummaryDecorations(summary: SessionSummary, colors: MapPalette): List<MapDecoration> {
     val places = summary.results.map { it.place }.distinct()
     return places.map { p -> MapDecoration.Highlight(p.shape, if (p in summary.found) colors.good else colors.target, fillAlpha(p.shape, 0.45f)) } +
-        summary.results.flatMap { blitzTap(it, colors) } +
         places.map { p -> MapDecoration.Label(p.label, p.name, if (p in summary.found) null else colors.missText) }
 }
 
