@@ -198,6 +198,10 @@ class FreePlayTest {
                 stops++
             }
             Screenshots.save(scenario, "f7-trip-summary")
+            // Picking a stop's answer shows where its tap landed.
+            compose.onNodeWithTag("blitz-answer-0").performScrollTo().performClick()
+            compose.waitForIdle()
+            Screenshots.save(scenario, "f7b-trip-summary-picked")
             assertTrue(stops >= 2)
         }
         val reviews = runBlocking { app.database.progressDao().reviews() }

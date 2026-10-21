@@ -153,10 +153,23 @@ class RoadTrip(
         const val MIN_LEG_M = 12_000.0
         const val MAX_LEG_M = 70_000.0
 
+        /**
+         * Where no trip of [STOPS] fits legs of [MIN_LEG_M] (towns side by side, as in Gush
+         * Dan), legs this short are taken instead.
+         */
+        const val DENSE_MIN_LEG_M = 6_000.0
+
+        /** From a stop with no next one within [MAX_LEG_M] (Eilat), the road goes on by a leg up to this long. */
+        const val REMOTE_LEG_M = 150_000.0
+
         /** The road keeps its general direction: no leg turns back on the last one by more than this. */
         const val MAX_TURN_DEGREES = 75.0
 
-        private const val ATTEMPTS = 40
+        /** Each stop goes on to one of this many nearest places that fit, in random order. */
+        private const val NEAREST = 3
+
+        /** The most partial trips one search looks at, so a large map stays quick. */
+        private const val SEARCH_BUDGET = 20_000
 
         /** Stops are places one drives to: towns, lakes, mountains, reserves, sites, ports and airports. */
         fun isStop(type: PlaceType) = when (type) {
@@ -168,33 +181,72 @@ class RoadTrip(
 
         /**
          * A trip through learned places: from a random start, each leg [MIN_LEG_M] to
-         * [MAX_LEG_M] long to one of the nearest places that keeps the road's direction.
-         * The longest of a few attempts, up to [STOPS]; empty when no trip of [MIN_STOPS] exists.
+         * [MAX_LEG_M] long to one of the nearest places that keeps the road's direction (or up
+         * to [REMOTE_LEG_M] from a remote stop with none closer). Trips are searched from
+         * every start in random order, turning back from a dead end, so a trip of [STOPS] is
+         * found whenever one exists; where none does with legs of [MIN_LEG_M], shorter legs
+         * of [DENSE_MIN_LEG_M] are tried. The longest found, up to [STOPS]; empty when no
+         * trip of [MIN_STOPS] exists. Places in [avoid] (the last trip's) are taken last, so
+         * one trip does not follow the same road as the one before.
          */
-        fun plan(content: Content, cards: Map<CardKey, StudyCard>, random: Random = Random.Default): List<Place> {
+        fun plan(
+            content: Content,
+            cards: Map<CardKey, StudyCard>,
+            random: Random = Random.Default,
+            avoid: Collection<Place> = emptyList(),
+        ): List<Place> {
             val candidates = FreePlay.learned(content, cards).filter { isStop(it.type) }
             if (candidates.size < MIN_STOPS) return emptyList()
             var best = emptyList<Place>()
-            repeat(ATTEMPTS) {
-                val trip = mutableListOf(candidates.random(random))
-                while (trip.size < STOPS) {
-                    val here = trip.last().label
-                    val heading = trip.getOrNull(trip.size - 2)?.let { angle(it.label.x, it.label.y, here.x, here.y) }
-                    val next = candidates
-                        .filter { it !in trip }
-                        .map { it to it.label.distanceTo(here) }
-                        .filter { (p, d) ->
-                            d in MIN_LEG_M..MAX_LEG_M &&
-                                (heading == null || turn(heading, angle(here.x, here.y, p.label.x, p.label.y)) <= MAX_TURN_DEGREES)
-                        }
-                        .sortedBy { it.second }.take(3)
-                        .randomOrNull(random)?.first ?: break
-                    trip += next
-                }
+            for (minLeg in listOf(MIN_LEG_M, DENSE_MIN_LEG_M)) {
+                val trip = search(candidates, minLeg, random, avoid.toSet())
                 if (trip.size > best.size) best = trip
-                if (best.size == STOPS) return best
+                if (best.size == STOPS) break
             }
             return best.takeIf { it.size >= MIN_STOPS }.orEmpty()
+        }
+
+        private fun search(candidates: List<Place>, minLeg: Double, random: Random, avoid: Set<Place>): List<Place> {
+            var best = emptyList<Place>()
+            var budget = SEARCH_BUDGET
+            val trip = mutableListOf<Place>()
+
+            fun next(): List<Place> {
+                val here = trip.last()
+                val heading = trip.getOrNull(trip.size - 2)?.let { angle(it.label.x, it.label.y, here.label.x, here.label.y) }
+                val onward = candidates
+                    .filter { it !in trip }
+                    .map { it to it.label.distanceTo(here.label) }
+                    .filter { (p, d) ->
+                        d in minLeg..REMOTE_LEG_M &&
+                            (heading == null || turn(heading, angle(here.label.x, here.label.y, p.label.x, p.label.y)) <= MAX_TURN_DEGREES)
+                    }
+                    .sortedBy { it.second }
+                // A long leg only where no usual one goes on.
+                val usual = onward.filter { it.second <= MAX_LEG_M }
+                val options = usual.ifEmpty { onward }
+                return (options.filter { it.first !in avoid }.ifEmpty { options }).take(NEAREST).map { it.first }.shuffled(random)
+            }
+
+            // Depth first: a full trip ends the search, a dead end turns back to the last choice.
+            fun drive(): Boolean {
+                if (trip.size > best.size) best = trip.toList()
+                if (trip.size == STOPS) return true
+                for (p in next()) {
+                    if (--budget < 0) return false
+                    trip += p
+                    if (drive()) return true
+                    trip.removeAt(trip.lastIndex)
+                }
+                return false
+            }
+
+            for (start in candidates.shuffled(random).sortedBy { it in avoid }) {
+                trip.clear()
+                trip += start
+                if (drive() || budget < 0) break
+            }
+            return best
         }
 
         private fun angle(x0: Double, y0: Double, x1: Double, y1: Double) = atan2(y1 - y0, x1 - x0) * 180 / PI

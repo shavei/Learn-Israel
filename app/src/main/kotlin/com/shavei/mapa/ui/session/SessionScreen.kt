@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,6 +75,7 @@ import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.Relation
 import com.shavei.mapa.learning.center
 import com.shavei.mapa.learning.Response
+import com.shavei.mapa.learning.RoadTrip
 import com.shavei.mapa.learning.fsrs.Rating
 import com.shavei.mapa.ui.formatKm
 import com.shavei.mapa.ui.formatPoints
@@ -122,7 +125,7 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
 
     // A blitz summary: the answer picked from its list, shown in full on the map; null for all of them.
     var picked by remember(ui is SessionUi.Finished) { mutableStateOf<Int?>(null) }
-    // Room above a picked answer for its place's name.
+    // Room around the places framed at the end for their names.
     val labelRoomPx = with(LocalDensity.current) { 40.dp.toPx() }
 
     // Every question starts from the whole map, so the player works from the big picture.
@@ -142,26 +145,35 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                     camera.setFramePadding(frameTop, 0f, leftPx, rightPx)
                     camera.reset()
                     val close = (q as? Question.NameChoice)?.let { closeOptions(it.options) }
+                    // A road trip leg is viewed around where it starts: the next stop is within a leg of it.
+                    val legStart = viewModel.trip.getOrNull(s.number - 1)
                     if (close != null) {
                         camera.fit(close, frameTop, frameBottom, CLOSE_OPTIONS_VIEW_METERS)
+                    } else if (legStart != null) {
+                        camera.fit(listOf(legStart.label), frameTop + labelRoomPx, frameBottom, TRIP_VIEW_METERS)
                     } else {
                         askedPoints(q).takeIf { it.isNotEmpty() }?.let { camera.ensureVisible(it, frameTop, frameBottom) }
                     }
                 }
             }
             is SessionUi.Discover -> camera.ensureVisible(listOf(s.question.place.label), frameTop, frameBottom)
-            // A road trip opens on the whole map with its start, and ends on the whole route.
+            // A road trip opens around its start, and ends on the whole route.
             SessionUi.Ready, is SessionUi.Finished -> {
                 camera.setFramePadding(frameTop, 0f, leftPx, rightPx)
                 camera.reset()
-                viewModel.trip.takeIf { it.isNotEmpty() }?.let { trip ->
-                    camera.ensureVisible((if (s is SessionUi.Ready) trip.take(1) else trip).map { it.label }, frameTop, frameBottom)
+                val trip = viewModel.trip
+                if (s is SessionUi.Ready) {
+                    trip.firstOrNull()?.let { camera.fit(listOf(it.label), frameTop + labelRoomPx, frameBottom, TRIP_VIEW_METERS) }
                 }
-                // A blitz ends on every place it asked and every tap, or on the answer picked, above the summary.
+                // Free play ends on every place it asked and every tap, or on the answer picked, above the summary.
                 (s as? SessionUi.Finished)?.summary?.results?.takeIf { it.isNotEmpty() }?.let { results ->
                     val one = picked?.let { results.getOrNull(it) }
-                    if (one != null) camera.fit(feedbackPoints(one, content), frameTop + labelRoomPx, frameBottom, PICKED_VIEW_METERS)
-                    else camera.ensureVisible(results.flatMap { feedbackPoints(it, content) }, frameTop, frameBottom)
+                    val all = results.flatMap { feedbackPoints(it, content) } + trip.map { it.label }
+                    when {
+                        one != null -> camera.fit(feedbackPoints(one, content), frameTop + labelRoomPx, frameBottom + labelRoomPx, PICKED_VIEW_METERS)
+                        trip.isNotEmpty() -> camera.fit(all, frameTop + labelRoomPx, frameBottom + labelRoomPx, PICKED_VIEW_METERS)
+                        else -> camera.ensureVisible(all, frameTop, frameBottom)
+                    }
                 }
             }
             is SessionUi.Feedback -> {
@@ -190,7 +202,8 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
 
     // A road trip draws its route through the stops so far: on a question, up to the last
     // stop; on its feedback, on to this one; at the end, the whole way. A leg to a stop that
-    // was missed is only dashed: the route shows the trip as it went.
+    // was missed is only dashed, one reached by a close tap is in the close color: the route
+    // shows the trip as it went.
     val trip = viewModel.trip
     val route = when (val s = ui) {
         SessionUi.Ready -> trip.take(1)
@@ -199,7 +212,7 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         is SessionUi.Finished -> trip
         else -> emptyList()
     }
-    val decorations = routeDecorations(route, viewModel.tripResults(), colors) + when (val s = ui) {
+    val decorations = routeDecorations(route, viewModel.tripResults(), colors, asking = ui is SessionUi.Ask) + when (val s = ui) {
         is SessionUi.Discover -> placeDecorations(s.question.place, colors)
         is SessionUi.Ask -> when {
             s.last == null -> emptyList()
@@ -211,7 +224,9 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         is SessionUi.Feedback -> feedbackDecorations(s.answer, content, colors)
         // The summary lights up the places of this session (a road trip shows its route instead,
         // and a blitz every answer as it was shown in play).
-        is SessionUi.Finished -> if (s.summary.results.isNotEmpty()) {
+        is SessionUi.Finished -> if (trip.isNotEmpty()) {
+            tripSummaryDecorations(s.summary, picked, colors)
+        } else if (s.summary.results.isNotEmpty()) {
             blitzSummaryDecorations(s.summary, picked, colors)
         } else if (s.summary.mapTest == null && trip.isEmpty()) {
             s.summary.practiced.map { MapDecoration.Highlight(it.shape, colors.mastery, alpha = 0.35f) }
@@ -688,17 +703,19 @@ private fun SummaryCard(
                     } else {
                         SummaryPoints(summary)
                         Text(pluralStringResource(R.plurals.blitz_summary_found, summary.correct, summary.correct, summary.answers))
-                        BlitzAnswers(summary.results, picked, onPick)
+                        AnswerChips(summary.results, picked, onPick)
                     }
                     BlitzRecordLine(summary)
                 }
                 summary.trip.isNotEmpty() -> {
-                    // Only a trip that found every stop arrived.
+                    // Only a trip that reached every stop arrived.
                     val arrived = summary.answers > 0 && summary.correct == summary.answers
                     Text(stringResource(if (arrived) R.string.trip_summary_title else R.string.trip_summary_title_short), style = title)
                     SummaryPoints(summary)
-                    Text(summary.trip.joinToString(" ← ") { it.name }, style = MaterialTheme.typography.titleMedium)
+                    // Names keep their words together, so the route wraps only between stops.
+                    Text(summary.trip.joinToString(" ← ") { it.name.replace(' ', '\u00A0') }, style = MaterialTheme.typography.titleMedium)
                     Text(pluralStringResource(R.plurals.trip_summary_found, summary.correct, summary.correct, summary.answers))
+                    AnswerChips(summary.results, picked, onPick)
                 }
                 summary.placement -> {
                     Text(stringResource(R.string.placement_summary_title), style = title)
@@ -766,21 +783,26 @@ private fun MapTestSummary(test: MapTestResult, pre: MapTestResult?) {
 }
 
 /**
- * A blitz's answers, in order, one chip each: picking one shows it alone on the map, where
+ * Free play's answers, in order, one chip each: picking one shows it alone on the map, where
  * the tap landed and where the place is; picking it again shows them all.
  */
 @Composable
-private fun BlitzAnswers(results: List<Answer>, picked: Int?, onPick: (Int?) -> Unit) {
+private fun AnswerChips(results: List<Answer>, picked: Int?, onPick: (Int?) -> Unit) {
+    if (results.isEmpty()) return
     Text(stringResource(R.string.blitz_answers_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val colors = LocalMapPalette.current
         results.forEachIndexed { i, a ->
-            val error = a.grade.errorMeters ?: 0.0
-            val text = if (a.grade.isCorrect) "✓ ${a.place.name}" else "✗ ${a.place.name} · " + stringResource(R.string.blitz_answer_km, formatKm(error))
+            val km = stringResource(R.string.blitz_answer_km, formatKm(a.grade.errorMeters ?: 0.0))
+            val (text, color) = when (a.grade.rating) {
+                Rating.GOOD, Rating.EASY -> "✓ ${a.place.name}" to colors.goodText
+                Rating.HARD -> "≈ ${a.place.name} · $km" to colors.closeText
+                Rating.AGAIN -> "✗ ${a.place.name} · $km" to colors.missText
+            }
             FilterChip(
                 selected = picked == i,
                 onClick = { onPick(if (picked == i) null else i) },
-                label = { Text(text, color = if (a.grade.isCorrect) colors.goodText else colors.missText) },
+                label = { Text(text, color = color) },
                 modifier = Modifier.testTag("blitz-answer-$i"),
             )
         }
@@ -831,18 +853,21 @@ private fun Motivation(summary: SessionSummary) {
     }
 }
 
+/** The session's points and the most it could have earned; the second wraps below at a large font. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SummaryPoints(summary: SessionSummary) {
-    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             pluralStringResource(R.plurals.points, summary.points, formatPoints(summary.points)),
-            Modifier.testTag("session-points"),
+            Modifier.testTag("session-points").alignByBaseline(),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
             stringResource(R.string.points_of, formatPoints(summary.maxPoints)),
+            Modifier.alignByBaseline(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -932,18 +957,41 @@ private fun feedbackDecorations(answer: Answer, content: Content, colors: MapPal
 }
 
 /**
- * A road trip's route through [stops], each marked and named: a solid leg to each stop
- * found, a dashed one to a stop missed ([found] holds a stop's result once answered).
+ * A road trip's route through [stops], each marked: a solid leg to each stop found, in the
+ * close color to one reached by a close tap, and a dashed one to a stop missed ([results]
+ * holds a stop's rating once answered). While [asking], the leg's start is marked larger and
+ * is the only one named, so no name covers the next stop.
  */
-private fun routeDecorations(stops: List<Place>, found: List<Boolean>, colors: MapPalette): List<MapDecoration> {
+private fun routeDecorations(stops: List<Place>, results: List<Rating>, colors: MapPalette, asking: Boolean): List<MapDecoration> {
     if (stops.isEmpty()) return emptyList()
-    fun missed(i: Int) = found.getOrNull(i - 1) == false
-    val legs = (1 until stops.size).map { i ->
-        MapDecoration.Drawing(listOf(stops[i - 1].label, stops[i].label), if (missed(i)) colors.miss else colors.mastery, dashed = missed(i))
+    fun rating(i: Int) = results.getOrNull(i - 1)
+    fun color(i: Int) = when (rating(i)) {
+        Rating.AGAIN -> colors.miss
+        Rating.HARD -> colors.close
+        else -> colors.mastery
     }
+    fun text(i: Int) = when (rating(i)) {
+        Rating.AGAIN -> colors.missText
+        Rating.HARD -> colors.closeText
+        else -> null
+    }
+    val legs = (1 until stops.size).map { i ->
+        MapDecoration.Drawing(listOf(stops[i - 1].label, stops[i].label), color(i), dashed = rating(i) == Rating.AGAIN)
+    }
+    val here = stops.lastIndex
     return legs +
-        stops.mapIndexed { i, p -> MapDecoration.Marker(p.label, if (missed(i)) colors.miss else colors.mastery, radiusPx = 7f) } +
-        stops.mapIndexed { i, p -> MapDecoration.Label(p.label, p.name, if (missed(i)) colors.missText else null) }
+        stops.mapIndexed { i, p -> MapDecoration.Marker(p.label, color(i), radiusPx = if (asking && i == here) 11f else 7f) } +
+        stops.mapIndexedNotNull { i, p -> MapDecoration.Label(p.label, p.name, text(i)).takeIf { !asking || i == here } }
+}
+
+/**
+ * The end of a road trip, over its route: every tap, with a faint line from each one off its
+ * stop; the answer [picked] from the summary's list in full, its stop marked and named.
+ */
+private fun tripSummaryDecorations(summary: SessionSummary, picked: Int?, colors: MapPalette): List<MapDecoration> {
+    val focus = picked?.let { summary.results.getOrNull(it) } ?: return summary.results.flatMap { blitzTap(it, colors, faint = true) }
+    val ok = if (focus.grade.isCorrect) colors.good else colors.target
+    return listOf(MapDecoration.Highlight(focus.place.shape, ok, fillAlpha(focus.place.shape, 0.45f))) + blitzTap(focus, colors, radiusPx = 9f)
 }
 
 /** The map test's last tap, plain: it counted, with no sign of whether it was right. */
@@ -1015,6 +1063,9 @@ private const val CLOSE_OPTIONS_METERS = 30_000.0
 
 /** At least this much of the map is shown around close naming options (map meters). */
 private const val CLOSE_OPTIONS_VIEW_METERS = 30_000.0
+
+/** A road trip leg is viewed this wide around its start: the next stop is within a leg of it (map meters). */
+private const val TRIP_VIEW_METERS = 2 * RoadTrip.MAX_LEG_M
 
 /** At least this much of the map is shown around a blitz answer picked on its summary (map meters). */
 private const val PICKED_VIEW_METERS = 60_000.0

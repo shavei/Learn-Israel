@@ -31,6 +31,7 @@ import com.shavei.mapa.learning.Response
 import com.shavei.mapa.learning.RoadTrip
 import com.shavei.mapa.learning.SessionConfig
 import com.shavei.mapa.learning.SessionEngine
+import com.shavei.mapa.learning.fsrs.Rating
 import com.shavei.mapa.learning.isKnown
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,7 +74,7 @@ data class SessionSummary(
      */
     val blitzRecordBefore: BlitzRecord? = null,
     val blitzSaved: Boolean = false,
-    /** A blitz: every answer, in order, so the summary map shows each one as it was shown in play. */
+    /** Free play: every answer, in order, so the summary map can show where each tap landed. */
     val results: List<Answer> = emptyList(),
     /** A road trip: its stops, from the start. */
     val trip: List<Place> = emptyList(),
@@ -193,9 +194,12 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
     var trip: List<Place> = emptyList()
         private set
 
-    /** A road trip: whether each stop after the start was found, as far as answered. */
-    fun tripResults(): List<Boolean> =
-        if (trip.isEmpty() || !::engine.isInitialized) emptyList() else engine.answers.map { it.grade.isCorrect }
+    /** A road trip: how each stop after the start was answered, as far as answered. */
+    fun tripResults(): List<Rating> =
+        if (trip.isEmpty() || !::engine.isInitialized) emptyList() else engine.answers.map { it.grade.rating }
+
+    /** The last road trip's stops, which the next one steers clear of. */
+    private var lastTrip: List<Place> = emptyList()
 
     private var blitz: Blitz? = null
 
@@ -219,7 +223,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
                     MapTest(app.content)
                 }
                 SessionKind.BLITZ -> Blitz(app.content, app.scheduler, cards, blitzDurationMs).also { blitz = it }
-                SessionKind.ROAD_TRIP -> RoadTrip(app.scheduler, cards, RoadTrip.plan(app.content, cards)).also { trip = it.stops }
+                SessionKind.ROAD_TRIP -> RoadTrip(app.scheduler, cards, RoadTrip.plan(app.content, cards, avoid = lastTrip)).also { trip = it.stops }
                 else -> {
                     val tallies = AnswerTally.of(app.progress.reviewRecords())
                     if (kind == SessionKind.BUILD) {
@@ -278,6 +282,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             sessionId = UUID.randomUUID().toString()
             number = 0
             saving = null
+            lastTrip = trip
             trip = emptyList()
             blitz = null
             start()
@@ -398,21 +403,26 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
 
     private fun summary(): SessionSummary {
         val answers = engine.answers
-        val cityErrors = answers.filter { it.place.type == PlaceType.CITY }.mapNotNull { it.grade.errorMeters }
+        val freePlay = kind == SessionKind.BLITZ || kind == SessionKind.ROAD_TRIP
+        // Free play asks every kind of place, so its average is over every tap, not cities only.
+        val errors = answers.filter { freePlay || it.place.type == PlaceType.CITY }.mapNotNull { it.grade.errorMeters }
+        // A road trip reaches a stop with a close tap too, as its feedback says.
+        val reached: (Answer) -> Boolean =
+            if (kind == SessionKind.ROAD_TRIP) { a -> a.grade.rating != Rating.AGAIN } else { a -> a.grade.isCorrect }
         val practiced = answers.map { it.place }.distinct()
         return SessionSummary(
             answers = answers.size,
-            correct = answers.count { it.grade.isCorrect },
+            correct = answers.count(reached),
             newPlaces = answers.count { it.before == null && it.question is Question.Locate },
-            averageCityErrorMeters = cityErrors.takeIf { it.isNotEmpty() }?.average(),
+            averageCityErrorMeters = errors.takeIf { it.isNotEmpty() }?.average(),
             points = score(),
             maxPoints = answers.size * Grader.MAX_POINTS,
             placement = kind == SessionKind.PLACEMENT,
             blitz = kind == SessionKind.BLITZ,
-            results = if (kind == SessionKind.BLITZ) answers.toList() else emptyList(),
+            results = if (freePlay) answers.toList() else emptyList(),
             trip = trip,
             practiced = practiced,
-            found = practiced.filter { p -> answers.any { it.place == p && it.grade.isCorrect } },
+            found = practiced.filter { p -> answers.any { it.place == p && reached(it) } },
         )
     }
 
