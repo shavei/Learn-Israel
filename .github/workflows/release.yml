@@ -4,7 +4,7 @@ name: Release APK
 # the newest commit of main. Every trigger does the same thing: build main as it is when
 # the job starts, unless that commit is already released. So a late, repeated or
 # out-of-order trigger can never publish an older build, and a missed one is caught up
-# by the next, at the latest by the hourly check.
+# by the next, at the latest by the check every 10 minutes.
 on:
   push:
     branches: [main]
@@ -13,7 +13,7 @@ on:
     types: [closed]
     branches: [main]
   schedule:
-    - cron: "17 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 # One release at a time, in order: a waiting run starts after the current one finishes,

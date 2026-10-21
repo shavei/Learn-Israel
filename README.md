@@ -26,7 +26,7 @@ people actually remember.
 
 This link always points to the newest build of `main`. The Release APK workflow
 publishes it after every merge, once its tests pass and the APK checks out, and checks
-every hour that nothing was missed; it never replaces a newer build with an older one.
+every 10 minutes that nothing was missed; it never replaces a newer build with an older one.
 Open it on an Android phone (8.0 or newer) and allow installing from your browser when
 asked. Installing a newer build updates the app and keeps your progress.
 
