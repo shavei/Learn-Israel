@@ -1,0 +1,99 @@
+name: Release APK
+
+# Keeps https://github.com/<repo>/releases/latest/download/mapa.apk (README "Install") on
+# the newest commit of main. Every trigger does the same thing: build main as it is when
+# the job starts, unless that commit is already released. So a late, repeated or
+# out-of-order trigger can never publish an older build, and a missed one is caught up
+# by the next, at the latest by the hourly check.
+on:
+  push:
+    branches: [main]
+  # GitHub has started some push runs very late, or not at all; a merged PR also releases.
+  pull_request:
+    types: [closed]
+    branches: [main]
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+# One release at a time, in order: a waiting run starts after the current one finishes,
+# sees the newer main, and releases it (or finds it already released).
+concurrency:
+  group: release-apk
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # A PR closed without merging releases nothing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Is the newest main already released?
+        id: check
+        run: |
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if gh api "repos/$GH_REPO/releases" --jq '.[] | select(.draft | not) | .target_commitish' | grep -qx "$sha"; then
+            echo "Main ($sha) is already released."
+            echo "done=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-java@v4
+        if: steps.check.outputs.done != 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.check.outputs.done != 'true'
+      # The same checks CI runs: a build is released only if its tests pass.
+      - name: Test and build the APK
+        if: steps.check.outputs.done != 'true'
+        run: ./gradlew test :app:assembleDebug
+      - name: Check the APK is a whole, valid archive
+        if: steps.check.outputs.done != 'true'
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk mapa.apk
+          unzip -tq mapa.apk
+          unzip -l mapa.apk | grep -q AndroidManifest.xml
+          "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner" verify mapa.apk
+      # The release is created as a draft, which nobody can see, and made public only once
+      # the APK is uploaded: a download started meanwhile gets the previous build, never a
+      # missing or half-uploaded file.
+      - name: Publish the build as the latest release
+        if: steps.check.outputs.done != 'true'
+        env:
+          SHA: ${{ steps.check.outputs.sha }}
+        run: |
+          tag="build-$GITHUB_RUN_NUMBER"
+          subject=$(git log -1 --format=%s "$SHA")
+          gh release create "$tag" mapa.apk --draft \
+            --target "$SHA" \
+            --title "Build #$GITHUB_RUN_NUMBER" \
+            --notes "Debug build of main at $SHA ($subject), published automatically. Install mapa.apk on an Android phone (8.0 or newer)."
+          gh release edit "$tag" --draft=false --latest
+      - name: The download link serves this build
+        if: steps.check.outputs.done != 'true'
+        run: |
+          want=$(sha256sum mapa.apk | cut -d' ' -f1)
+          for i in 1 2 3 4 5 6; do
+            got=$(curl -fsSL "https://github.com/$GH_REPO/releases/latest/download/mapa.apk" | sha256sum | cut -d' ' -f1)
+            [ "$got" = "$want" ] && { echo "Latest download is this build."; exit 0; }
+            sleep 10
+          done
+          echo "::error::The latest download link does not serve this build."
+          exit 1
+      - name: Keep the five newest builds
+        if: steps.check.outputs.done != 'true'
+        run: |
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | grep '^build-' | sort -t- -k2 -n -r | tail -n +6 \
+            | xargs -r -I{} gh release delete {} --cleanup-tag --yes
+          gh release delete latest-build --cleanup-tag --yes || true
