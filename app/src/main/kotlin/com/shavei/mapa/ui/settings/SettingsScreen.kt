@@ -179,7 +179,7 @@ fun SettingsScreen(
             }
             // On, or wanted, but Android does not let the app notify: say so and offer the way.
             if (!allowed && (settings.reminderOn || refused)) {
-                Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.secondary)
+                Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.tertiary)
                 Button(onClick = access.openSettings) { Text(stringResource(R.string.reminder_open_settings)) }
             }
             OutlinedButton(onClick = { pickingTime = true }, enabled = settings.reminderOn) {

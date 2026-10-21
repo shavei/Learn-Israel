@@ -20,49 +20,70 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.shavei.mapa.R
 
-// Text colors meet WCAG AA (4.5:1) on the card color of their theme.
+/*
+ * The palette of a printed atlas of Israel. On a map every hue means something, so here too:
+ * - Mediterranean blue (primary): what you do and where you go, and places you know.
+ * - Carmel olive (secondary): keeping the habit, the streak, a day done, the way to the next rank.
+ * - Jerusalem-stone terracotta (tertiary): what you earned, and what asks for your attention.
+ * Neutrals are paper and sepia ink rather than gray, light and warm as on Swiss-style relief
+ * maps. The dark palette is the same atlas at night, not an inversion.
+ * Every text color meets WCAG AA (4.5:1) on the background and on the card color of its theme,
+ * and each "on" color on its own fill.
+ */
 private val lightColors = lightColorScheme(
-    primary = Color(0xFF1E5F8C),
+    primary = Color(0xFF1E5A82),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFD3E4F5),
+    primaryContainer = Color(0xFFD3E4F2),
     onPrimaryContainer = Color(0xFF0B3550),
-    secondary = Color(0xFFB4420C),
+    secondary = Color(0xFF4C6A2B),
     onSecondary = Color.White,
-    background = Color(0xFFFBF8F1),
-    onBackground = Color(0xFF1C1B1F),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF1C1B1F),
-    surfaceVariant = Color(0xFFEDE7DB),
-    onSurfaceVariant = Color(0xFF4A463F),
-    surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF9F6F0),
-    surfaceContainer = Color(0xFFF6F2EA),
-    surfaceContainerHigh = Color(0xFFF4EFE6),
-    surfaceContainerHighest = Color(0xFFF1ECE2),
-    outline = Color(0xFF7A7468),
-    outlineVariant = Color(0xFFCFC8BB),
+    secondaryContainer = Color(0xFFDDE8C7),
+    onSecondaryContainer = Color(0xFF1F2F0D),
+    tertiary = Color(0xFFA2441C),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFF7DCCB),
+    onTertiaryContainer = Color(0xFF4A1B06),
+    background = Color(0xFFF8F3E8),
+    onBackground = Color(0xFF211E19),
+    surface = Color(0xFFFFFDF8),
+    onSurface = Color(0xFF211E19),
+    surfaceVariant = Color(0xFFECE4D4),
+    onSurfaceVariant = Color(0xFF4D463A),
+    surfaceContainerLowest = Color(0xFFFFFDF8),
+    surfaceContainerLow = Color(0xFFFAF6EC),
+    surfaceContainer = Color(0xFFF7F2E7),
+    surfaceContainerHigh = Color(0xFFF5EFE4),
+    surfaceContainerHighest = Color(0xFFF3EDE1),
+    outline = Color(0xFF7C715E),
+    outlineVariant = Color(0xFFD4CAB7),
 )
 
 private val darkColors = darkColorScheme(
     primary = Color(0xFF9CC9EE),
     onPrimary = Color(0xFF0B3550),
     primaryContainer = Color(0xFF1E4A6B),
-    onPrimaryContainer = Color(0xFFD3E4F5),
-    secondary = Color(0xFFFFB08A),
-    onSecondary = Color(0xFF5A1D00),
-    background = Color(0xFF14171A),
-    onBackground = Color(0xFFE6E2DA),
-    surface = Color(0xFF1A1D21),
-    onSurface = Color(0xFFE6E2DA),
-    surfaceVariant = Color(0xFF33373C),
-    onSurfaceVariant = Color(0xFFC4BFB5),
-    surfaceContainerLowest = Color(0xFF111316),
-    surfaceContainerLow = Color(0xFF1C1F23),
-    surfaceContainer = Color(0xFF202428),
-    surfaceContainerHigh = Color(0xFF25292D),
-    surfaceContainerHighest = Color(0xFF2A2E33),
-    outline = Color(0xFF8E8A82),
-    outlineVariant = Color(0xFF45484C),
+    onPrimaryContainer = Color(0xFFD3E4F2),
+    secondary = Color(0xFFB5CF8D),
+    onSecondary = Color(0xFF22330D),
+    secondaryContainer = Color(0xFF364A1D),
+    onSecondaryContainer = Color(0xFFDDE8C7),
+    tertiary = Color(0xFFFFB596),
+    onTertiary = Color(0xFF561F07),
+    tertiaryContainer = Color(0xFF5A2913),
+    onTertiaryContainer = Color(0xFFF7DCCB),
+    background = Color(0xFF131619),
+    onBackground = Color(0xFFE8E3D9),
+    surface = Color(0xFF1A1D20),
+    onSurface = Color(0xFFE8E3D9),
+    surfaceVariant = Color(0xFF34383C),
+    onSurfaceVariant = Color(0xFFC6BFB3),
+    surfaceContainerLowest = Color(0xFF101315),
+    surfaceContainerLow = Color(0xFF1C1F22),
+    surfaceContainer = Color(0xFF202326),
+    surfaceContainerHigh = Color(0xFF25282B),
+    surfaceContainerHighest = Color(0xFF2A2D30),
+    outline = Color(0xFF958D80),
+    outlineVariant = Color(0xFF4A4741),
 )
 
 /** Colors of the map and of answer feedback. The dark map is its own design, not an inversion. */
@@ -112,7 +133,7 @@ val LightMapPalette = MapPalette(
     good = Color(0xFF2B8A3E),
     close = Color(0xFFE8A317),
     miss = Color(0xFFC92A2A),
-    mastery = Color(0xFF1E5F8C),
+    mastery = Color(0xFF1E5A82),
     labelText = Color(0xFF1C1B1F),
     labelBox = Color(0xD9FFFFFF),
     goodText = Color(0xFF237032),

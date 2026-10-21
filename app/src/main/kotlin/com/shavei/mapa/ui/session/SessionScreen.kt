@@ -316,7 +316,7 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
             val score = if (viewModel.kind == SessionKind.MAP_TEST) null else ask.score
             val note = when {
                 ask.last != null && viewModel.kind == SessionKind.MAP_TEST ->
-                    Note(stringResource(R.string.map_test_tap_noted), MaterialTheme.colorScheme.secondary)
+                    Note(stringResource(R.string.map_test_tap_noted), MaterialTheme.colorScheme.tertiary)
                 ask.last != null -> blitzNote(ask.last)
                 viewModel.kind == SessionKind.ROAD_TRIP -> trip.getOrNull(ask.number - 1)?.let { Note(stringResource(R.string.trip_from, it.name)) }
                 // The first blitz question keeps the line empty, so the card (and the map under it)
@@ -454,7 +454,7 @@ private fun PromptCard(question: Question, counter: String, score: Int?, note: N
                 Text(
                     stringResource(R.string.hint, question.place.hint),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = MaterialTheme.colorScheme.tertiary,
                 )
             }
         }
@@ -856,14 +856,14 @@ private fun Motivation(summary: SessionSummary) {
             Text(
                 stringResource(R.string.summary_new_rank, rankName(it)),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.secondary,
             )
         }
         for (a in summary.newAchievements) {
             Text(
                 stringResource(R.string.summary_new_achievement, achievementTitle(a)),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.tertiary,
             )
         }
     }

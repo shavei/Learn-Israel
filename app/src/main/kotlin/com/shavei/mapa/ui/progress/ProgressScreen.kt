@@ -221,6 +221,7 @@ private fun Summary(state: ProgressState) {
             Text(
                 if (streak.days == 0) stringResource(R.string.home_streak_none)
                 else pluralStringResource(R.plurals.home_streak, streak.days, streak.days),
+                color = if (streak.days > 0) MaterialTheme.colorScheme.secondary else Color.Unspecified,
             )
             // The longest streak, once there was one longer than today's: a record to come back to.
             if (streak.best > streak.days && streak.best > 1) {
@@ -544,7 +545,7 @@ private fun AchievementRow(achievement: Achievement, progress: AchievementProgre
     Row(
         Modifier.fillMaxWidth()
             .clip(shape)
-            .background(if (earned) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .background(if (earned) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent)
             .padding(horizontal = 8.dp, vertical = 6.dp)
             .testTag("achievement-${achievement.name}")
             .clearAndSetSemantics { contentDescription = description },
@@ -557,16 +558,16 @@ private fun AchievementRow(achievement: Achievement, progress: AchievementProgre
                 Text(
                     title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (earned) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                    color = if (earned) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     status,
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (earned) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (earned) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val textColor = if (earned) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            val textColor = if (earned) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
             Text(text, style = MaterialTheme.typography.bodySmall, color = textColor)
             if (detail != null) Text(detail, style = MaterialTheme.typography.bodySmall, color = textColor)
         }
@@ -579,8 +580,8 @@ private const val MAX_PLACES_NAMED = 6
 /** A filled circle with a check once earned; before that a ring, filled clockwise as far as the player has come. */
 @Composable
 private fun AchievementBadge(earned: Boolean, fraction: Float) {
-    val fill = MaterialTheme.colorScheme.primary
-    val mark = MaterialTheme.colorScheme.onPrimary
+    val fill = MaterialTheme.colorScheme.tertiary
+    val mark = MaterialTheme.colorScheme.onTertiary
     val track = MaterialTheme.colorScheme.outlineVariant
     Canvas(Modifier.size(32.dp)) {
         val stroke = 3.dp.toPx()

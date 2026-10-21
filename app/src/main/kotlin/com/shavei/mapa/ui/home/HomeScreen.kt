@@ -318,7 +318,7 @@ private fun HomeBody(
         if (state.reminderJustSet) {
             Text(
                 stringResource(R.string.reminder_set, formatTime(state.reminderMinutes)),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
@@ -357,7 +357,7 @@ private fun TodayLine(state: HomeState) {
             // Nothing waiting and the day not done yet: a short practice of the weakest places makes the day.
             else -> stringResource(R.string.home_nothing_due_yet)
         },
-        color = if (state.doneToday) MaterialTheme.colorScheme.primary else Color.Unspecified,
+        color = if (state.doneToday) MaterialTheme.colorScheme.secondary else Color.Unspecified,
         textAlign = TextAlign.Center,
     )
 }
@@ -399,7 +399,8 @@ private fun RankProgress(state: HomeState, showNext: Boolean) {
         LinearProgressIndicator(
             progress = { (known - rank.knownPlaces).toFloat() / (next.knownPlaces - rank.knownPlaces) },
             modifier = Modifier.fillMaxWidth().height(6.dp),
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            color = MaterialTheme.colorScheme.secondary,
+            trackColor = MaterialTheme.colorScheme.secondaryContainer,
             drawStopIndicator = {},
         )
     }
@@ -428,6 +429,7 @@ private fun StreakLine(streak: Streak) {
             if (streak.days == 0) stringResource(R.string.home_streak_none)
             else pluralStringResource(R.plurals.home_streak, streak.days, streak.days),
             style = MaterialTheme.typography.titleSmall,
+            color = if (streak.days > 0) MaterialTheme.colorScheme.secondary else Color.Unspecified,
             modifier = Modifier.align(Alignment.CenterVertically),
         )
         if (streak.best > streak.days) {
@@ -440,7 +442,7 @@ private fun StreakLine(streak: Streak) {
         }
     }
     if (streak.frozen > 0) {
-        Text(pluralStringResource(R.plurals.home_frozen, streak.frozen, streak.frozen), style = small, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+        Text(pluralStringResource(R.plurals.home_frozen, streak.frozen, streak.frozen), style = small, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center)
     }
     if (streak.days > 0 && !streak.playedToday) {
         Text(stringResource(R.string.home_streak_keep), style = small, color = muted, textAlign = TextAlign.Center)
@@ -605,7 +607,7 @@ private fun ReminderOffer(initialMinutes: Int, onAnswer: (on: Boolean, minutes: 
         ) {
             Text(stringResource(R.string.reminder_offer_title), style = MaterialTheme.typography.titleMedium)
             if (blocked) {
-                Text(stringResource(R.string.reminder_blocked_explain), color = MaterialTheme.colorScheme.secondary)
+                Text(stringResource(R.string.reminder_blocked_explain), color = MaterialTheme.colorScheme.tertiary)
             } else {
                 Text(stringResource(R.string.reminder_offer_body))
                 OutlinedButton(onClick = { pickingTime = true }) {
