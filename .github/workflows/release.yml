@@ -64,6 +64,19 @@ jobs:
           unzip -tq mapa.apk
           unzip -l mapa.apk | grep -q AndroidManifest.xml
           "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner" verify mapa.apk
+      # A phone refuses a build whose version code is not above the installed one (some say
+      # "package appears to be invalid"), so a build that would not update is never published.
+      - name: Check the APK updates the published one
+        if: steps.check.outputs.done != 'true'
+        run: |
+          aapt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt"
+          code() { "$aapt" dump badging "$1" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p"; }
+          new=$(code mapa.apk)
+          if curl -fsSL -o published.apk "https://github.com/$GH_REPO/releases/latest/download/mapa.apk"; then
+            old=$(code published.apk)
+            echo "Version code: published $old, this build $new."
+            [ "$new" -gt "$old" ] || { echo "::error::Version code $new does not update the published $old."; exit 1; }
+          fi
       # The release is created as a draft, which nobody can see, and made public only once
       # the APK is uploaded: a download started meanwhile gets the previous build, never a
       # missing or half-uploaded file.
