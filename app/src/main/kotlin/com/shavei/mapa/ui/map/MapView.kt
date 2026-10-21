@@ -337,7 +337,7 @@ fun MapView(
                             drawPath(path, d.color, style = outline)
                         }
                     }
-                    is Shape.Lines -> drawPath(path, d.color, style = Stroke(width = 6f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                    is Shape.Lines -> drawPath(path, d.color, alpha = crowd.fill, style = Stroke(width = 6f * crowd.size * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
                     is Shape.Point -> Unit // drawn in screen space so it keeps its size
                 }
             }

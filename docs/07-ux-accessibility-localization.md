@@ -15,9 +15,20 @@ No signup, no permissions on first run.
 - **Home:** the player's mastery map (big), today's session button with a count
   ("12 reviews, 4 new"), streak, current unit.
 - **Session player:** full-screen map, question bar on top, minimal chrome, feedback
-  card sliding up from the bottom.
-- **Session summary:** the map animates the places strengthened today; stats (accuracy,
-  average error km, new places); single "Done" button.
+  card sliding up from the bottom. In landscape the question and the cards stand in a
+  side panel and the map is framed beside it, so a card never hides the place in
+  question. Leaving with an answer given and the session not over (Exit or system back)
+  asks first; leaving the map test says it discards the test, and its answers are deleted.
+  Between map test questions the tap stays on the map with "הסימון נקלט", never a sign of
+  right or wrong. Naming options a few kilometers apart are viewed close up, and a wrong
+  name is marked where that place is.
+- **Session summary:** the map lights up the places practiced in the session (a road
+  trip shows its route, solid to stops found and dashed to stops missed); stats fit the
+  kind of session (the daily session: accuracy, average error km, new places; Map Builder:
+  places found; focused practice: no new places line; the placement test lists the places
+  found). A hard session ends on a kind line. Practice rounds and free play offer "play
+  again" when another round can be planned. One button leads back, and says where (after
+  the pre-test, to the welcome screen).
 - **Explore:** pick a region, see its units, browse learned places (study view with
   labels on, which is allowed but does not count as practice).
 - **Progress:** region percentages, known places count, the rank, achievements,
