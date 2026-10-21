@@ -160,14 +160,14 @@
     <string name="build_prompt">גררו למקום: %1$s</string>
     <string name="build_help">גררו את הצורה באצבע אחת. בשתי אצבעות מזיזים ומגדילים את המפה.</string>
     <string name="build_place">כאן המקום</string>
-    <string name="build_counter">הרכבת המפה · שאלה %1$d מתוך %2$d</string>
+    <string name="build_counter">הרכבת המפה\u00A0· שאלה %1$d מתוך %2$d</string>
     <string name="build_summary_title">סיום הרכבת המפה</string>
-    <string name="focus_counter">אימון ממוקד · שאלה %1$d מתוך %2$d</string>
+    <string name="focus_counter">אימון ממוקד\u00A0· שאלה %1$d מתוך %2$d</string>
     <string name="focus_summary_title">סיום האימון הממוקד</string>
     <string name="blitz_title">בליץ</string>
     <string name="blitz_rules">דקה אחת: סמנו כמה שיותר מהמקומות שאתם מתרגלים. השעון לא עוצר בין שאלה לשאלה.</string>
     <string name="blitz_go">התחילו!</string>
-    <string name="blitz_counter">בליץ · שאלה %1$d</string>
+    <string name="blitz_counter">בליץ\u00A0· שאלה %1$d</string>
     <plurals name="blitz_clock">
         <item quantity="one">נותרה שנייה אחת</item>
         <item quantity="two">נותרו %d שניות</item>
@@ -196,7 +196,7 @@
     <string name="trip_rules">בכל תחנה סמנו על המפה את היעד הבא. הדרך תסומן על המפה בכל תחנה שתמצאו.</string>
     <string name="trip_go">יוצאים לדרך</string>
     <string name="trip_none">עדיין אין מספיק מקומות קרובים שאתם מתרגלים בשביל מסע. המשיכו באימון היומי.</string>
-    <string name="trip_counter">מסע בדרכים · תחנה %1$d מתוך %2$d</string>
+    <string name="trip_counter">מסע בדרכים\u00A0· תחנה %1$d מתוך %2$d</string>
     <string name="trip_summary_title">הגעתם ליעד!</string>
     <string name="trip_summary_title_short">סוף המסע</string>
     <plurals name="trip_summary_found">
@@ -215,7 +215,7 @@
     <string name="onboarding_placement">כבר מכירים את הארץ? בדיקת רמה</string>
     <string name="onboarding_placement_note">כ־3 דקות. מקומות שתמצאו יחזרו בקרוב לאישור, והשאר יילמדו מההתחלה.</string>
 
-    <string name="placement_counter">בדיקת רמה · שאלה %1$d מתוך %2$d לכל היותר</string>
+    <string name="placement_counter">בדיקת רמה\u00A0· שאלה %1$d מתוך %2$d לכל היותר</string>
     <string name="placement_summary_title">סיום בדיקת הרמה</string>
     <string name="placement_summary_found">מצאתם %1$d מתוך %2$d מקומות</string>
     <string name="placement_found_list">מצאתם: %1$s</string>
@@ -319,7 +319,7 @@
     <string name="onboarding_map_test_done">מבחן המפה נשמר. בעוד חודש נשווה.</string>
 
     <string name="map_test_title">מבחן המפה</string>
-    <string name="map_test_counter">מבחן מפה · שאלה %1$d מתוך %2$d</string>
+    <string name="map_test_counter">מבחן מפה\u00A0· שאלה %1$d מתוך %2$d</string>
     <string name="map_test_summary_title">סיום מבחן המפה</string>
     <string name="map_test_median">סטייה חציונית: %1$s\u00A0ק״מ</string>
     <string name="map_test_before">בפעם הראשונה: %1$d מתוך %2$d, סטייה חציונית %3$s\u00A0ק״מ</string>

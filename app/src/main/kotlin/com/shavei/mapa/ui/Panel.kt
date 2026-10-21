@@ -62,11 +62,15 @@ fun Panel(
 fun Modifier.scrollCue(state: ScrollState, background: Color, arrow: Color): Modifier = drawWithContent {
     drawContent()
     if (!state.canScrollForward) return@drawWithContent
-    val fade = 28.dp.toPx()
+    // The arrow sits on a solid strip, so it never draws over text that is still readable.
+    val fade = 20.dp.toPx()
+    val solid = 16.dp.toPx()
+    val top = size.height - solid - fade
     drawRect(
-        Brush.verticalGradient(listOf(background.copy(alpha = 0f), background), startY = size.height - fade, endY = size.height),
-        topLeft = Offset(0f, size.height - fade),
+        Brush.verticalGradient(listOf(background.copy(alpha = 0f), background), startY = top, endY = top + fade),
+        topLeft = Offset(0f, top),
     )
+    drawRect(background, topLeft = Offset(0f, size.height - solid))
     val w = 7.dp.toPx()
     val y = size.height - 8.dp.toPx()
     val x = size.width / 2

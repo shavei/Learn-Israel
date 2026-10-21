@@ -136,14 +136,14 @@ class SessionScreenTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("מבחן מפה קצר לפני שמתחילים")
             compose.onNodeWithText("מבחן מפה קצר לפני שמתחילים").performClick()
-            waitForText("מבחן מפה · שאלה 1 מתוך 20")
+            waitForText("מבחן מפה\u00A0· שאלה 1 מתוך 20")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.55f)) }
-            waitForText("מבחן מפה · שאלה 2 מתוך 20")
+            waitForText("מבחן מפה\u00A0· שאלה 2 מתוך 20")
             // The tap stays on the map with a plain note: it counted, right or wrong unsaid.
             waitForText("הסימון נקלט")
             shot(scenario, "s2-map-test-tap-noted")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.4f, height * 0.5f)) }
-            waitForText("מבחן מפה · שאלה 3 מתוך 20")
+            waitForText("מבחן מפה\u00A0· שאלה 3 מתוך 20")
             compose.waitUntil(10_000) { runBlocking { dao.reviews() }.size == 2 }
 
             compose.onNodeWithText("יציאה").performClick()
@@ -175,7 +175,7 @@ class SessionScreenTest {
             waitForText("למבחן המפה")
             compose.onNodeWithText("למבחן המפה").performClick()
             for (n in 1..20) {
-                waitForText("מבחן מפה · שאלה $n מתוך 20")
+                waitForText("מבחן מפה\u00A0· שאלה $n מתוך 20")
                 missTap()
             }
             waitForText("סיום מבחן המפה")
@@ -391,7 +391,7 @@ class SessionScreenTest {
             // Another round, planned afresh.
             waitForText("סבב נוסף")
             compose.onNodeWithText("סבב נוסף").performClick()
-            waitForText("הרכבת המפה · שאלה 1 מתוך", substring = true)
+            waitForText("הרכבת המפה\u00A0· שאלה 1 מתוך", substring = true)
         }
     }
 
