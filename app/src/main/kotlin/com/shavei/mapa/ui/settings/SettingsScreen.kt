@@ -18,6 +18,8 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,6 +66,7 @@ import com.shavei.mapa.data.Settings
 import com.shavei.mapa.data.ThemeChoice
 import com.shavei.mapa.geo.Bounds
 import com.shavei.mapa.reminder.Reminders
+import com.shavei.mapa.ui.IconTextButton
 import com.shavei.mapa.ui.formatTime
 import com.shavei.mapa.ui.rememberNotificationAccess
 import com.shavei.mapa.ui.map.LocalMapLook
@@ -109,7 +112,7 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
-            TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+            IconTextButton(stringResource(R.string.back), Icons.AutoMirrored.Filled.ArrowBack, onBack)
         }
         // A line under the title once the settings scroll beneath it.
         HorizontalDivider(color = if (scroll.value > 0) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.background)
@@ -176,7 +179,7 @@ fun SettingsScreen(
             }
             // On, or wanted, but Android does not let the app notify: say so and offer the way.
             if (!allowed && (settings.reminderOn || refused)) {
-                Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.secondary)
+                Text(stringResource(R.string.settings_reminder_blocked), color = MaterialTheme.colorScheme.tertiary)
                 Button(onClick = access.openSettings) { Text(stringResource(R.string.reminder_open_settings)) }
             }
             OutlinedButton(onClick = { pickingTime = true }, enabled = settings.reminderOn) {

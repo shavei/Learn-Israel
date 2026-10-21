@@ -2,6 +2,7 @@ package com.shavei.mapa
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -402,7 +403,7 @@ class SessionScreenTest {
     fun theWholeCountryKnownStaysReadable() {
         seed(*app.content.places.map { card(it.id, stability = 40.0) }.toTypedArray())
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("ידועים", substring = true)
+            compose.waitUntil(10_000) { compose.onAllNodes(hasContentDescription("209 ידועים", substring = true)).fetchSemanticsNodes().isNotEmpty() }
             shot(scenario, "s18-home-all-known-small")
         }
     }

@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -64,7 +66,9 @@ import com.shavei.mapa.learning.LearningStats
 import com.shavei.mapa.learning.MapTestKind
 import com.shavei.mapa.learning.RegionScore
 import com.shavei.mapa.learning.ThemeScore
+import com.shavei.mapa.ui.IconTextButton
 import com.shavei.mapa.ui.MapCard
+import com.shavei.mapa.ui.PlaceCounts
 import com.shavei.mapa.ui.formatDate
 import com.shavei.mapa.ui.formatKm
 import com.shavei.mapa.ui.formatPoints
@@ -99,7 +103,7 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onMapTest: 
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f).semantics { heading() },
                 )
-                TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+                IconTextButton(stringResource(R.string.back), Icons.AutoMirrored.Filled.ArrowBack, onBack)
             }
             // A line under the title once the cards scroll beneath it.
             HorizontalDivider(
@@ -201,9 +205,8 @@ private fun FirstPractice(onStart: () -> Unit) {
 private fun Summary(state: ProgressState) {
     MapCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(pluralStringResource(R.plurals.home_known, state.known, state.known), style = MaterialTheme.typography.titleLarge)
+            PlaceCounts(state.known, state.learned - state.known, state.total)
             Text(stringResource(R.string.progress_known_explained), style = MaterialTheme.typography.bodyMedium)
-            Text(pluralStringResource(R.plurals.home_learned, state.total, state.learned, state.total))
             state.motivation?.let { m ->
                 Text(stringResource(R.string.rank_line, rankName(m.rank)), style = MaterialTheme.typography.titleMedium)
                 val next = m.rank.next
@@ -218,6 +221,7 @@ private fun Summary(state: ProgressState) {
             Text(
                 if (streak.days == 0) stringResource(R.string.home_streak_none)
                 else pluralStringResource(R.plurals.home_streak, streak.days, streak.days),
+                color = if (streak.days > 0) MaterialTheme.colorScheme.secondary else Color.Unspecified,
             )
             // The longest streak, once there was one longer than today's: a record to come back to.
             if (streak.best > streak.days && streak.best > 1) {
@@ -541,7 +545,7 @@ private fun AchievementRow(achievement: Achievement, progress: AchievementProgre
     Row(
         Modifier.fillMaxWidth()
             .clip(shape)
-            .background(if (earned) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .background(if (earned) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent)
             .padding(horizontal = 8.dp, vertical = 6.dp)
             .testTag("achievement-${achievement.name}")
             .clearAndSetSemantics { contentDescription = description },
@@ -554,16 +558,16 @@ private fun AchievementRow(achievement: Achievement, progress: AchievementProgre
                 Text(
                     title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (earned) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                    color = if (earned) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     status,
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (earned) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (earned) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val textColor = if (earned) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            val textColor = if (earned) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
             Text(text, style = MaterialTheme.typography.bodySmall, color = textColor)
             if (detail != null) Text(detail, style = MaterialTheme.typography.bodySmall, color = textColor)
         }
@@ -576,8 +580,8 @@ private const val MAX_PLACES_NAMED = 6
 /** A filled circle with a check once earned; before that a ring, filled clockwise as far as the player has come. */
 @Composable
 private fun AchievementBadge(earned: Boolean, fraction: Float) {
-    val fill = MaterialTheme.colorScheme.primary
-    val mark = MaterialTheme.colorScheme.onPrimary
+    val fill = MaterialTheme.colorScheme.tertiary
+    val mark = MaterialTheme.colorScheme.onTertiary
     val track = MaterialTheme.colorScheme.outlineVariant
     Canvas(Modifier.size(32.dp)) {
         val stroke = 3.dp.toPx()

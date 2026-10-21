@@ -1,7 +1,7 @@
 package com.shavei.mapa.ui.home
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,12 +18,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -45,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
@@ -68,8 +76,12 @@ import com.shavei.mapa.content.PlaceType
 import com.shavei.mapa.learning.Blitz
 import com.shavei.mapa.learning.Rank
 import com.shavei.mapa.learning.Streak
+import com.shavei.mapa.ui.IconTextButton
+import com.shavei.mapa.ui.LegendMark
 import com.shavei.mapa.ui.MapCard
 import com.shavei.mapa.ui.Panel
+import com.shavei.mapa.ui.PlaceCounts
+import com.shavei.mapa.ui.ProgressIcon
 import com.shavei.mapa.ui.formatPoints
 import com.shavei.mapa.ui.formatTime
 import com.shavei.mapa.ui.map.MapDecoration
@@ -245,8 +257,11 @@ private fun ActionCard(modifier: Modifier, button: @Composable () -> Unit, conte
     }
 }
 
-/** The rank, the way to the next one, and the counts; with the ways to progress and settings. */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * The counts as a map legend, then the rank and the way to the next one; with the ways to
+ * progress and settings, each a word with an icon.
+ */
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun HomeHeader(state: HomeState, compact: Boolean, onProgress: () -> Unit, onSettings: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -257,14 +272,30 @@ private fun HomeHeader(state: HomeState, compact: Boolean, onProgress: () -> Uni
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.align(Alignment.CenterVertically).semantics { heading() },
             )
-            Row {
-                TextButton(onClick = onProgress) { Text(stringResource(R.string.home_progress)) }
-                TextButton(onClick = onSettings) { Text(stringResource(R.string.home_settings)) }
+            // These wrap too: with the largest text two buttons with icons do not fit side by side.
+            FlowRow {
+                IconTextButton(stringResource(R.string.home_progress), ProgressIcon, onProgress)
+                IconTextButton(stringResource(R.string.home_settings), Icons.Filled.Settings, onSettings)
             }
+        }
+        // What "known" means, right beside the counts that use the word; under them when narrow.
+        var explained by rememberSaveable { mutableStateOf(false) }
+        FlowRow(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            PlaceCounts(state.known, state.learned - state.known, state.total)
+            KnownWhat(Modifier.align(Alignment.Bottom)) { explained = !explained }
+        }
+        if (explained) {
+            // The card is short and scrolls: the answer scrolls into view, so the tap never seems to do nothing.
+            val answer = remember { BringIntoViewRequester() }
+            LaunchedEffect(Unit) { answer.bringIntoView() }
+            Text(
+                stringResource(R.string.home_known_explained),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.bringIntoViewRequester(answer).semantics { liveRegion = LiveRegionMode.Polite },
+            )
         }
         // The way to the next rank in words is also on the progress screen; the bar stays.
         RankProgress(state, showNext = !compact)
-        KnownCounts(state)
     }
 }
 
@@ -287,7 +318,7 @@ private fun HomeBody(
         if (state.reminderJustSet) {
             Text(
                 stringResource(R.string.reminder_set, formatTime(state.reminderMinutes)),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
@@ -326,7 +357,7 @@ private fun TodayLine(state: HomeState) {
             // Nothing waiting and the day not done yet: a short practice of the weakest places makes the day.
             else -> stringResource(R.string.home_nothing_due_yet)
         },
-        color = if (state.doneToday) MaterialTheme.colorScheme.primary else Color.Unspecified,
+        color = if (state.doneToday) MaterialTheme.colorScheme.secondary else Color.Unspecified,
         textAlign = TextAlign.Center,
     )
 }
@@ -348,30 +379,13 @@ private fun MainButton(state: HomeState, hasWork: Boolean, onStartSession: (extr
     }
 }
 
-/**
- * Places in learning and known, in one line. "Known" takes three weeks of stable memory,
- * so for a new player the learning count leads and the line explains itself on request.
- */
-@OptIn(ExperimentalLayoutApi::class)
+/** "Known" takes three weeks of stable memory, so the counts explain it on request. */
 @Composable
-private fun KnownCounts(state: HomeState) {
-    var explained by rememberSaveable { mutableStateOf(false) }
-    val learning = state.learned - state.known
-    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(
-            if (state.known == 0) stringResource(R.string.home_counts_learning, learning, state.known, state.total)
-            else pluralStringResource(R.plurals.home_counts_known, state.known, state.known, learning, state.total),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.align(Alignment.CenterVertically),
-        )
-        TextButton(onClick = { explained = !explained }) { Text(stringResource(R.string.home_known_what)) }
-    }
-    if (explained) {
-        Text(
-            stringResource(R.string.home_known_explained),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        )
+private fun KnownWhat(modifier: Modifier, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = modifier, contentPadding = ButtonDefaults.TextButtonWithIconContentPadding) {
+        Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(stringResource(R.string.home_known_what))
     }
 }
 
@@ -385,7 +399,8 @@ private fun RankProgress(state: HomeState, showNext: Boolean) {
         LinearProgressIndicator(
             progress = { (known - rank.knownPlaces).toFloat() / (next.knownPlaces - rank.knownPlaces) },
             modifier = Modifier.fillMaxWidth().height(6.dp),
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            color = MaterialTheme.colorScheme.secondary,
+            trackColor = MaterialTheme.colorScheme.secondaryContainer,
             drawStopIndicator = {},
         )
     }
@@ -414,6 +429,7 @@ private fun StreakLine(streak: Streak) {
             if (streak.days == 0) stringResource(R.string.home_streak_none)
             else pluralStringResource(R.plurals.home_streak, streak.days, streak.days),
             style = MaterialTheme.typography.titleSmall,
+            color = if (streak.days > 0) MaterialTheme.colorScheme.secondary else Color.Unspecified,
             modifier = Modifier.align(Alignment.CenterVertically),
         )
         if (streak.best > streak.days) {
@@ -426,7 +442,7 @@ private fun StreakLine(streak: Streak) {
         }
     }
     if (streak.frozen > 0) {
-        Text(pluralStringResource(R.plurals.home_frozen, streak.frozen, streak.frozen), style = small, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+        Text(pluralStringResource(R.plurals.home_frozen, streak.frozen, streak.frozen), style = small, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center)
     }
     if (streak.days > 0 && !streak.playedToday) {
         Text(stringResource(R.string.home_streak_keep), style = small, color = muted, textAlign = TextAlign.Center)
@@ -489,17 +505,6 @@ private fun MasteryLegend() {
     }
 }
 
-/** A place mark as the map draws it: a soft halo, stronger once known, with a ring for known places. */
-@Composable
-private fun LegendMark(color: Color, known: Boolean) {
-    Canvas(Modifier.size(20.dp)) {
-        val r = size.minDimension / 2
-        drawCircle(color, radius = r * 0.72f, alpha = if (known) 0.85f else 0.3f)
-        drawCircle(color, radius = r * 0.36f)
-        if (known) drawCircle(color, radius = r * 0.94f, style = Stroke(width = r * 0.14f))
-    }
-}
-
 /**
  * The other ways to practice, each saying what it is, and when locked, what opens it. The
  * locks count in the same words as the top card: a place "in learning" opens free play once
@@ -546,13 +551,22 @@ private fun Modes(
 private fun Mode(title: String, note: String, enabled: Boolean, onClick: () -> Unit) {
     // A locked mode is faded as a whole, so it never looks more inviting than an open one.
     OutlinedCard(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth().alpha(if (enabled) 1f else 0.55f)) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // A lock says "not yet" before the note is read; an open mode has the arrow of a way in.
+            Icon(
+                if (enabled) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.Filled.Lock,
+                contentDescription = null,
+                tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp).size(20.dp),
             )
-            Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -593,7 +607,7 @@ private fun ReminderOffer(initialMinutes: Int, onAnswer: (on: Boolean, minutes: 
         ) {
             Text(stringResource(R.string.reminder_offer_title), style = MaterialTheme.typography.titleMedium)
             if (blocked) {
-                Text(stringResource(R.string.reminder_blocked_explain), color = MaterialTheme.colorScheme.secondary)
+                Text(stringResource(R.string.reminder_blocked_explain), color = MaterialTheme.colorScheme.tertiary)
             } else {
                 Text(stringResource(R.string.reminder_offer_body))
                 OutlinedButton(onClick = { pickingTime = true }) {
