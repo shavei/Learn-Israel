@@ -154,7 +154,7 @@ class MotivationTest {
             compose.onNodeWithText("התקדמות").performClick()
             waitForText("דרגה:")
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("hardest"))
-            waitForText("חיפה: 1 נכונות, 1 קרובות, 2 שגויות")
+            waitForText("חיפה: נכונות 1, קרובות 1, שגויות 2")
             Screenshots.save(scenario, "d5-progress-hardest")
         }
     }

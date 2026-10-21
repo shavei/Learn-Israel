@@ -163,8 +163,13 @@ answers or more, all remembered); a place remembered after 30+ days without revi
 
 An achievement is stored when first earned and kept, even if a place in it later
 fades: the rank and the map stay honest instead. The progress screen lists the earned
-ones with their date, then the rest with how far along they are ("5 of 14"); the
-session summary names any earned in that session, and a new rank.
+ones with their date on a tinted row with a check badge, then the rest with a ring
+that fills as they get closer and how far along they are ("5 of 14"); an
+all-or-nothing one (a no-miss session, a long memory) just says "not earned yet".
+Around the Kinneret names its places, and one whole region names the region it is
+measuring now (the one with the largest share known). Nature and heritage are named
+"נוף הארץ" and "שורשים", apart from the theme rows below them. The session summary
+names any earned in that session, and a new rank.
 
 ### Social (opt in)
 Friends list, weekly league of ~20 players with promotion/demotion, daily challenge

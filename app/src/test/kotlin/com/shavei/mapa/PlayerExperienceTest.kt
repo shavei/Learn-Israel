@@ -3,6 +3,7 @@ package com.shavei.mapa
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -102,11 +103,13 @@ class PlayerExperienceTest {
             compose.onNodeWithText("התקדמות").performClick()
             waitForText("סטייה ממוצעת בערים לפי יום (ק״מ)")
             compose.onNodeWithTag("error-chart").assertExists()
-            compose.onNodeWithText("1 מקומות ידועים").assertExists()
+            compose.onNodeWithText("מקום אחד ידוע").assertExists()
             Screenshots.save(scenario, "c3-progress")
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("גוש דן", substring = true))
             Screenshots.save(scenario, "c4-progress-regions")
-            // After the regions: nature, ports and heritage, not started yet.
+            // After the regions: nature, ports and heritage, not started yet, so folded until asked for.
+            compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("themes-fold"))
+            compose.onNodeWithTag("themes-fold").performClick()
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("מורשת: 0 מתוך 22", substring = true))
             compose.onNode(hasContentDescription("טבע: 0 מתוך 22", substring = true)).assertExists()
             Screenshots.save(scenario, "c4b-progress-themes")

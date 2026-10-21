@@ -2,10 +2,25 @@
 <resources>
     <string name="app_name">מפה</string>
     <string name="home_title">המפה שלך</string>
-    <string name="home_known">%1$d מקומות ידועים</string>
-    <string name="home_learned">%1$d מתוך %2$d מקומות בתרגול</string>
+    <plurals name="home_known">
+        <item quantity="one">מקום אחד ידוע</item>
+        <item quantity="two">%d מקומות ידועים</item>
+        <item quantity="many">%d מקומות ידועים</item>
+        <item quantity="other">%d מקומות ידועים</item>
+    </plurals>
+    <plurals name="home_learned">
+        <item quantity="one">%1$d מתוך מקום אחד בתרגול</item>
+        <item quantity="two">%1$d מתוך %2$d מקומות בתרגול</item>
+        <item quantity="many">%1$d מתוך %2$d מקומות בתרגול</item>
+        <item quantity="other">%1$d מתוך %2$d מקומות בתרגול</item>
+    </plurals>
     <string name="home_start">התחילו אימון יומי</string>
-    <string name="home_due">%1$d לחזרה, %2$d חדשים</string>
+    <plurals name="home_due">
+        <item quantity="one">%1$d לחזרה, אחד חדש</item>
+        <item quantity="two">%1$d לחזרה, %2$d חדשים</item>
+        <item quantity="many">%1$d לחזרה, %2$d חדשים</item>
+        <item quantity="other">%1$d לחזרה, %2$d חדשים</item>
+    </plurals>
     <string name="home_nothing_due">סיימתם להיום. כל הכבוד! חזרו מחר.</string>
     <string name="home_practice_more">תרגול נוסף</string>
     <string name="home_more">אימון נוסף</string>
@@ -16,9 +31,24 @@
         <item quantity="other">✓ סיימתם להיום. יש עוד %d מקומות לתרגול, אם בא לכם.</item>
     </plurals>
     <string name="home_counts_learning">%1$d בלמידה · %2$d ידועים · מתוך %3$d</string>
-    <string name="home_counts_known">%1$d ידועים · %2$d בלמידה · מתוך %3$d</string>
-    <string name="home_due_reviews">%1$d מקומות לחזרה</string>
-    <string name="home_due_new">%1$d מקומות חדשים</string>
+    <plurals name="home_counts_known">
+        <item quantity="one">%1$d ידוע · %2$d בלמידה · מתוך %3$d</item>
+        <item quantity="two">%1$d ידועים · %2$d בלמידה · מתוך %3$d</item>
+        <item quantity="many">%1$d ידועים · %2$d בלמידה · מתוך %3$d</item>
+        <item quantity="other">%1$d ידועים · %2$d בלמידה · מתוך %3$d</item>
+    </plurals>
+    <plurals name="home_due_reviews">
+        <item quantity="one">מקום אחד לחזרה</item>
+        <item quantity="two">%d מקומות לחזרה</item>
+        <item quantity="many">%d מקומות לחזרה</item>
+        <item quantity="other">%d מקומות לחזרה</item>
+    </plurals>
+    <plurals name="home_due_new">
+        <item quantity="one">מקום חדש אחד</item>
+        <item quantity="two">%d מקומות חדשים</item>
+        <item quantity="many">%d מקומות חדשים</item>
+        <item quantity="other">%d מקומות חדשים</item>
+    </plurals>
     <string name="home_legend_learning">בלמידה</string>
     <string name="home_legend_known">ידוע</string>
     <string name="home_sources">© נתוני מפה</string>
@@ -40,7 +70,7 @@
     <string name="home_blitz">בליץ</string>
     <string name="home_trip">מסע בדרכים</string>
     <string name="home_new_cap">למדתם היום %1$d מקומות חדשים, כל מה שהקצב שבחרתם מאפשר. אפשר לשנות את הקצב בהגדרות, או לחזק מקומות שכבר למדתם.</string>
-    <string name="attribution">נתוני מפה: הלמ״ס, משרד החקלאות, UN OCHA, GeoNames, © OpenStreetMap contributors, Copernicus DEM</string>
+    <string name="attribution">נתוני מפה: הלמ״ס, משרד החקלאות, \u2068UN\u00A0OCHA\u2069, GeoNames, \u2068©\u00A0OpenStreetMap\u00A0contributors\u2069, \u2068Copernicus\u00A0DEM\u2069</string>
     <string name="discover_title">מקום חדש</string>
     <string name="discover_continue">הבנתי, בואו נתרגל</string>
     <string name="ask_prompt">סמנו על המפה: %1$s</string>
@@ -52,11 +82,26 @@
     <string name="feedback_inside">בדיוק במקום</string>
     <string name="feedback_distance">סטייה של %1$s ק״מ</string>
     <string name="feedback_continue">המשך</string>
-    <string name="points">%1$s נקודות</string>
+    <plurals name="points">
+        <item quantity="one">נקודה אחת</item>
+        <item quantity="two">%1$s נקודות</item>
+        <item quantity="many">%1$s נקודות</item>
+        <item quantity="other">%1$s נקודות</item>
+    </plurals>
     <string name="points_of">מתוך %1$s</string>
     <string name="summary_title">סיום אימון</string>
-    <string name="summary_answers">%1$d תשובות, %2$d%% נכונות</string>
-    <string name="summary_new">%1$d מקומות חדשים</string>
+    <plurals name="summary_answers">
+        <item quantity="one">תשובה אחת, %2$d%% נכונות</item>
+        <item quantity="two">%1$d תשובות, %2$d%% נכונות</item>
+        <item quantity="many">%1$d תשובות, %2$d%% נכונות</item>
+        <item quantity="other">%1$d תשובות, %2$d%% נכונות</item>
+    </plurals>
+    <plurals name="summary_new">
+        <item quantity="one">מקום חדש אחד</item>
+        <item quantity="two">%d מקומות חדשים</item>
+        <item quantity="many">%d מקומות חדשים</item>
+        <item quantity="other">%d מקומות חדשים</item>
+    </plurals>
     <string name="summary_error">סטייה ממוצעת: %1$s ק״מ</string>
     <string name="summary_done">חזרה למפה</string>
     <string name="quit">יציאה</string>
@@ -84,8 +129,18 @@
     <string name="blitz_rules">דקה אחת: סמנו כמה שיותר מקומות שכבר למדתם. השעון לא עוצר בין שאלה לשאלה.</string>
     <string name="blitz_go">התחילו!</string>
     <string name="blitz_counter">בליץ · שאלה %1$d</string>
-    <string name="blitz_clock">נותרו %1$d שניות</string>
-    <string name="blitz_last">%1$s: %2$s נקודות</string>
+    <plurals name="blitz_clock">
+        <item quantity="one">נותרה שנייה אחת</item>
+        <item quantity="two">נותרו %d שניות</item>
+        <item quantity="many">נותרו %d שניות</item>
+        <item quantity="other">נותרו %d שניות</item>
+    </plurals>
+    <plurals name="blitz_last">
+        <item quantity="one">%1$s: נקודה אחת</item>
+        <item quantity="two">%1$s: %2$s נקודות</item>
+        <item quantity="many">%1$s: %2$s נקודות</item>
+        <item quantity="other">%1$s: %2$s נקודות</item>
+    </plurals>
     <string name="blitz_summary_title">נגמר הזמן!</string>
     <string name="blitz_record_first">הבליץ הראשון שלכם: זה השיא לשבור</string>
     <string name="blitz_record_new">שיא חדש! הקודם היה %1$s נקודות</string>
@@ -127,7 +182,12 @@
         <item quantity="other">רצף: %d ימים</item>
     </plurals>
     <string name="home_freezes">הקפאות שמורות: %1$d</string>
-    <string name="home_map_description">המפה שלך: %1$d מקומות בתרגול, %2$d ידועים</string>
+    <plurals name="home_map_description">
+        <item quantity="one">המפה שלך: מקום אחד בתרגול, ידועים: %2$d</item>
+        <item quantity="two">המפה שלך: %1$d מקומות בתרגול, ידועים: %2$d</item>
+        <item quantity="many">המפה שלך: %1$d מקומות בתרגול, ידועים: %2$d</item>
+        <item quantity="other">המפה שלך: %1$d מקומות בתרגול, ידועים: %2$d</item>
+    </plurals>
     <string name="session_map_description">מפת ישראל</string>
     <string name="reminder_offer_title">תזכורת יומית?</string>
     <string name="reminder_offer_body">הודעה אחת ביום ב־%1$s, רק כשיש מה לתרגל. אפשר לשנות בהגדרות.</string>
@@ -141,7 +201,12 @@
     <string name="progress_title">התקדמות</string>
     <string name="progress_regions">אזורים</string>
     <string name="progress_percent">%1$d%%</string>
-    <string name="progress_region_practiced">%1$d מתוך %2$d מקומות בתרגול</string>
+    <plurals name="progress_region_practiced">
+        <item quantity="one">%1$d מתוך מקום אחד בתרגול</item>
+        <item quantity="two">%1$d מתוך %2$d מקומות בתרגול</item>
+        <item quantity="many">%1$d מתוך %2$d מקומות בתרגול</item>
+        <item quantity="other">%1$d מתוך %2$d מקומות בתרגול</item>
+    </plurals>
     <string name="progress_themes">טבע, דרכים ומורשת</string>
     <string name="progress_themes_note">מגיעים אחרי הערים והאזורים, בסדר הזה.</string>
     <string name="progress_theme_known">%1$d מתוך %2$d ידועים</string>
@@ -150,12 +215,39 @@
     <string name="theme_nature">טבע</string>
     <string name="theme_infrastructure">דרכים, נמלים ושדות תעופה</string>
     <string name="theme_heritage">מורשת</string>
-    <string name="stats_theme">%1$s: %2$d בתרגול, %3$d ידועים, מתוך %4$d</string>
-    <string name="progress_region_description">%1$s: %2$d אחוז, %3$d מתוך %4$d מקומות בתרגול</string>
+    <string name="stats_theme">%1$s: בתרגול %2$d, ידועים %3$d, מתוך %4$d</string>
+    <plurals name="progress_region_description">
+        <item quantity="one">%1$s: %2$d אחוז, %3$d מתוך מקום אחד בתרגול</item>
+        <item quantity="two">%1$s: %2$d אחוז, %3$d מתוך %4$d מקומות בתרגול</item>
+        <item quantity="many">%1$s: %2$d אחוז, %3$d מתוך %4$d מקומות בתרגול</item>
+        <item quantity="other">%1$s: %2$d אחוז, %3$d מתוך %4$d מקומות בתרגול</item>
+    </plurals>
     <string name="progress_error_title">סטייה ממוצעת בערים לפי יום (ק״מ)</string>
     <string name="progress_error_empty">הגרף יופיע אחרי יומיים של אימון.</string>
-    <string name="progress_error_description">סטייה ממוצעת לפי יום, %1$d ימים: מ־%2$s ק״מ ביום הראשון ל־%3$s ק״מ ביום האחרון</string>
-    <string name="progress_km">%1$s ק״מ</string>
+    <plurals name="progress_error_description">
+        <item quantity="one">סטייה ממוצעת לפי יום, יום אחד: %2$s ק״מ</item>
+        <item quantity="two">סטייה ממוצעת לפי יום, יומיים: מ־%2$s ק״מ ב־%4$s ל־%3$s ק״מ ב־%5$s. ככל שהסטייה קטנה יותר, אתם מדייקים יותר.</item>
+        <item quantity="many">סטייה ממוצעת לפי יום, %1$d ימים: מ־%2$s ק״מ ב־%4$s ל־%3$s ק״מ ב־%5$s. ככל שהסטייה קטנה יותר, אתם מדייקים יותר.</item>
+        <item quantity="other">סטייה ממוצעת לפי יום, %1$d ימים: מ־%2$s ק״מ ב־%4$s ל־%3$s ק״מ ב־%5$s. ככל שהסטייה קטנה יותר, אתם מדייקים יותר.</item>
+    </plurals>
+    <string name="progress_km">%1$s\u00A0ק״מ</string>
+    <string name="progress_error_better">נמוך יותר = מדויק יותר</string>
+    <string name="progress_error_change">ביום הראשון: %1$s\u00A0ק״מ · ביום האחרון: %2$s\u00A0ק״מ</string>
+    <string name="progress_error_today">היום</string>
+    <string name="progress_empty_title">עוד לא התחלתם לתרגל</string>
+    <string name="progress_empty_body">אחרי האימון הראשון יופיעו כאן המקומות שלמדתם, הדיוק שלכם וההישגים הראשונים. אימון ראשון לוקח כ־5 דקות.</string>
+    <string name="progress_empty_start">התחילו אימון ראשון</string>
+    <string name="progress_show">הצגה</string>
+    <string name="progress_hide">הסתרה</string>
+    <string name="progress_regions_empty">כל האזורים עוד לפניכם. הם יתמלאו כשתתרגלו מקומות בהם.</string>
+    <string name="progress_themes_empty">הטבע, הדרכים והמורשת מגיעים אחרי הערים והאזורים.</string>
+    <string name="achievements_empty">%1$d הישגים מחכים לכם. הראשון: מקום ראשון ידוע.</string>
+    <plurals name="progress_streak_best">
+        <item quantity="one">הרצף הארוך ביותר: יום אחד</item>
+        <item quantity="two">הרצף הארוך ביותר: יומיים</item>
+        <item quantity="many">הרצף הארוך ביותר: %d ימים</item>
+        <item quantity="other">הרצף הארוך ביותר: %d ימים</item>
+    </plurals>
     <string name="progress_known_explained">מקום ידוע הוא מקום שהזיכרון שלו יציב לשלושה שבועות לפחות.</string>
 
     <string name="onboarding_map_test">מבחן מפה קצר לפני שמתחילים</string>
@@ -165,8 +257,8 @@
     <string name="map_test_title">מבחן המפה</string>
     <string name="map_test_counter">מבחן מפה · שאלה %1$d מתוך %2$d</string>
     <string name="map_test_summary_title">סיום מבחן המפה</string>
-    <string name="map_test_median">סטייה חציונית: %1$s ק״מ</string>
-    <string name="map_test_before">בפעם הראשונה: %1$d מתוך %2$d, סטייה חציונית %3$s ק״מ</string>
+    <string name="map_test_median">סטייה חציונית: %1$s\u00A0ק״מ</string>
+    <string name="map_test_before">בפעם הראשונה: %1$d מתוך %2$d, סטייה חציונית %3$s\u00A0ק״מ</string>
     <plurals name="map_test_gain">
         <item quantity="one">מקום אחד יותר מבפעם הראשונה</item>
         <item quantity="two">2 מקומות יותר מבפעם הראשונה</item>
@@ -179,26 +271,75 @@
     <string name="map_test_take">למבחן המפה</string>
     <string name="map_test_later">אחר כך</string>
     <string name="map_test_pre_label">לפני האימון</string>
-    <string name="map_test_result">%1$s: %2$d מתוך %3$d, סטייה חציונית %4$s ק״מ</string>
-    <string name="map_test_change">מאז הפעם הראשונה: %1$d מקומות במקום %2$d</string>
+    <string name="map_test_result">%1$s: %2$d מתוך %3$d, סטייה חציונית %4$s\u00A0ק״מ</string>
+    <string name="map_test_same">אותו מספר מקומות כמו בפעם הראשונה. באימון היומי הם ימשיכו להתחזק.</string>
+    <string name="map_test_fewer">הפעם נמצאו פחות מקומות מבפעם הראשונה. זה קורה: במבחן אין רמזים ואין משוב, והמקומות שהתפספסו יחזרו באימון היומי.</string>
     <string name="map_test_next">המבחן הבא ייפתח ב־%1$s</string>
+    <string name="map_test_first_next">מבחן המפה ייפתח ב־%1$s: 20 מקומות בלי משוב, כדי לראות כמה למדתם.</string>
     <string name="map_test_opens">המבחן ייפתח חודש אחרי האימון הראשון.</string>
 
     <string name="stats_title">נתוני למידה, 30 הימים האחרונים</string>
     <string name="stats_empty">הנתונים יופיעו אחרי האימון הראשון.</string>
-    <string name="stats_retention">נזכרתם ב־%1$d%% מהחזרות (%2$d חזרות). היעד: 85 עד 92 אחוז.</string>
-    <string name="stats_predicted">מנוע החזרות צפה %1$d%%</string>
+    <plurals name="stats_retention">
+        <item quantity="one">בחזרות על מקומות שלמדתם זכרתם %1$d%% (חזרה אחת).</item>
+        <item quantity="two">בחזרות על מקומות שלמדתם זכרתם %1$d%% (שתי חזרות).</item>
+        <item quantity="many">בחזרות על מקומות שלמדתם זכרתם %1$d%% (%2$d\u00A0חזרות).</item>
+        <item quantity="other">בחזרות על מקומות שלמדתם זכרתם %1$d%% (%2$d\u00A0חזרות).</item>
+    </plurals>
+    <string name="stats_retention_low">זה פחות מהרגיל. כדאי להתאמן כל יום, כדי שכל מקום יחזור בזמן. אם הגיעו הרבה מקומות חדשים, אפשר לבחור קצב רגיל בהגדרות.</string>
+    <string name="stats_retention_good">בדיוק כמו שצריך: כל מקום חוזר כשהוא מתחיל להישכח, וכך הזיכרון מתחזק.</string>
+    <string name="stats_retention_high">מצוין! המקומות יושבים טוב בזיכרון, ולכן יחזרו לעתים רחוקות יותר.</string>
+    <string name="stats_predicted">לפי התחזית שלנו ציפינו ל־%1$d%%.</string>
     <string name="stats_long_gap">אחרי חודש ויותר בלי חזרה: נזכרתם ב־%1$d מתוך %2$d</string>
-    <string name="stats_confusion">בלבול עם מקום דומה: %1$d%% מתוך %2$d תשובות</string>
+    <plurals name="stats_confusion">
+        <item quantity="one">בלבול עם מקום דומה: %1$d%% מתוך תשובה אחת</item>
+        <item quantity="two">בלבול עם מקום דומה: %1$d%% מתוך %2$d תשובות</item>
+        <item quantity="many">בלבול עם מקום דומה: %1$d%% מתוך %2$d תשובות</item>
+        <item quantity="other">בלבול עם מקום דומה: %1$d%% מתוך %2$d תשובות</item>
+    </plurals>
     <string name="stats_days">ימי אימון: %1$d ב־7 הימים האחרונים, %2$d ב־30</string>
-    <string name="stats_totals">סך הכול: %1$d אימונים, %2$d תשובות, %3$d דקות</string>
+    <string name="stats_totals">סך הכול: %1$s, %2$s, %3$s</string>
+    <plurals name="stats_sessions">
+        <item quantity="one">אימון אחד</item>
+        <item quantity="two">%d אימונים</item>
+        <item quantity="many">%d אימונים</item>
+        <item quantity="other">%d אימונים</item>
+    </plurals>
+    <plurals name="stats_answers">
+        <item quantity="one">תשובה אחת</item>
+        <item quantity="two">%d תשובות</item>
+        <item quantity="many">%d תשובות</item>
+        <item quantity="other">%d תשובות</item>
+    </plurals>
+    <plurals name="stats_minutes">
+        <item quantity="one">דקה אחת</item>
+        <item quantity="two">%d דקות</item>
+        <item quantity="many">%d דקות</item>
+        <item quantity="other">%d דקות</item>
+    </plurals>
     <string name="stats_share">שיתוף התוצאות</string>
     <string name="stats_share_header">תוצאות מפה (גרסה %1$s)</string>
-    <string name="stats_motivation">%1$s, %2$d מתוך %3$d הישגים, %4$d זוגות מבלבלים</string>
-    <string name="stats_blitz">בליץ: שיא %1$s נקודות, %2$d סבבים</string>
+    <string name="stats_motivation">%1$s, %2$d מתוך %3$d הישגים, %4$s</string>
+    <plurals name="stats_pairs">
+        <item quantity="one">זוג מבלבל אחד</item>
+        <item quantity="two">%d זוגות מבלבלים</item>
+        <item quantity="many">%d זוגות מבלבלים</item>
+        <item quantity="other">%d זוגות מבלבלים</item>
+    </plurals>
+    <plurals name="stats_blitz">
+        <item quantity="one">בליץ: שיא %1$s נקודות, סבב אחד</item>
+        <item quantity="two">בליץ: שיא %1$s נקודות, %2$d סבבים</item>
+        <item quantity="many">בליץ: שיא %1$s נקודות, %2$d סבבים</item>
+        <item quantity="other">בליץ: שיא %1$s נקודות, %2$d סבבים</item>
+    </plurals>
 
     <string name="rank_line">דרגה: %1$s</string>
-    <string name="rank_next">עוד %1$d מקומות ידועים לדרגת %2$s</string>
+    <plurals name="rank_next">
+        <item quantity="one">עוד מקום ידוע אחד לדרגת %2$s</item>
+        <item quantity="two">עוד %1$d מקומות ידועים לדרגת %2$s</item>
+        <item quantity="many">עוד %1$d מקומות ידועים לדרגת %2$s</item>
+        <item quantity="other">עוד %1$d מקומות ידועים לדרגת %2$s</item>
+    </plurals>
     <string name="rank_top">הדרגה הגבוהה ביותר</string>
     <string name="rank_tourist">תייר/ת</string>
     <string name="rank_hiker">מטייל/ת</string>
@@ -213,6 +354,7 @@
     <string name="achievements_note">כל הישג הוא ידע אמיתי. הישג שהושג נשאר, גם אם מקום בו נשכח.</string>
     <string name="achievement_earned">הושג ב־%1$s</string>
     <string name="achievement_progress">%1$d מתוך %2$d</string>
+    <string name="achievement_locked">עוד לא הושג</string>
     <string name="achievement_description">%1$s. %2$s. %3$s</string>
     <string name="achievement_first_known">מקום ראשון</string>
     <string name="achievement_first_known_text">מקום ראשון ידוע: הזיכרון שלו יציב לשלושה שבועות</string>
@@ -226,15 +368,17 @@
     <string name="achievement_main_cities_text">כל %1$d הערים המרכזיות סומנו בפעם האחרונה עד 3 ק״מ מהמקום</string>
     <string name="achievement_kinneret">סביב הכנרת</string>
     <string name="achievement_kinneret_text">הכנרת וכל המקומות שעל חופיה ידועים</string>
+    <string name="achievement_kinneret_places">המקומות: %1$s</string>
     <string name="achievement_whole_region">אזור שלם</string>
     <string name="achievement_whole_region_text">אזור טבעי אחד וכל המקומות שבו ידועים</string>
+    <string name="achievement_whole_region_closest">הכי קרוב: %1$s</string>
     <string name="achievement_all_cities">כל הערים</string>
     <string name="achievement_all_cities_text">כל %1$d הערים והיישובים ידועים</string>
-    <string name="achievement_nature">טבע</string>
+    <string name="achievement_nature">נוף הארץ</string>
     <string name="achievement_nature_text">כל ההרים, המכתשים, הנחלים והשמורות ידועים</string>
     <string name="achievement_gateways">שערי הארץ</string>
     <string name="achievement_gateways_text">כל הנמלים ושדות התעופה ידועים</string>
-    <string name="achievement_heritage">מורשת</string>
+    <string name="achievement_heritage">שורשים</string>
     <string name="achievement_heritage_text">כל אתרי המורשת ידועים</string>
     <string name="achievement_no_miss">בלי פספוס</string>
     <string name="achievement_no_miss_text">אימון של 10 שאלות לפחות, כולן נכונות</string>
@@ -249,14 +393,20 @@
     <string name="confusables_note">לפי הלחיצות שלכם. כשתכירו את שניהם, הם יחזרו בזוגות, אחד אחרי השני.</string>
     <string name="hardest_title">מקומות שקשה לכם למצוא</string>
     <string name="hardest_note">לפי עשר התשובות האחרונות על כל מקום. בתרגול נוסף הם יחזרו קודם.</string>
-    <string name="hardest_place">%1$s: %2$d נכונות, %3$d קרובות, %4$d שגויות</string>
-    <string name="confusables_pair">%1$s ו%2$s: %3$d פעמים</string>
+    <string name="hardest_place">%1$s: נכונות %2$d, קרובות %3$d, שגויות %4$d</string>
+    <plurals name="confusables_pair">
+        <item quantity="one">%1$s ו%2$s: פעם אחת</item>
+        <item quantity="two">%1$s ו%2$s: פעמיים</item>
+        <item quantity="many">%1$s ו%2$s: %3$d פעמים</item>
+        <item quantity="other">%1$s ו%2$s: %3$d פעמים</item>
+    </plurals>
 
     <string name="settings_title">הגדרות</string>
     <string name="settings_session_length">אורך אימון</string>
     <string name="length_short">קצר, 10 עד 18 שאלות</string>
     <string name="length_normal">רגיל, 15 עד 23 שאלות</string>
     <string name="length_long">ארוך, 25 עד 33 שאלות</string>
+    <string name="settings_length_note">המספר הקטן הוא אורך האימון. עד 8 שאלות נוספות מגיעות רק כשצריך לסיים ללמוד מקום חדש שהתחיל באותו אימון.</string>
     <string name="settings_pace">קצב מקומות חדשים</string>
     <string name="pace_normal">רגיל, עד 20 ביום</string>
     <string name="pace_fast">מהיר, עד 40 ביום</string>
@@ -267,6 +417,7 @@
     <string name="map_style_standard_note">צבעים נקיים</string>
     <string name="map_style_relief">תבליט</string>
     <string name="map_style_relief_note">גובה בצבעים, הרים בהצללה</string>
+    <string name="map_style_loading">מכינים את התבליט…</string>
     <string name="settings_green_line">הקו הירוק</string>
     <string name="settings_green_line_note">קו שביתת הנשק של 1949, כשכבה נוספת על המפה</string>
     <string name="settings_theme">ערכת צבעים</string>
@@ -274,7 +425,9 @@
     <string name="theme_light">בהירה</string>
     <string name="theme_dark">כהה</string>
     <string name="settings_reminder">תזכורת יומית</string>
+    <string name="settings_reminder_switch">שלחו לי תזכורת</string>
     <string name="settings_reminder_note">רק בימים שיש מה לתרגל ועוד לא התאמנתם</string>
+    <string name="settings_reminder_pick">שעת התזכורת</string>
     <string name="settings_reminder_time">שעת התזכורת: %1$s</string>
     <string name="settings_reminder_blocked">ההתראות של מפה כבויות בהגדרות הטלפון, ולכן התזכורת לא תגיע.</string>
     <string name="settings_reminder_test">שליחת תזכורת לדוגמה</string>
