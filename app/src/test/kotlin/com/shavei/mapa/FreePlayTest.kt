@@ -1,5 +1,6 @@
 package com.shavei.mapa
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -80,9 +81,14 @@ class FreePlayTest {
             compose.onNodeWithText("התחילו!").performClick()
 
             waitForText("נותרו")
+            // A tap right after a question is taken for the end of the last one.
+            Thread.sleep(SessionViewModel.BLITZ_TAP_GUARD_MS + 50)
+            // A double tap answers once: its second tap never reaches a place not yet read.
+            tapMap()
             tapMap()
             // No feedback card: the next place at once, with the last answer above it.
-            compose.waitUntil(10_000) { has("נקודות") && !has("המשך") }
+            compose.waitUntil(10_000) { has("שאלה 2") && !has("המשך") }
+            assertTrue(!has("שאלה 3"))
             Screenshots.save(scenario, "f2-blitz-next")
             tapMap()
             // Once the time is up, the round ends; a tap after it does not count.
@@ -105,6 +111,39 @@ class FreePlayTest {
         for (r in reviews) {
             val card = cards.getValue(r.placeId)
             if (r.rating == 1) assertEquals(CardState.RELEARNING.value, card.state) else assertEquals(CardState.REVIEW.value, card.state)
+        }
+    }
+
+    @Test
+    fun aBlitzSummaryShowsEveryAnswerOnTheMap() {
+        seed()
+        SessionViewModel.blitzDurationMs = 8_000
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("עוד דרכים לתרגל")
+            compose.onNodeWithText("עוד דרכים לתרגל").performScrollTo().performClick()
+            compose.onNodeWithText("בליץ").performScrollTo().performClick()
+            waitForText("התחילו!")
+            compose.onNodeWithText("התחילו!").performClick()
+            waitForText("נותרו")
+            // Taps across the country, each on the next question, until the clock runs out.
+            val spots = listOf(0.42f to 0.42f, 0.4f to 0.47f, 0.38f to 0.52f, 0.45f to 0.55f, 0.5f to 0.6f, 0.36f to 0.44f, 0.55f to 0.5f)
+            for ((x, y) in spots) {
+                if (has("נגמר הזמן!")) break
+                compose.onNodeWithTag("map").performTouchInput { click(Offset(width * x, height * y)) }
+                compose.waitForIdle()
+                // A tap right after a question is taken for the end of the last one.
+                Thread.sleep(SessionViewModel.BLITZ_TAP_GUARD_MS + 50)
+            }
+            Thread.sleep(8_500)
+            if (!has("נגמר הזמן!")) tapMap()
+            waitForText("נגמר הזמן!")
+            waitForText("סבב נוסף")
+            compose.waitForIdle()
+            Screenshots.save(scenario, "f3b-blitz-summary-map")
+            // Picking an answer shows it alone: the tap, the line, and the place named.
+            compose.onNodeWithTag("blitz-answer-1").performScrollTo().performClick()
+            compose.waitForIdle()
+            Screenshots.save(scenario, "f3c-blitz-summary-picked")
         }
     }
 

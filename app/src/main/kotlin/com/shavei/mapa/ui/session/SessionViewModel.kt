@@ -73,6 +73,8 @@ data class SessionSummary(
      */
     val blitzRecordBefore: BlitzRecord? = null,
     val blitzSaved: Boolean = false,
+    /** A blitz: every answer, in order, so the summary map shows each one as it was shown in play. */
+    val results: List<Answer> = emptyList(),
     /** A road trip: its stops, from the start. */
     val trip: List<Place> = emptyList(),
     /** Every place asked in this session, once each, in order: the summary map lights them up. */
@@ -315,6 +317,8 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         if (!accepts(ui.question)) return
         // A tap after the blitz clock ran out does not count.
         if (blitz?.isOver == true) return onTimeUp()
+        // A blitz moves on at once: the second tap of a double tap would answer a place not yet read.
+        if (blitz != null && System.currentTimeMillis() - askedAt < BLITZ_TAP_GUARD_MS) return
         val answer = engine.submit(ui.question, response, System.currentTimeMillis() - askedAt)
         val previous = saving
         saving = viewModelScope.launch {
@@ -405,6 +409,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             maxPoints = answers.size * Grader.MAX_POINTS,
             placement = kind == SessionKind.PLACEMENT,
             blitz = kind == SessionKind.BLITZ,
+            results = if (kind == SessionKind.BLITZ) answers.toList() else emptyList(),
             trip = trip,
             practiced = practiced,
             found = practiced.filter { p -> answers.any { it.place == p && it.grade.isCorrect } },
@@ -415,5 +420,8 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         /** How long a blitz lasts; tests shorten it. */
         @VisibleForTesting
         var blitzDurationMs = Blitz.DURATION_MS
+
+        /** A blitz tap this soon after its question is the rest of the last tap, not an answer. */
+        const val BLITZ_TAP_GUARD_MS = 300L
     }
 }

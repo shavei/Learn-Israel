@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.imePadding
@@ -24,6 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -117,12 +120,17 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         )
     }
 
+    // A blitz summary: the answer picked from its list, shown in full on the map; null for all of them.
+    var picked by remember(ui is SessionUi.Finished) { mutableStateOf<Int?>(null) }
+    // Room above a picked answer for its place's name.
+    val labelRoomPx = with(LocalDensity.current) { 40.dp.toPx() }
+
     // Every question starts from the whole map, so the player works from the big picture.
     // Elsewhere the camera only pans when a place (or the tap) would hide under a card.
     // In landscape the panel is at a side, and the map is framed beside it.
     val frameTop = if (landscape) 0f else topPx
     val frameBottom = if (landscape) 0f else bottomPx
-    LaunchedEffect(ui, frameTop, frameBottom, leftPx, rightPx) {
+    LaunchedEffect(ui, frameTop, frameBottom, leftPx, rightPx, picked) {
         when (val s = ui) {
             // Map Builder has buttons below the map: the whole board fits above them.
             is SessionUi.Ask -> when (val q = s.question) {
@@ -148,6 +156,12 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 camera.reset()
                 viewModel.trip.takeIf { it.isNotEmpty() }?.let { trip ->
                     camera.ensureVisible((if (s is SessionUi.Ready) trip.take(1) else trip).map { it.label }, frameTop, frameBottom)
+                }
+                // A blitz ends on every place it asked and every tap, or on the answer picked, above the summary.
+                (s as? SessionUi.Finished)?.summary?.results?.takeIf { it.isNotEmpty() }?.let { results ->
+                    val one = picked?.let { results.getOrNull(it) }
+                    if (one != null) camera.fit(feedbackPoints(one, content), frameTop + labelRoomPx, frameBottom, PICKED_VIEW_METERS)
+                    else camera.ensureVisible(results.flatMap { feedbackPoints(it, content) }, frameTop, frameBottom)
                 }
             }
             is SessionUi.Feedback -> {
@@ -195,8 +209,11 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
             else -> blitzDecorations(s.last, colors)
         } + askDecorations(s.question, colors)
         is SessionUi.Feedback -> feedbackDecorations(s.answer, content, colors)
-        // The summary lights up the places of this session (a road trip shows its route instead).
-        is SessionUi.Finished -> if (s.summary.mapTest == null && trip.isEmpty()) {
+        // The summary lights up the places of this session (a road trip shows its route instead,
+        // and a blitz every answer as it was shown in play).
+        is SessionUi.Finished -> if (s.summary.results.isNotEmpty()) {
+            blitzSummaryDecorations(s.summary, picked, colors)
+        } else if (s.summary.mapTest == null && trip.isEmpty()) {
             s.summary.practiced.map { MapDecoration.Highlight(it.shape, colors.mastery, alpha = 0.35f) }
         } else {
             emptyList()
@@ -274,6 +291,9 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                     Note(stringResource(R.string.map_test_tap_noted), MaterialTheme.colorScheme.secondary)
                 ask.last != null -> blitzNote(ask.last)
                 viewModel.kind == SessionKind.ROAD_TRIP -> trip.getOrNull(ask.number - 1)?.let { Note(stringResource(R.string.trip_from, it.name)) }
+                // The first blitz question keeps the line empty, so the card (and the map under it)
+                // does not shift when the first answer arrives.
+                viewModel.kind == SessionKind.BLITZ -> Note("\u00A0")
                 else -> null
             }
             PromptCard(ask.question, counter, score, note)
@@ -299,6 +319,8 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
                 doneLabel = stringResource(if (viewModel.returnsToWelcome) R.string.map_test_to_welcome else R.string.summary_done),
                 onDone = onExit,
                 onPlayAgain = viewModel::onPlayAgain.takeIf { s.summary.canPlayAgain },
+                picked = picked,
+                onPick = { picked = it },
             )
         }
     }
@@ -392,7 +414,7 @@ private fun PromptCard(question: Question, counter: String, score: Int?, note: N
                     )
                 }
             }
-            note?.let { Text(it.text, style = MaterialTheme.typography.titleSmall, color = it.color ?: Color.Unspecified) }
+            note?.let { Text(it.text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = it.color ?: Color.Unspecified) }
             Text(promptText(question), style = MaterialTheme.typography.headlineSmall)
             val hint = when (question) {
                 is Question.Locate -> question.hint
@@ -489,7 +511,9 @@ private fun blitzNote(last: Answer): Note {
         Rating.HARD -> colors.closeText
         Rating.AGAIN -> colors.missText
     }
-    return Note(pluralStringResource(R.plurals.blitz_last, last.grade.points, last.place.name, formatPoints(last.grade.points)), color)
+    // A mark as well as a color, so a miss never rests on color alone.
+    val mark = if (last.grade.isCorrect) "✓" else "✗"
+    return Note("$mark " + pluralStringResource(R.plurals.blitz_last, last.grade.points, last.place.name, formatPoints(last.grade.points)), color)
 }
 
 /** Free play before it starts: the rules of a blitz, or a road trip's start. */
@@ -648,6 +672,8 @@ private fun SummaryCard(
     doneLabel: String,
     onDone: () -> Unit,
     onPlayAgain: (() -> Unit)?,
+    picked: Int? = null,
+    onPick: (Int?) -> Unit = {},
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -662,6 +688,7 @@ private fun SummaryCard(
                     } else {
                         SummaryPoints(summary)
                         Text(pluralStringResource(R.plurals.blitz_summary_found, summary.correct, summary.correct, summary.answers))
+                        BlitzAnswers(summary.results, picked, onPick)
                     }
                     BlitzRecordLine(summary)
                 }
@@ -735,6 +762,28 @@ private fun MapTestSummary(test: MapTestResult, pre: MapTestResult?) {
             }
         }
         test.kind == MapTestKind.PRE -> Text(stringResource(R.string.map_test_pre_note))
+    }
+}
+
+/**
+ * A blitz's answers, in order, one chip each: picking one shows it alone on the map, where
+ * the tap landed and where the place is; picking it again shows them all.
+ */
+@Composable
+private fun BlitzAnswers(results: List<Answer>, picked: Int?, onPick: (Int?) -> Unit) {
+    Text(stringResource(R.string.blitz_answers_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val colors = LocalMapPalette.current
+        results.forEachIndexed { i, a ->
+            val error = a.grade.errorMeters ?: 0.0
+            val text = if (a.grade.isCorrect) "✓ ${a.place.name}" else "✗ ${a.place.name} · " + stringResource(R.string.blitz_answer_km, formatKm(error))
+            FilterChip(
+                selected = picked == i,
+                onClick = { onPick(if (picked == i) null else i) },
+                label = { Text(text, color = if (a.grade.isCorrect) colors.goodText else colors.missText) },
+                modifier = Modifier.testTag("blitz-answer-$i"),
+            )
+        }
     }
 }
 
@@ -903,22 +952,72 @@ private fun mapTestTapDecorations(answer: Answer, colors: MapPalette): List<MapD
     return listOf(MapDecoration.Marker(tap, colors.tap, radiusPx = 7f))
 }
 
-/** The last blitz answer, faint: where the place is and where the tap landed. */
+/**
+ * The last blitz answer, faint: where the place is and where the tap landed, and on a miss
+ * the place's name, so the true spot is not mistaken for the tap.
+ */
 private fun blitzDecorations(answer: Answer, colors: MapPalette): List<MapDecoration> {
-    val tap = (answer.response as? Response.Tap)?.at ?: return emptyList()
     val color = if (answer.grade.isCorrect) colors.good else colors.target
-    return buildList {
-        add(MapDecoration.Highlight(answer.place.shape, color, alpha = 0.3f))
-        if ((answer.grade.errorMeters ?: 0.0) > 0) add(MapDecoration.Connector(tap, answer.place.shape.nearestAnchor(tap), colors.tap))
-        add(MapDecoration.Marker(tap, colors.tap, radiusPx = 6f))
-    }
+    return listOf(MapDecoration.Highlight(answer.place.shape, color, alpha = fillAlpha(answer.place.shape, 0.3f))) + blitzTap(answer, colors) +
+        listOfNotNull(MapDecoration.Label(answer.place.label, answer.place.name, colors.missText).takeIf { !answer.grade.isCorrect })
 }
+
+/**
+ * Where a blitz tap landed, and a line from it to the place when it missed: [faint] for one
+ * of many on the summary map, so a round's lines do not hide the places.
+ */
+private fun blitzTap(answer: Answer, colors: MapPalette, faint: Boolean = false, radiusPx: Float = 6f): List<MapDecoration> {
+    val tap = (answer.response as? Response.Tap)?.at ?: return emptyList()
+    val line = if (faint) colors.tap.copy(alpha = 0.3f) else colors.tap
+    return listOfNotNull(
+        MapDecoration.Connector(tap, answer.place.shape.nearestAnchor(tap), line).takeIf { (answer.grade.errorMeters ?: 0.0) > 0 },
+        MapDecoration.Marker(tap, colors.tap, radiusPx = if (faint) 4f else radiusPx),
+    )
+}
+
+/**
+ * The end of a blitz: every place it asked, colored as in play, green where it was found
+ * and in the target color where it was missed, and named (a missed one in the miss color,
+ * so the result never rests on color alone), with every tap and a faint line from each miss.
+ * The answer [picked] from the summary's list is shown alone in full, the other places faded.
+ */
+private fun blitzSummaryDecorations(summary: SessionSummary, picked: Int?, colors: MapPalette): List<MapDecoration> {
+    val places = summary.results.map { it.place }.distinct()
+    fun color(p: Place) = if (p in summary.found) colors.good else colors.target
+    val focus = picked?.let { summary.results.getOrNull(it) }
+    if (focus == null) {
+        return places.map { p -> MapDecoration.Highlight(p.shape, color(p), fillAlpha(p.shape, 0.45f)) } +
+            summary.results.flatMap { blitzTap(it, colors, faint = true) } +
+            places.map { p -> MapDecoration.Label(p.label, p.name, if (p in summary.found) null else colors.missText) }
+    }
+    val ok = if (focus.grade.isCorrect) colors.good else colors.target
+    return places.filter { it != focus.place }.map { p -> MapDecoration.Highlight(p.shape, color(p).copy(alpha = 0.25f), fillAlpha(p.shape, 0.45f)) } +
+        MapDecoration.Highlight(focus.place.shape, ok, fillAlpha(focus.place.shape, 0.45f)) +
+        blitzTap(focus, colors, radiusPx = 9f) +
+        listOfNotNull(
+            MapDecoration.Label(focus.place.label, focus.place.name, if (focus.grade.isCorrect) null else colors.missText),
+            focus.tappedNear?.let { MapDecoration.Label(it.label, it.name, colors.miss) },
+        )
+}
+
+/**
+ * A blitz fill: [alpha] for a town or a lake, a third of it for a region or a sea, which would
+ * otherwise cover the places around it.
+ */
+private fun fillAlpha(shape: Shape, alpha: Float): Float =
+    if (shape is Shape.Area && shape.area > LARGE_AREA_M2) alpha / 3 else alpha
+
+/** An area larger than this (map square meters, 400 km²) is filled faintly in a blitz. */
+private const val LARGE_AREA_M2 = 400_000_000.0
 
 /** Naming options closer together than this are viewed close up (map meters). */
 private const val CLOSE_OPTIONS_METERS = 30_000.0
 
 /** At least this much of the map is shown around close naming options (map meters). */
 private const val CLOSE_OPTIONS_VIEW_METERS = 30_000.0
+
+/** At least this much of the map is shown around a blitz answer picked on its summary (map meters). */
+private const val PICKED_VIEW_METERS = 60_000.0
 
 /** The share of the screen's width the side panel takes in landscape. */
 private const val SIDE_PANEL_FRACTION = 0.42f
