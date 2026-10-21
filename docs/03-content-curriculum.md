@@ -28,7 +28,11 @@ Every learnable place is a `Place` with:
 
 ## Tier 0: The frame (about 15 items)
 
-Taught first; everything else hangs on it.
+Taught first; everything else hangs on it. The very first session opens with a unit of
+its own, `first`: Tel Aviv-Yafo, the Mediterranean, Jerusalem, Haifa and the Kinneret, so
+the big three cities come within the first minute (docs/07) with the waters beside them
+for orientation. The rest of the frame (the Gulf of Eilat, the Dead Sea, the Jordan, the
+neighbors) follows, then Beersheba and Eilat.
 
 - **Neighbors:** Lebanon, Syria, Jordan, Egypt.
 - **Waters:** Mediterranean Sea, Red Sea / Gulf of Eilat, Sea of Galilee (Kinneret),

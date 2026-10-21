@@ -7,7 +7,7 @@ package com.shavei.mapa.learning
  * least so far, even when those answers were right.
  */
 object Focus {
-    /** Questions in a round, before misses come back. */
+    /** Questions in a round, misses included: in a full round a miss comes back in place of the last card not yet asked. */
     const val SIZE = 10
 
     /**

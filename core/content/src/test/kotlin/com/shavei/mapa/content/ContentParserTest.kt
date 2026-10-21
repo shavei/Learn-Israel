@@ -94,7 +94,12 @@ class ContentParserTest {
         val telAviv = (content.place("city.tel_aviv")!!.shape as Shape.Point).at
         val med = content.place("sea.mediterranean")!!.shape as Shape.Area
         assertTrue(med.contains(MapPoint(telAviv.x - 5_000, telAviv.y)), "the sea is just west of Tel Aviv")
-        assertEquals(listOf("frame", "anchors", "regions_main", "center", "south_coast", "sharon", "north"), content.unitOrder.take(7))
+        assertEquals(listOf("first", "frame", "anchors", "regions_main", "center", "south_coast", "sharon", "north"), content.unitOrder.take(8))
+        // The first session starts with the big three cities, a water body between them (docs/07).
+        assertEquals(
+            listOf("city.tel_aviv", "sea.mediterranean", "city.jerusalem", "city.haifa", "lake.kinneret"),
+            content.places.filter { it.unit == "first" }.map { it.id },
+        )
         // The core first, then nature, infrastructure and heritage, never mixed in one unit.
         val themes = content.unitOrder.map { unit -> content.places.filter { it.unit == unit }.map { it.type.theme }.toSet().single() }
         assertEquals(themes.sorted(), themes)
