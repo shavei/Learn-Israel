@@ -18,6 +18,8 @@ import com.shavei.mapa.data.CardEntity
 import com.shavei.mapa.data.MapTestEntity
 import com.shavei.mapa.geo.MapPoint
 import com.shavei.mapa.geo.Shape
+import com.shavei.mapa.learning.Grader
+import com.shavei.mapa.learning.PlacementTest
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
@@ -342,7 +344,10 @@ class SessionScreenTest {
                             found = s.question.place.name
                             compose.runOnIdle { session(scenario).onTap(s.question.place.label) }
                         } else {
-                            compose.runOnIdle { session(scenario).onTap(com.shavei.mapa.geo.MapPoint(-30_000.0, 600_000.0)) }
+                            // Far out at sea, or for a sea far inland to the east: a miss either way.
+                            val miss = listOf(MapPoint(-30_000.0, 600_000.0), MapPoint(350_000.0, 600_000.0))
+                                .first { !Grader.grade(s.question.place, it, 3_000, firstReview = true).isCorrect }
+                            compose.runOnIdle { session(scenario).onTap(miss) }
                         }
                         compose.waitUntil(10_000) { session(scenario).ui.value is SessionUi.Feedback }
                     }
@@ -355,11 +360,12 @@ class SessionScreenTest {
     }
 
     @Test
-    fun placementCreditsTheLevelsAnExpertPasses() {
+    fun placementCreditsWhatAnExpertKnows() {
+        var asked = 0
+        var credited = 0
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("כבר מכירים? דלגו על מה שאתם יודעים")
             compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
-            var asked = 0
             while (true) {
                 waitForUi(scenario, SessionUi.Ask::class.java, SessionUi.Feedback::class.java, SessionUi.Finished::class.java)
                 when (val s = session(scenario).ui.value) {
@@ -379,14 +385,18 @@ class SessionScreenTest {
                     else -> Unit
                 }
             }
-            waitForText("ועוד ${app.content.places.size - asked} מקומות ברמות שעברתם נחשבים ידועים.")
+            // The places not asked that the player very likely knows: many, but not necessarily all.
+            credited = (session(scenario).ui.value as SessionUi.Finished).summary.credited
+            assertTrue("asked $asked", asked in PlacementTest.MIN_QUESTIONS..PlacementTest.MAX_QUESTIONS)
+            assertTrue("credited $credited", credited > 2 && asked + credited <= app.content.places.size)
+            waitForText("ועוד $credited מקומות נחשבים ידועים, לפי התשובות שלכם.")
             shot(scenario, "s15-placement-credited")
             compose.waitUntil(10_000) { session(scenario).let { (it.ui.value as SessionUi.Finished).summary.saved } }
         }
-        // Every place is in review, and none of them counts as introduced today.
+        // The places found and the places credited are in review, and none of them counts as introduced today.
         runBlocking {
             val cards = app.database.progressDao().cards()
-            assertEquals(app.content.places.size, cards.size)
+            assertEquals(asked + credited, cards.size)
             assertTrue(cards.all { it.state == CardState.REVIEW.value })
             assertEquals(0, app.database.progressDao().countIntroducedSince(0))
         }
