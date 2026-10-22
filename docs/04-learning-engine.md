@@ -353,17 +353,18 @@ today's essential work is done.
 
 ## Placement test
 
-Optional at onboarding, 2 to 4 minutes, adaptive. It finds how far the player's knowledge
+Optional at onboarding, up to 5 minutes, adaptive. It finds how far the player's knowledge
 reaches, so practice can start there instead of at the first unit.
 1. Every theme (the core, nature, infrastructure, heritage) is a ladder of levels by
    importance. The core's levels: the big cities, the sea and the main regions; then the
    other anchor cities, the neighbors and the regions; then mid-sized towns; then small
    towns. A level of fewer than 6 places joins the one before it.
-2. Each level is probed with 3 of its places (4 for a level of 20 or more), spread across
-   its units, and passes with at most one miss: two finds in a row are enough. A passed
+2. Each level is probed with 4 of its places (6 for a level of 20 or more), spread across
+   its units, and passes with at most one miss: three finds in a row pass a small level,
+   five a large one. A passed
    level leads to the next; a failed one ends that theme's ladder. The core comes first;
    the other themes are tested only when the core's first two levels pass, so a beginner
-   is done after two or three questions and an expert after about 20.
+   is done after two or three questions and an expert after about 30.
 3. A place found gets an initial FSRS state as if reviewed once with Good, so it comes
    back soon for confirmation. A place missed stays new.
 4. Every other place of a passed level is credited: an FSRS state as if reviewed once with
