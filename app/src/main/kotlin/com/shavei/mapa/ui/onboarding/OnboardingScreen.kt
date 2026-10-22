@@ -1,5 +1,6 @@
 package com.shavei.mapa.ui.onboarding
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +16,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,11 +39,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.shavei.mapa.R
 import com.shavei.mapa.content.Content
+import com.shavei.mapa.data.MapStyle
+import com.shavei.mapa.data.ThemeChoice
 import com.shavei.mapa.ui.MapCard
 import com.shavei.mapa.ui.map.MapView
 import com.shavei.mapa.ui.map.rememberMapCamera
@@ -50,6 +58,9 @@ import com.shavei.mapa.ui.scrollCue
  * placement test instead of starting from the frame. Before either, an optional map
  * test measures what the player knows now, to compare with a month later.
  *
+ * The light or dark theme and the map style can be picked here too, and the map behind
+ * the card changes at once to show them; both stay in settings for later.
+ *
  * The three ways in always stay on screen, at any text size and in landscape: the
  * words above them scroll (with a cue when there is more), the buttons do not.
  */
@@ -57,6 +68,10 @@ import com.shavei.mapa.ui.scrollCue
 fun OnboardingScreen(
     content: Content,
     mapTestDone: Boolean,
+    theme: ThemeChoice,
+    mapStyle: MapStyle,
+    onTheme: (ThemeChoice) -> Unit,
+    onMapStyle: (MapStyle) -> Unit,
     onStart: () -> Unit,
     onPlacement: () -> Unit,
     onMapTest: () -> Unit,
@@ -73,8 +88,15 @@ fun OnboardingScreen(
     LaunchedEffect(bottomPx, landscape) { camera.setFramePadding(0f, if (landscape) 0f else bottomPx) }
     val density = LocalDensity.current
 
+    // "By the device" shows as whichever of the two it is now; a tap makes the choice explicit.
+    val dark = when (theme) {
+        ThemeChoice.SYSTEM -> isSystemInDarkTheme()
+        ThemeChoice.LIGHT -> false
+        ThemeChoice.DARK -> true
+    }
+    val looks = @Composable { Looks(dark, mapStyle, onTheme, onMapStyle) }
     val card = @Composable { modifier: Modifier ->
-        WelcomeCard(modifier, mapTestDone, compact, onStart, onPlacement, onMapTest)
+        WelcomeCard(modifier, mapTestDone, compact, looks, onStart, onPlacement, onMapTest)
     }
     if (landscape) {
         Row(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -101,6 +123,7 @@ private fun WelcomeCard(
     modifier: Modifier,
     mapTestDone: Boolean,
     compact: Boolean,
+    looks: @Composable () -> Unit,
     onStart: () -> Unit,
     onPlacement: () -> Unit,
     onMapTest: () -> Unit,
@@ -125,6 +148,7 @@ private fun WelcomeCard(
                 )
                 Text(stringResource(R.string.onboarding_tagline), style = MaterialTheme.typography.headlineSmall)
                 Text(stringResource(R.string.onboarding_body))
+                looks()
                 if (compact) {
                     Note(stringResource(R.string.onboarding_placement_note))
                     if (!mapTestDone) Note(stringResource(R.string.onboarding_map_test_note))
@@ -146,4 +170,41 @@ private fun WelcomeCard(
 @Composable
 private fun Note(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** Light or dark, and standard or relief map, each as a pair of segmented buttons. */
+@Composable
+private fun Looks(dark: Boolean, mapStyle: MapStyle, onTheme: (ThemeChoice) -> Unit, onMapStyle: (MapStyle) -> Unit) {
+    Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        LookChoice(
+            title = stringResource(R.string.settings_theme),
+            labels = listOf(stringResource(R.string.theme_light), stringResource(R.string.theme_dark)),
+            selected = if (dark) 1 else 0,
+        ) { onTheme(if (it == 0) ThemeChoice.LIGHT else ThemeChoice.DARK) }
+        LookChoice(
+            title = stringResource(R.string.settings_map),
+            labels = listOf(stringResource(R.string.map_style_standard), stringResource(R.string.map_style_relief)),
+            selected = if (mapStyle == MapStyle.RELIEF) 1 else 0,
+        ) { onMapStyle(if (it == 0) MapStyle.STANDARD else MapStyle.RELIEF) }
+        Note(stringResource(R.string.onboarding_looks_note))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LookChoice(title: String, labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.width(96.dp))
+        SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
+            labels.forEachIndexed { index, label ->
+                SegmentedButton(
+                    selected = index == selected,
+                    onClick = { onSelect(index) },
+                    shape = SegmentedButtonDefaults.itemShape(index, labels.size),
+                    // Read as "theme: dark", so a screen reader says what the button chooses.
+                    modifier = Modifier.semantics { contentDescription = "$title: $label" },
+                ) { Text(label) }
+            }
+        }
+    }
 }
