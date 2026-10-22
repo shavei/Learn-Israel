@@ -1,6 +1,15 @@
 # 02. Game Design
 
-App name: **Mapa** (מפה). The app is in Hebrew only.
+App name: **על המפה** (Al HaMapa, "on the map"). The app is in Hebrew only.
+
+The name says what you do, tap on the map, and what you get: in Hebrew, putting a place
+"on the map" means it now counts, as each place does once you know it. The look is the Survey of
+Israel's 1978 map "Israel 1948-1978": the icon is the land drawn as that map was printed,
+ochre with brown relief, red roads, near white neighbors and a flat cyan sea, from the game's
+own data (the land, its heights and the seven highways it teaches). On it is the game's own
+moment: a tap at Be'er Sheva, the dotted line to the true place, and the place, Jerusalem,
+in the blue of that map's title. The logo sets the icon in that map's frame, a gray band with
+a white ribbon. `marketing/brand/make_icon.py` draws the icon and `render.js` the logo.
 
 ## Vision
 

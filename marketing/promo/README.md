@@ -11,7 +11,7 @@
 | 17 to 21 s | Blitz and Road Trip |
 | 21 to 26 s | Spaced repetition and progress |
 | 26 to 30 s | Relief map and dark mode |
-| 30 to 35 s | Logo and "הורידו עכשיו לאנדרואיד" |
+| 30 to 35 s | The app icon, "על המפה", and "הורידו עכשיו לאנדרואיד" |
 
 The scenes are an HTML page (`promo.html`) with a small keyframe engine; `render.js` steps it
 frame by frame in Chromium. The phone screens are cropped from `docs/images`, and the music

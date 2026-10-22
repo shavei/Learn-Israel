@@ -183,7 +183,7 @@ class ReminderSimulationTest {
     private fun assertReminder(n: Notification?, expectedText: String) {
         checkNotNull(n) { "no reminder posted" }
         assertEquals(expectedText, text(n))
-        assertEquals("מפה", n.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
+        assertEquals("על המפה", n.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
         assertEquals("daily", n.channelId)
         val channel = checkNotNull(notificationManager.getNotificationChannel("daily"))
         assertEquals("תזכורת יומית", channel.name.toString())

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">מפה</string>
+    <string name="app_name">על המפה</string>
     <string name="home_title">המפה שלך</string>
     <string name="home_start">התחילו אימון יומי</string>
     <plurals name="home_due">

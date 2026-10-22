@@ -7,7 +7,7 @@
 | 1 | How are borders and contested areas shown? | De facto lines of control as the main map, plus an optional, neutrally labeled Green Line layer in settings | Pipeline builds both line sets; fact lines stay geographic, not political |
 | 2 | Primary audience at launch? | General adults and Israeli school students | Curriculum-aligned units, casual-friendly sessions |
 | 3 | Monetization? | Completely free: no ads, no purchases, no subscription | All tiers and modes open to everyone; costs kept near zero (offline first, backend only when needed) |
-| 4 | App name? | **Mapa** (מפה) | Package id, store listing, and branding use Mapa |
+| 4 | App name? | **על המפה** (Al HaMapa), renamed from מפה (Mapa) on 2026-10-22: a bare common noun named the app no better than a search for it would | Store listing and branding use the new name and the atlas icon; the package id `com.shavei.mapa` and `mapa.apk` stay, so installed apps keep updating with their progress |
 | 5 | Languages? | Hebrew only | Full RTL UI; content written and reviewed in Hebrew only; data model still allows adding languages later |
 | 6 | Target children under 13? | Not at launch | Google Play Families policy not required yet; revisit with a classroom mode |
 | 7 | Backend for social features? | Decide later | Phases 0 to 2 are fully offline; choose Supabase or Firebase at the start of Phase 3 |
