@@ -8,8 +8,9 @@ Israel's 1978 map "Israel 1948-1978": the icon is the land drawn as that map was
 ochre with brown relief, red roads, near white neighbors and a flat cyan sea, from the game's
 own data (the land, its heights and the seven highways it teaches). On it is the game's own
 moment: a tap at Be'er Sheva, the dotted line to the true place, and the place, Jerusalem,
-in the blue of that map's title. The logo sets the icon in that map's frame, a gray band with
-a white ribbon. `marketing/brand/make_icon.py` draws the icon and `render.js` the logo.
+in the blue of that map's title. The logo is that land on its own beside the name, with the
+game's dotted line running out of it in the map's red, under the name to its blue target.
+`marketing/brand/make_icon.py` draws the icon and `render.js` the logo.
 
 ## Vision
 
