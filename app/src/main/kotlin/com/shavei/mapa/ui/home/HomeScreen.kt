@@ -138,7 +138,9 @@ fun HomeScreen(
     // The trophy: every place you have practiced, colored by how well you know it today.
     // Regions, districts and seas cover large areas and each other, so they get a lighter wash, and so
     // do highways, which run the length of the country.
-    // Known places also get a heavier outline, so the map does not rely on color alone.
+    // Known and learning places also differ in shape, so the map does not rely on color alone:
+    // a known point is a solid disc with a check, a point in learning an open ring that fills
+    // up on its way to known; known areas and lines are solid, those in learning dashed.
     // Seas in practice show too, as the counts say. Neighboring countries are
     // the frame around the map: painted, they would tint much of the screen, so home leaves them out.
     val decorations = content.places.mapNotNull { place ->
@@ -149,7 +151,10 @@ fun HomeScreen(
                 PlaceType.ROAD -> 0.1 + 0.35 * m
                 else -> 0.15 + 0.7 * m
             }
-            MapDecoration.Highlight(place.shape, colors.mastery, alpha = alpha.toFloat(), emphasis = place.id in state.knownPlaces)
+            val known = place.id in state.knownPlaces
+            MapDecoration.Highlight(
+                place.shape, colors.mastery, alpha = alpha.toFloat(), emphasis = known, progress = m.toFloat().takeUnless { known },
+            )
         }
     }
     val map = @Composable { modifier: Modifier ->
