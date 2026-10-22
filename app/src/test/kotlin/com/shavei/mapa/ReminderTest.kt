@@ -118,7 +118,7 @@ class ReminderTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("הגדרות")
             compose.onNodeWithText("הגדרות").performClick()
-            waitForText("ההתראות של מפה כבויות בהגדרות הטלפון, ולכן התזכורת לא תגיע.")
+            waitForText("ההתראות של ״על המפה״ כבויות בהגדרות הטלפון, ולכן התזכורת לא תגיע.")
             compose.onNodeWithText("שליחת תזכורת לדוגמה").performScrollTo().assertIsNotEnabled()
             Screenshots.save(scenario, "r3-settings-reminder-blocked")
 
@@ -126,7 +126,7 @@ class ReminderTest {
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.RESUMED)
             compose.waitUntil(10_000) {
-                compose.onAllNodes(hasText("ההתראות של מפה כבויות בהגדרות הטלפון, ולכן התזכורת לא תגיע.")).fetchSemanticsNodes().isEmpty()
+                compose.onAllNodes(hasText("ההתראות של ״על המפה״ כבויות בהגדרות הטלפון, ולכן התזכורת לא תגיע.")).fetchSemanticsNodes().isEmpty()
             }
             compose.onNodeWithText("שליחת תזכורת לדוגמה").performScrollTo().assertIsEnabled().performClick()
             waitForText("נשלחה תזכורת לדוגמה. אם היא לא הופיעה, בדקו את הגדרות ההתראות של הטלפון.")
