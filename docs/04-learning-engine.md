@@ -353,14 +353,27 @@ today's essential work is done.
 
 ## Placement test
 
-Optional at onboarding, about 3 minutes, adaptive:
-1. Ask the anchors: the first steps (the big three cities and the waters beside them),
-   the rest of the frame's main places and the other anchor cities. If most are right,
-   sample Tier 3 by region. A place counts as found with the session's grading: an area
-   only with a tap inside it.
-2. Items answered correctly get an initial FSRS state as if reviewed once with Good,
-   so they come back soon for confirmation; wrong ones stay new.
-3. Units whose sampled items are mostly correct are unlocked.
+Optional at onboarding, 2 to 4 minutes, adaptive. It finds how far the player's knowledge
+reaches, so practice can start there instead of at the first unit.
+1. Every theme (the core, nature, infrastructure, heritage) is a ladder of levels by
+   importance. The core's levels: the big cities, the sea and the main regions; then the
+   other anchor cities, the neighbors and the regions; then mid-sized towns; then small
+   towns. A level of fewer than 6 places joins the one before it.
+2. Each level is probed with 3 of its places (4 for a level of 20 or more), spread across
+   its units, and passes with at most one miss: two finds in a row are enough. A passed
+   level leads to the next; a failed one ends that theme's ladder. The core comes first;
+   the other themes are tested only when the core's first two levels pass, so a beginner
+   is done after two or three questions and an expert after about 20.
+3. A place found gets an initial FSRS state as if reviewed once with Good, so it comes
+   back soon for confirmation. A place missed stays new.
+4. Every other place of a passed level is credited: an FSRS state as if reviewed once with
+   Easy, its first review spread over the following weeks (6 a day from the third day,
+   the hardest levels first), so a strong player's map fills at once and the confirmations
+   do not crowd out new places. A credited place the player does not know after all is
+   missed in review and learned again. Credited places are not counted as introduced.
+5. Places of failed levels stay new, and new places come in curriculum order, so daily
+   practice continues from the first level the player did not pass. A place counts as
+   found with the session's grading: an area only with a tap inside it.
 
 ## Mastery metrics shown to the player
 

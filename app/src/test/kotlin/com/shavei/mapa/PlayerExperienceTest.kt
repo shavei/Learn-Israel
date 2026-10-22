@@ -18,9 +18,12 @@ import com.shavei.mapa.data.CardEntity
 import com.shavei.mapa.data.DailySessionEntity
 import com.shavei.mapa.data.ReviewEntity
 import com.shavei.mapa.data.ThemeChoice
+import com.shavei.mapa.learning.PlacementTest
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
+import com.shavei.mapa.ui.session.SessionViewModel
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -29,6 +32,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.random.Random
 
 /** Phase 1c: the placement test, the progress screen, and settings (including dark mode). */
 @RunWith(RobolectricTestRunner::class)
@@ -43,17 +47,29 @@ class PlayerExperienceTest {
     private fun waitForText(text: String) =
         compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty() }
 
+    @After
+    fun drawQuestionsFreely() {
+        SessionViewModel.placementRandom = Random.Default
+    }
+
     @Test
     fun placementTestSeedsWhatThePlayerFinds() {
+        // A draw of the questions where the Mediterranean comes second, after a place that is not at sea.
+        val seed = (0 until 1_000).first { seed ->
+            val order = PlacementTest(app.content, app.scheduler, random = Random(seed)).levels.first().order
+            order[0].id != "sea.mediterranean" && order[1].id == "sea.mediterranean"
+        }
+        val test = PlacementTest(app.content, app.scheduler, random = Random(seed))
+        SessionViewModel.placementRandom = Random(seed)
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("כבר מכירים? דלגו על מה שאתם יודעים")
             compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
 
-            // No Discover card: the test asks straight away, starting with the first places taught.
-            waitForText("סמנו על המפה: תל אביב-יפו")
-            compose.onNodeWithText("בדיקת רמה\u00A0· שאלה 1 מתוך 20 לכל היותר").assertExists()
+            // No Discover card: the test asks straight away, starting with the best-known places.
+            waitForText("סמנו על המפה: ${test.levels.first().order[0].name}")
+            compose.onNodeWithText("בדיקת רמה\u00A0· שאלה 1 מתוך ${test.maxQuestions} לכל היותר").assertExists()
             Screenshots.save(scenario, "c1-placement-ask")
-            // Far out at sea: not Tel Aviv.
+            // Far out at sea: not the place asked.
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
             waitForText("לא הפעם")
             compose.onNodeWithText("המשך").performClick()
