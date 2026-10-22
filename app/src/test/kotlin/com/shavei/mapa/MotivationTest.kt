@@ -90,6 +90,24 @@ class MotivationTest {
         }
     }
 
+    /**
+     * A place an update took off the map (the Carmel region was split up) leaves its card in
+     * the database: it counts toward nothing, known or due, until it is back in the content.
+     */
+    @Test
+    fun aPlaceNoLongerOnTheMapIsNotCounted() {
+        seedKnown()
+        val now = System.currentTimeMillis()
+        runBlocking {
+            app.database.progressDao().upsert(CardEntity("region.carmel", "LOCATE", CardState.REVIEW.value, null, 30.0, 5.0, now - DAY_MS, now - 40 * DAY_MS, 0))
+            assertTrue(app.progress.cards().keys.none { it.placeId == "region.carmel" })
+            assertEquals(12, app.progress.motivation(app.content, now).known)
+        }
+        ActivityScenario.launch(MainActivity::class.java).use {
+            compose.waitUntil(10_000) { compose.onAllNodes(hasContentDescription("12 ידועים · 0 בלמידה · מתוך 209")).fetchSemanticsNodes().isNotEmpty() }
+        }
+    }
+
     /** At the largest system font the cards scroll instead of covering the map, and still work. */
     @Test
     @Config(fontScale = 2.0f)

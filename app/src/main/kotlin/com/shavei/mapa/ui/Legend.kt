@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.res.pluralStringResource
@@ -28,16 +27,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.shavei.mapa.R
+import com.shavei.mapa.ui.map.MARK_RADIUS
+import com.shavei.mapa.ui.map.drawKnownMark
+import com.shavei.mapa.ui.map.drawLearningMark
 import com.shavei.mapa.ui.theme.LocalMapPalette
 
-/** A place mark as the map draws it: a soft halo, stronger once known, with a ring for known places. */
+/**
+ * A place mark as the map draws it: a solid disc with a check for a known place, an open
+ * ring partway filled for a place in learning.
+ */
 @Composable
 fun LegendMark(color: Color, known: Boolean, size: Dp = 20.dp) {
+    val ring = LocalMapPalette.current.markerRing
     Canvas(Modifier.size(size)) {
-        val r = this.size.minDimension / 2
-        drawCircle(color, radius = r * 0.72f, alpha = if (known) 0.85f else 0.3f)
-        drawCircle(color, radius = r * 0.36f)
-        if (known) drawCircle(color, radius = r * 0.94f, style = Stroke(width = r * 0.14f))
+        val unit = this.size.minDimension / 2 / MARK_RADIUS
+        if (known) drawKnownMark(center, unit, color, ring) else drawLearningMark(center, unit, color, ring, progress = 0.6f)
     }
 }
 

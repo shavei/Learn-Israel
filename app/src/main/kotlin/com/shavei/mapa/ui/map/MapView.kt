@@ -59,10 +59,22 @@ import kotlin.math.sqrt
 /** Something drawn on top of the base map: a highlighted place, a tap, a line, a label. */
 sealed interface MapDecoration {
     /**
-     * A place filled with [color]. [emphasis] adds a heavier outline (a ring for a point),
-     * so a state such as "known" never depends on color alone.
+     * A place filled with [color]. On the mastery map a place carries its state in its
+     * shape, never in color alone: a known place ([emphasis]) gets a heavier solid outline,
+     * a solid line, or a solid disc with a check ([drawKnownMark]); a place in learning
+     * ([progress], 0..1 of the way to known) a dashed outline, a dashed line, or an open
+     * ring filling up ([drawLearningMark]). With neither, a plain highlight.
      */
-    data class Highlight(val shape: Shape, val color: Color, val alpha: Float = 0.45f, val emphasis: Boolean = false) : MapDecoration
+    data class Highlight(
+        val shape: Shape,
+        val color: Color,
+        val alpha: Float = 0.45f,
+        val emphasis: Boolean = false,
+        val progress: Float? = null,
+    ) : MapDecoration {
+        /** In learning: drawn dashed or open, as against a known place's solid mark. */
+        val learning: Boolean get() = progress != null && !emphasis
+    }
     data class Marker(val at: MapPoint, val color: Color, val radiusPx: Float = 14f) : MapDecoration
     data class Connector(val from: MapPoint, val to: MapPoint, val color: Color) : MapDecoration
 
@@ -326,7 +338,10 @@ fun MapView(
                     is Shape.Area -> {
                         val b = d.shape.bounds
                         val reachesEdge = b.minX < edge.minX || b.minY < edge.minY || b.maxX > edge.maxX || b.maxY > edge.maxY
-                        val outline = Stroke(width = (if (d.emphasis) 4.5f else 2.5f) * crowd.size * px)
+                        val outline = Stroke(
+                            width = (if (d.emphasis) 4.5f else 2.5f) * crowd.size * px,
+                            pathEffect = if (d.learning) dashes(crowd.size * px) else null,
+                        )
                         if (reachesEdge) {
                             clipPath(openWater) {
                                 drawPath(path, d.color, alpha = d.alpha * crowd.fill)
@@ -337,7 +352,14 @@ fun MapView(
                             drawPath(path, d.color, style = outline)
                         }
                     }
-                    is Shape.Lines -> drawPath(path, d.color, alpha = crowd.fill, style = Stroke(width = 6f * crowd.size * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                    is Shape.Lines -> drawPath(
+                        path, d.color, alpha = crowd.fill,
+                        style = Stroke(
+                            width = 6f * crowd.size * px, cap = StrokeCap.Round, join = StrokeJoin.Round,
+                            // Round caps close up a short gap, so a line's dashes are spaced wider.
+                            pathEffect = if (d.learning) dashes(crowd.size * px, gap = 18f) else null,
+                        ),
+                    )
                     is Shape.Point -> Unit // drawn in screen space so it keeps its size
                 }
             }
@@ -353,10 +375,16 @@ fun MapView(
         for (d in decorations) when (d) {
             is MapDecoration.Highlight -> if (d.shape is Shape.Point) {
                 val c = camera.toScreen(d.shape.at)
-                val r = crowd.size * u
-                drawCircle(d.color, radius = 16f * r, center = c, alpha = d.alpha * crowd.fill)
-                drawCircle(d.color, radius = 8f * r, center = c)
-                if (d.emphasis) drawCircle(d.color, radius = 21f * r, center = c, style = Stroke(width = 3f * r))
+                when {
+                    // The mastery marks keep a size that still shows ring from disc in a crowd.
+                    d.emphasis -> drawKnownMark(c, crowd.mark * u, d.color, colors.markerRing, d.alpha, check = crowd.mark >= CHECK_SIZE)
+                    d.progress != null -> drawLearningMark(c, crowd.mark * u, d.color, colors.markerRing, d.progress)
+                    else -> {
+                        val r = crowd.size * u
+                        drawCircle(d.color, radius = 16f * r, center = c, alpha = d.alpha * crowd.fill)
+                        drawCircle(d.color, radius = 8f * r, center = c)
+                    }
+                }
             }
             is MapDecoration.Drawing -> if (d.path.size >= 2) {
                 val path = Path().apply {
@@ -436,9 +464,13 @@ private fun crosses(box: Rect, a: Offset, b: Offset): Boolean {
  * full size back. [size] scales points and outlines, [fill] the fills.
  */
 private class Crowd(val size: Float, val fill: Float) {
+    /** The scale of a mastery mark on a point: never so small that its ring closes up. */
+    val mark: Float get() = size.coerceAtLeast(MIN_MARK)
+
     companion object {
         /** Up to this many marks are drawn at full size. */
         private const val ROOM = 30
+        private const val MIN_MARK = 0.6f
 
         fun of(decorations: List<MapDecoration>, zoom: Double): Crowd {
             val marks = decorations.count { it is MapDecoration.Highlight }
@@ -448,6 +480,12 @@ private class Crowd(val size: Float, val fill: Float) {
         }
     }
 }
+
+/** A known mark shows its check from this size up; smaller, the solid disc says it alone. */
+private const val CHECK_SIZE = 0.8f
+
+/** The dashes of a place in learning's outline or line, [unit] map units to a pixel at its size. */
+private fun dashes(unit: Float, gap: Float = 7f) = PathEffect.dashPathEffect(floatArrayOf(10f * unit, gap * unit))
 
 /** Open water lit up is cut this far around Israel (map meters). */
 private const val OPEN_WATER_MARGIN = 60_000.0

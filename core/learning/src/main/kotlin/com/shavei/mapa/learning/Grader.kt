@@ -117,7 +117,7 @@ object Grader {
         stabilityDays == null || stabilityDays < 1.0 -> 2.5
         stabilityDays < 3.0 -> 2.0
         stabilityDays < 10.0 -> 1.5
-        stabilityDays < 21.0 -> 1.25
+        stabilityDays < KNOWN_STABILITY_DAYS -> 1.25
         else -> 1.0
     }
 
