@@ -61,6 +61,10 @@ jobs:
         if: steps.check.outputs.done != 'true'
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk mapa.apk
+          # The version code, for the app's "check for updates" (update/Updates.kt).
+          aapt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt"
+          "$aapt" dump badging mapa.apk | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" > version.txt
+          grep -qx '[0-9][0-9]*' version.txt
           unzip -tq mapa.apk
           unzip -l mapa.apk | grep -q AndroidManifest.xml
           "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner" verify mapa.apk
@@ -89,7 +93,7 @@ jobs:
           # workflow replaced CI's publish job.
           tag="build-$(date -u +%Y%m%d-%H%M)-${SHA:0:7}"
           subject=$(git log -1 --format=%s "$SHA")
-          gh release create "$tag" mapa.apk --draft \
+          gh release create "$tag" mapa.apk version.txt --draft \
             --target "$SHA" \
             --title "Build ${SHA:0:7}, $(date -u '+%Y-%m-%d %H:%M') UTC" \
             --notes "Debug build of main at $SHA ($subject), published automatically. Install mapa.apk on an Android phone (8.0 or newer)."
