@@ -212,20 +212,20 @@
     <string name="onboarding_body">בכל יום תמצאו ותזהו מקומות על מפה ריקה. כל מקום חוזר בדיוק כשהוא מתחיל להישכח, והמפה שלכם מתמלאת במה שאתם באמת יודעים.</string>
     <string name="onboarding_start">בואו נתחיל</string>
     <string name="onboarding_placement">כבר מכירים? דלגו על מה שאתם יודעים</string>
-    <string name="onboarding_placement_note">בדיקת רמה, עד 5 דקות. השאלות מתקשות עד שמגיעים לגבול הידע שלכם, ומה שמתחתיו לא יילמד מההתחלה. האימון היומי ימשיך משם.</string>
+    <string name="onboarding_placement_note">בדיקת רמה של 10 עד 40 שאלות, 2 עד 5 דקות. כל שאלה נבחרת לפי התשובות הקודמות, כדי לגלות בדיוק מה אתם יודעים. האימון היומי ימשיך ממה שאתם עוד לא יודעים.</string>
 
     <string name="placement_counter">בדיקת רמה\u00A0· שאלה %1$d מתוך %2$d לכל היותר</string>
     <string name="placement_summary_title">סיום בדיקת הרמה</string>
     <string name="placement_summary_found">מצאתם %1$d מתוך %2$d מקומות</string>
     <string name="placement_found_list">מצאתם: %1$s</string>
-    <string name="placement_summary_note">המקומות שמצאתם יחזרו בעוד כמה ימים לאישור. השאר יילמדו באימון היומי.</string>
+    <string name="placement_summary_note">המקומות שמצאתם יחזרו בעוד כמה ימים לאישור. את השאר תלמדו באימון היומי.</string>
     <plurals name="placement_summary_credited">
-        <item quantity="one">ועוד מקום אחד ברמות שעברתם נחשב ידוע.</item>
-        <item quantity="two">ועוד 2 מקומות ברמות שעברתם נחשבים ידועים.</item>
-        <item quantity="many">ועוד %d מקומות ברמות שעברתם נחשבים ידועים.</item>
-        <item quantity="other">ועוד %d מקומות ברמות שעברתם נחשבים ידועים.</item>
+        <item quantity="one">ועוד מקום אחד נחשב ידוע, לפי התשובות שלכם.</item>
+        <item quantity="two">ועוד 2 מקומות נחשבים ידועים, לפי התשובות שלכם.</item>
+        <item quantity="many">ועוד %d מקומות נחשבים ידועים, לפי התשובות שלכם.</item>
+        <item quantity="other">ועוד %d מקומות נחשבים ידועים, לפי התשובות שלכם.</item>
     </plurals>
-    <string name="placement_summary_note_credited">המקומות שמצאתם יחזרו בעוד כמה ימים לאישור, ואלה שנחשבו ידועים יחזרו בהדרגה, כמה בכל יום. מקום שיתברר שלא זכרתם יילמד מחדש. האימון היומי ימשיך מהמקומות שעוד לא הגעתם אליהם.</string>
+    <string name="placement_summary_note_credited">המקומות שמצאתם יחזרו בעוד כמה ימים לאישור, ואלה שנחשבים ידועים יחזרו בהדרגה, כמה בכל יום. מקום שיתברר שלא זכרתם יילמד מחדש. האימון היומי ימשיך ממה שאתם עוד לא יודעים.</string>
 
     <string name="home_progress">התקדמות</string>
     <string name="home_settings">הגדרות</string>
@@ -528,7 +528,7 @@
     <string name="time_cancel">ביטול</string>
     <string name="settings_placement">בדיקת רמה</string>
     <string name="settings_placement_again">לבדיקת הרמה</string>
-    <string name="settings_placement_note">עד 5 דקות. השאלות מתקשות עד גבול הידע שלכם. מקומות ברמות שתעברו ועוד לא התחלתם ללמוד ייחשבו ידועים ויחזרו לאישור. מה שכבר בתרגול לא משתנה.</string>
+    <string name="settings_placement_note">10 עד 40 שאלות, 2 עד 5 דקות. כל שאלה מותאמת לתשובות הקודמות. מקומות שאתם כמעט בוודאות מכירים ועוד לא התחלתם ללמוד ייחשבו ידועים ויחזרו בהדרגה לאישור. מה שכבר בתרגול לא משתנה.</string>
     <string name="settings_update">עדכון האפליקציה</string>
     <string name="settings_update_note">האפליקציה מתחברת לאינטרנט רק כשלוחצים כאן, כדי לבדוק אם יש גרסה חדשה ולהוריד אותה. ההתקדמות שלכם נשמרת.</string>
     <string name="settings_update_check">בדיקת עדכונים</string>

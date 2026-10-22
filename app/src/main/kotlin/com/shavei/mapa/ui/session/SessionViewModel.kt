@@ -64,7 +64,7 @@ data class SessionSummary(
     val maxPoints: Int = 0,
     /** The placement test, where [correct] places were found and seeded. */
     val placement: Boolean = false,
-    /** The placement test: places of the levels passed that were not asked, now in review. */
+    /** The placement test: places not asked that the player very likely knows, now in review. */
     val credited: Int = 0,
     /** The map test's score, and for a post-test the pre-test to compare it with. */
     val mapTest: MapTestResult? = null,
@@ -138,6 +138,9 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
 
     /** The rank when the session started, to tell a rank gained in it. */
     private var rankBefore = Rank.TOURIST
+
+    /** The cards the player had when the session started: a placement test taken again credits only places not started. */
+    private var cardsBefore: Set<CardKey> = emptySet()
 
     private val source = when (kind) {
         SessionKind.PLACEMENT -> AnswerSource.PLACEMENT
@@ -220,6 +223,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val cards = app.progress.cards()
+            cardsBefore = cards.keys
             rankBefore = Rank.of(cards.count { (k, c) -> k.facet == Facet.LOCATE && isKnown(c.fsrs) })
             engine = when (kind) {
                 SessionKind.PLACEMENT -> PlacementTest(app.content, app.scheduler, random = placementRandom)
@@ -364,7 +368,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
      * the first time and a new rank are added to it, and a blitz is saved with its score.
      */
     private fun finish() {
-        val credited = (engine as? PlacementTest)?.credited().orEmpty()
+        val credited = (engine as? PlacementTest)?.credited().orEmpty() - cardsBefore
         val summary = summary().copy(credited = credited.size)
         _ui.value = SessionUi.Finished(summary)
         val previous = saving

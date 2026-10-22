@@ -1,7 +1,5 @@
 package com.shavei.mapa
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -11,16 +9,20 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTouchInput
+import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.shavei.mapa.data.CardEntity
 import com.shavei.mapa.data.DailySessionEntity
 import com.shavei.mapa.data.ReviewEntity
 import com.shavei.mapa.data.ThemeChoice
+import com.shavei.mapa.geo.MapPoint
+import com.shavei.mapa.geo.Shape
+import com.shavei.mapa.learning.Grader
 import com.shavei.mapa.learning.PlacementTest
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
+import com.shavei.mapa.ui.session.SessionUi
 import com.shavei.mapa.ui.session.SessionViewModel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -47,6 +49,27 @@ class PlayerExperienceTest {
     private fun waitForText(text: String) =
         compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty() }
 
+    /** The open session's ViewModel, to answer exactly where a tap on the screen cannot. */
+    private fun session(scenario: ActivityScenario<MainActivity>): SessionViewModel = sessionOrNull(scenario)!!
+
+    private fun sessionOrNull(scenario: ActivityScenario<MainActivity>): SessionViewModel? {
+        var vm: SessionViewModel? = null
+        scenario.onActivity { a ->
+            // Each visit to a screen has its own store, kept by the activity's VisitStores.
+            val visits = a.viewModelStore.keys().firstNotNullOfOrNull { a.viewModelStore[it] as? VisitStores }
+            val store: ViewModelStore = visits?.latest() ?: return@onActivity
+            val key = store.keys().filter { it.startsWith("session-") }.maxByOrNull { it.removePrefix("session-").toInt() }
+            vm = key?.let { store[it] } as? SessionViewModel
+        }
+        return vm
+    }
+
+    /** The open session's question, once it asks one. */
+    private fun waitForAsk(scenario: ActivityScenario<MainActivity>): SessionUi.Ask {
+        compose.waitUntil(10_000) { sessionOrNull(scenario)?.ui?.value is SessionUi.Ask }
+        return session(scenario).ui.value as SessionUi.Ask
+    }
+
     @After
     fun drawQuestionsFreely() {
         SessionViewModel.placementRandom = Random.Default
@@ -54,34 +77,45 @@ class PlayerExperienceTest {
 
     @Test
     fun placementTestSeedsWhatThePlayerFinds() {
-        // A draw of the questions where the Mediterranean comes second, after a place that is not at sea.
+        // A draw where the tap far out at sea misses the first place asked (not the Mediterranean).
         val seed = (0 until 1_000).first { seed ->
-            val order = PlacementTest(app.content, app.scheduler, random = Random(seed)).levels.first().order
-            order[0].id != "sea.mediterranean" && order[1].id == "sea.mediterranean"
+            val first = PlacementTest(app.content, app.scheduler, random = Random(seed)).next()!!.place
+            !Grader.grade(first, FAR_AT_SEA, 3_000, firstReview = true).isCorrect
         }
-        val test = PlacementTest(app.content, app.scheduler, random = Random(seed))
         SessionViewModel.placementRandom = Random(seed)
+        lateinit var missed: String
+        lateinit var found: String
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("כבר מכירים? דלגו על מה שאתם יודעים")
             compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
 
-            // No Discover card: the test asks straight away, starting with the best-known places.
-            waitForText("סמנו על המפה: ${test.levels.first().order[0].name}")
-            compose.onNodeWithText("בדיקת רמה\u00A0· שאלה 1 מתוך ${test.maxQuestions} לכל היותר").assertExists()
+            // No Discover card: the test asks straight away. Which places it asks depends on the answers.
+            val first = waitForAsk(scenario)
+            missed = first.question.place.id
+            waitForText("סמנו על המפה: ${first.question.place.name}")
+            val max = PlacementTest(app.content, app.scheduler).maxQuestions
+            compose.onNodeWithText("בדיקת רמה\u00A0· שאלה 1 מתוך $max לכל היותר").assertExists()
             Screenshots.save(scenario, "c1-placement-ask")
             // Far out at sea: not the place asked.
-            compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
+            compose.runOnIdle { session(scenario).onTap(FAR_AT_SEA) }
             waitForText("לא הפעם")
             compose.onNodeWithText("המשך").performClick()
 
-            waitForText("סמנו על המפה: הים התיכון")
-            compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
+            // The next place, found exactly: a point at its spot, a road on its line, an area at its label.
+            val second = waitForAsk(scenario)
+            found = second.question.place.id
+            val at = when (val shape = second.question.place.shape) {
+                is Shape.Point -> shape.at
+                is Shape.Lines -> shape.lines.first().let { MapPoint(it.coords[0], it.coords[1]) }
+                is Shape.Area -> second.question.place.label
+            }
+            compose.runOnIdle { session(scenario).onTap(at) }
             waitForText("מצוין!")
             compose.onNodeWithText("יציאה").performClick()
             waitForText("לצאת מבדיקת הרמה?")
             compose.onNodeWithTag("leave-confirm").performClick()
 
-            // Only the Mediterranean was found, so only it has a card.
+            // Only the place found has a card.
             compose.waitUntil(10_000) { compose.onAllNodes(hasContentDescription("1 בלמידה · 0 ידועים · מתוך 209")).fetchSemanticsNodes().isNotEmpty() }
             // The placement test is not a day of practice: no streak and no reminder offer yet.
             compose.onNodeWithText("אימון היום יתחיל רצף").assertExists()
@@ -90,7 +124,8 @@ class PlayerExperienceTest {
         }
         runBlocking {
             val cards = app.database.progressDao().cards()
-            assertEquals(listOf("sea.mediterranean"), cards.map { it.placeId })
+            assertTrue(missed != found)
+            assertEquals(listOf(found), cards.map { it.placeId })
             assertEquals(CardState.REVIEW.value, cards.single().state)
             assertEquals(0, app.database.progressDao().countIntroducedSince(0))
         }
@@ -163,5 +198,10 @@ class PlayerExperienceTest {
             assertTrue(showGreenLine)
             assertEquals(10, sessionLength.questions)
         }
+    }
+
+    private companion object {
+        /** Far out in the sea, west of everything: a miss for any place on land. */
+        val FAR_AT_SEA = MapPoint(-30_000.0, 600_000.0)
     }
 }

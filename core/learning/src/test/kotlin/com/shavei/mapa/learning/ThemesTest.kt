@@ -157,12 +157,13 @@ class ThemesTest {
     }
 
     @Test
-    fun placementTestAsksTheCoreFirstThenEveryTheme() {
+    fun placementTestOfAnExpertCoversEveryTheme() {
         val t = PlacementTest(content, scheduler, clock = { now }, random = Random(1), maxQuestions = 100)
         val asked = generateSequence { t.next()?.also { q -> t.submit(q, Response.Tap(q.place.label), 3_000) } }.map { it.place }.toList()
-        val themes = asked.map { it.type.theme }
-        assertEquals(Theme.entries, themes.distinct(), asked.map { it.id }.toString())
-        assertTrue(themes.takeWhile { it == Theme.CORE }.size == themes.count { it == Theme.CORE })
+        assertTrue(asked.map { it.type.theme }.distinct().size > 1, asked.map { it.id }.toString())
+        // Every theme ends up in review, found in the test or credited.
+        val inReview = t.seeded.keys.map { it.placeId } + t.credited(now).keys.map { it.placeId }
+        assertEquals(Theme.entries.toSet(), inReview.map { content.place(it)!!.type.theme }.toSet())
     }
 
     @Test

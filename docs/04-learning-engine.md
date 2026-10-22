@@ -353,30 +353,63 @@ today's essential work is done.
 
 ## Placement test
 
-Optional at onboarding, up to 5 minutes, adaptive. It finds how far the player's knowledge
-reaches, so practice can start there instead of at the first unit.
-1. Every theme (the core, nature, infrastructure, heritage) is a ladder of levels by
-   importance. The core's levels: the big cities, the sea and the main regions; then the
-   other anchor cities, the neighbors and the regions; then mid-sized towns; then small
-   towns. A level of fewer than 6 places joins the one before it.
-2. Each level is probed with 4 of its places (6 for a level of 20 or more), spread across
-   its units, and passes with at most one miss: three finds in a row pass a small level,
-   five a large one. A passed level leads to the next; a failed one ends that theme's
-   ladder. The core comes first; the other themes are tested only when the core's first
-   two levels pass. The test asks at least 10 questions, even a beginner who misses them all: when the ladders end sooner, the rest come from the levels
-   failed (then the ones above them in the same theme), where the player's knowledge
-   ends. These do not change a level's result; a place found among them is seeded like
-   any other. An expert answers about 30.
-3. A place found gets an initial FSRS state as if reviewed once with Good, so it comes
-   back soon for confirmation. A place missed stays new.
-4. Every other place of a passed level is credited: an FSRS state as if reviewed once with
-   Easy, its first review spread over the following weeks (6 a day from the third day,
-   the hardest levels first), so a strong player's map fills at once and the confirmations
-   do not crowd out new places. A credited place the player does not know after all is
-   missed in review and learned again. Credited places are not counted as introduced.
-5. Places of failed levels stay new, and new places come in curriculum order, so daily
-   practice continues from the first level the player did not pass. A place counts as
-   found with the session's grading: an area only with a tap inside it.
+Optional at onboarding (and again from settings), 2 to 5 minutes, adaptive: a
+computerized adaptive test of Pin It questions, built on item response theory. It
+estimates, place by place, what a player with no progress already knows, so practice can
+start where that knowledge ends instead of at the first unit. The code is
+`PlacementTest` in `core/learning/.../Placement.kt`; the constants named below live in
+its companion object.
+
+1. **Model.** The chance that the player finds a place is a logistic curve in
+   `ability - difficulty`, with a small floor for a lucky tap and a ceiling below 1 for a
+   slip. A place's difficulty comes from its importance (`PlacementTest.difficulty`): in
+   the core the big cities are easy and small towns hard; in the other themes (nature,
+   infrastructure, heritage) the best-known sites are about as hard as the core's major
+   cities. The ability in a theme is the player's general ability plus a per-theme
+   offset, so an answer about cities also says something about heritage sites, while the
+   offsets let a player be strong in one theme and weak in another. Each level (a theme
+   and an importance) also has its own small offset, so a level is judged known or
+   unknown only once its own answers agree, and a player who knows half of a level is not
+   credited with all of it. All of these are tracked as a probability distribution over
+   a grid (a wide prior on the general ability, offsets around 0), updated by Bayes' rule
+   after every answer. Places of the same theme and importance are the same to the model.
+2. **Question choice.** Each question is the place that, averaged over its two possible
+   answers (found or missed, weighted by how likely each is), is expected to leave the
+   least uncertainty about the places not yet asked, measured as the sum of `p(1 - p)`
+   over them. This asks near the edge of the player's knowledge, in whichever theme is
+   least known. Among equally useful places, one from a unit not asked yet is drawn at
+   random, so the questions spread over the map. The first question is a place the prior
+   already gives a good chance of being found (a big city or the sea), and near the
+   minimum the test asks the themes it has not asked `MIN_PER_THEME` times yet. When the
+   test goes on only to confirm what looks known (see the stop rule), it asks one of the
+   likely-known places. The test asks straight away, with no Discover card and no hints.
+3. **Stop rule.** At least `MIN_QUESTIONS` (10) questions, even for a beginner who misses
+   them all, and at most `maxQuestions` (`MAX_QUESTIONS`, 40). In between the test ends
+   once at most `STOP_UNDECIDED` places not yet asked are still undecided: neither likely
+   known (`CREDIT_RECALL` or more) nor likely unknown (`UNKNOWN_RECALL` or less). The
+   test also needs every theme asked at least `MIN_PER_THEME` times, and no more places
+   likely known than `CREDITS_PER_FIND` per place actually found, so a strong player does
+   not get the whole map credited on a few answers (an expert answers about 30). A place
+   whose chance is pinned down (to within `DECIDED_SD`) counts as decided even between
+   the two thresholds, so a level the player half knows does not keep the test going. The
+   counter shows "question n of at most `maxQuestions`". The player can leave at any
+   point; what was found so far is kept, and nothing is credited.
+4. **Seeding.** A place found (with the session's grading: an area only with a tap
+   inside it) gets an initial FSRS state as if reviewed once with Good, so it comes back
+   in a couple of days for confirmation. A place missed stays new.
+5. **Crediting.** When the test ends, every place not asked whose estimated chance of
+   being found is at least `CREDIT_RECALL` is credited (at most `CREDITS_PER_FIND` per
+   place found): an FSRS state as if reviewed once
+   with Easy. Their first reviews are spread `CREDITED_PER_DAY` a day from day
+   `FIRST_CREDITED_DAY` on, the least certain first, so a strong player's map fills at
+   once and the confirmations do not crowd out new places. A credited place the player
+   does not know after all is missed in review and learned again.
+6. **Everything else stays new** and is taught in curriculum order, so daily practice
+   continues from what the player does not know yet.
+7. Neither the places found nor the places credited count as introduced (the daily cap on
+   new places is untouched), and the test is not a day of practice for the streak. Taken
+   again from settings, it adds cards only for places not started yet: what is already
+   in practice does not change.
 
 ## Mastery metrics shown to the player
 
