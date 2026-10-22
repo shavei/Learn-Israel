@@ -1,37 +1,28 @@
 package com.shavei.mapa
 
-import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import com.shavei.mapa.ui.settings.UpdateSection
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import com.shavei.mapa.update.DownloadProgress
 import com.shavei.mapa.update.UpdateDownload
-import org.junit.After
-import org.junit.Rule
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** While the update downloads, settings shows how far it is and how long is left. */
+/** While the update downloads, settings and the notification show how far it is and how long is left. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class UpdateSectionTest {
-    @get:Rule val rule = createComposeRule()
+    private val context: Context = ApplicationProvider.getApplicationContext()
 
-    @After
-    fun idle() = UpdateDownload.set(UpdateDownload.State.Idle)
+    private fun text(done: Long, size: Long, elapsedMs: Long) = UpdateDownload.describe(context, DownloadProgress(done, size, elapsedMs))
 
     @Test
     fun showsThePercentAndTheTimeLeft() {
-        UpdateDownload.set(UpdateDownload.State.Running(DownloadProgress(25, 100, 10_000)))
-        rule.setContent { UpdateSection() }
-        rule.onNodeWithTag("update-progress").assertTextEquals("25% · נותרו כ־30 שניות")
-
-        UpdateDownload.set(UpdateDownload.State.Running(DownloadProgress(10, 100, 15_000)))
-        rule.onNodeWithTag("update-progress").assertTextEquals("10% · נותרו כ־3 דקות")
-
-        UpdateDownload.set(UpdateDownload.State.Running(DownloadProgress(10, 100, 500)))
-        rule.onNodeWithTag("update-progress").assertTextEquals("10% · מחשבים כמה זמן נותר…")
+        assertEquals("25% · נותרו כ־30 שניות", text(25, 100, 10_000))
+        assertEquals("10% · נותרו כ־3 דקות", text(10, 100, 15_000))
+        assertEquals("10% · מחשבים כמה זמן נותר…", text(10, 100, 500))
+        assertEquals("הורדו 2.5 MB", text(2_500_000, 0, 5_000))
     }
 }
