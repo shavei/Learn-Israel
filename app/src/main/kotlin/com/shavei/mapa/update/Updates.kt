@@ -33,8 +33,8 @@ object Updates {
         parseVersion(text) ?: error("Not a version code: $text")
     }
 
-    /** Downloads the published APK into the app's cache; [onProgress] gets 0..1, or null while the size is unknown. */
-    suspend fun download(context: Context, onProgress: (Float?) -> Unit): File = withContext(Dispatchers.IO) {
+    /** Downloads the published APK into the app's cache; [onProgress] gets the bytes so far and the size, 0 when unknown. */
+    suspend fun download(context: Context, onProgress: (done: Long, size: Long) -> Unit): File = withContext(Dispatchers.IO) {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         val part = File(dir, "mapa.apk.part")
         val apk = File(dir, "mapa.apk")
@@ -49,7 +49,7 @@ object Updates {
                     if (n < 0) break
                     output.write(buffer, 0, n)
                     done += n
-                    onProgress(if (size > 0) done.toFloat() / size else null)
+                    onProgress(done, size.coerceAtLeast(0))
                 }
             }
         }
@@ -64,11 +64,15 @@ object Updates {
      * Android asks to allow installing apps from Al HaMapa, and offers its settings for that.
      */
     fun install(context: Context, apk: File) {
+        context.startActivity(installIntent(context, apk))
+    }
+
+    /** Android's installer, opened on [apk]. */
+    fun installIntent(context: Context, apk: File): Intent {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.updates", apk)
-        val intent = Intent(Intent.ACTION_VIEW)
+        return Intent(Intent.ACTION_VIEW)
             .setDataAndType(uri, "application/vnd.android.package-archive")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
     }
 
     private fun open(url: String): HttpURLConnection =

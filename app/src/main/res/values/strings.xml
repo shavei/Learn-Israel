@@ -540,6 +540,24 @@
     <string name="settings_update_ready">ההורדה הסתיימה. אשרו את ההתקנה בחלון של אנדרואיד.</string>
     <string name="settings_update_again">להתקנה</string>
     <string name="settings_update_failed">אין חיבור לאינטרנט, או שהשרת לא ענה. נסו שוב מאוחר יותר.</string>
+    <string name="update_progress">%1$d%% · %2$s</string>
+    <string name="update_estimating">מחשבים כמה זמן נותר…</string>
+    <plurals name="update_seconds_left">
+        <item quantity="one">נותרה כשנייה</item>
+        <item quantity="two">נותרו כ־2 שניות</item>
+        <item quantity="many">נותרו כ־%d שניות</item>
+        <item quantity="other">נותרו כ־%d שניות</item>
+    </plurals>
+    <plurals name="update_minutes_left">
+        <item quantity="one">נותרה כדקה</item>
+        <item quantity="two">נותרו כ־2 דקות</item>
+        <item quantity="many">נותרו כ־%d דקות</item>
+        <item quantity="other">נותרו כ־%d דקות</item>
+    </plurals>
+    <string name="update_downloaded_mb">הורדו %1$s MB</string>
+    <string name="update_channel">הורדת עדכון</string>
+    <string name="update_notification_title">מורידים את הגרסה החדשה</string>
+    <string name="update_notification_done">ההורדה הסתיימה. הקישו להתקנה.</string>
 
     <string name="reminder_channel">תזכורת יומית</string>
     <string name="reminder_new">מקומות חדשים מחכים לכם במפה</string>
