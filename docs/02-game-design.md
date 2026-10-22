@@ -90,7 +90,10 @@ The shape starts in the open sea off the Carmel coast, its east edge just off th
 (the same spot for every shape but for its width, so the start gives nothing away); one
 finger anywhere on the map drags it, two fingers pan and zoom
 the map, and "here" hands it in once the shape has been moved. Scored by how far it lands from its place. Satisfying
-and very tactile on a phone.
+and very tactile on a phone. The map's dashed region outlines are hidden while a shape is
+asked and answered: the regions are drawn from them and the districts from the regions, so
+they would show the very hole the shape fits, and the puzzle would be matching outlines
+instead of knowing the map.
 
 Map Builder practices the same `LOCATE` card as Pin It. In the daily session, a due
 review of a region or a district is its Map Builder question half of the time; places
