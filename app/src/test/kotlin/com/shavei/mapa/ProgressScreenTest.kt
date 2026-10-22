@@ -51,6 +51,12 @@ class ProgressScreenTest {
         waitForText("דרגה:")
     }
 
+    /** The progress screen is in three tabs: summary, regions and achievements. */
+    private fun tab(name: String) {
+        compose.onNodeWithTag("tab-$name").performClick()
+        compose.waitForIdle()
+    }
+
     /** A remembered Pin It answer on a city in review, [daysAgo] days back, [km] off. */
     private fun review(daysAgo: Int, km: Double = 1.0, place: String = "city.tel_aviv") = ReviewEntity(
         placeId = place, facet = "LOCATE", mode = "LOCATE", sessionId = "s$daysAgo",
@@ -87,14 +93,17 @@ class ProgressScreenTest {
             // No empty chart and no empty stats; the sections with nothing in them are folded.
             assertTrue(compose.onAllNodes(hasTestTag("error-chart")).fetchSemanticsNodes().isEmpty())
             assertTrue(compose.onAllNodes(hasTestTag("stats")).fetchSemanticsNodes().isEmpty())
+            Screenshots.save(scenario, "p1-progress-new")
+            tab("achievements")
             assertTrue(compose.onAllNodes(hasTestTag("achievement-FIRST_KNOWN")).fetchSemanticsNodes().isEmpty())
             compose.onNodeWithText("15 הישגים מחכים לכם. הראשון: מקום ראשון ידוע.").assertExists()
-            Screenshots.save(scenario, "p1-progress-new")
+            tab("regions")
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("regions-fold"))
             assertTrue(compose.onAllNodes(hasContentDescription("גוש דן", substring = true)).fetchSemanticsNodes().isEmpty())
             compose.onNodeWithTag("regions-fold").performClick()
             compose.onNodeWithTag("progress").performScrollToNode(hasContentDescription("גוש דן", substring = true))
             Screenshots.save(scenario, "p1-progress-new-regions-open")
+            tab("summary")
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("first-practice"))
             compose.onNodeWithText("התחילו אימון ראשון").performClick()
             // The button starts the daily session.
@@ -138,9 +147,9 @@ class ProgressScreenTest {
             waitForText("נמוך יותר = מדויק יותר")
             compose.onNodeWithText("היום").assertExists()
             compose.onNodeWithText("ביום הראשון: 1.0 ק״מ · ביום האחרון: 1.0 ק״מ").assertExists()
-            compose.onNode(hasContentDescription("30 ימים", substring = true)).assertExists()
+            compose.onNode(hasTestTag("error-chart").and(hasContentDescription("30 ימים", substring = true))).assertExists()
             // The longest streak, a month back, next to today's.
-            compose.onNodeWithText("הרצף הארוך ביותר: 30 ימים").assertExists()
+            compose.onNode(hasContentDescription("הרצף הארוך ביותר: 30 ימים", substring = true)).assertExists()
             Screenshots.save(scenario, "p3-progress-chart-flat")
         }
     }
@@ -153,9 +162,12 @@ class ProgressScreenTest {
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("map-test"))
             waitForText("הפעם נמצאו פחות מקומות מבפעם הראשונה")
             assertTrue(!has("במקום"))
-            compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("stats"))
-            waitForText("בחזרות על מקומות שלמדתם זכרתם 100%")
+            // The memory card says it in words; the full numbers open on request.
             compose.onNodeWithText("מצוין!", substring = true).assertExists()
+            compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("stats"))
+            assertTrue(!has("בחזרות על מקומות שלמדתם"))
+            compose.onNodeWithTag("stats-fold").performClick()
+            waitForText("בחזרות על מקומות שלמדתם זכרתם 100%")
             assertTrue(!has("אחוז"))
             Screenshots.save(scenario, "p4-progress-map-test-and-stats")
         }
@@ -181,6 +193,7 @@ class ProgressScreenTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             app.settings.update { it.copy(onboarded = true, reminderOffered = true) }
             openProgress()
+            tab("achievements")
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("achievement-FIRST_KNOWN"))
             // All-or-nothing achievements are not "0 of 1".
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("achievement-NO_MISS"))
@@ -205,6 +218,7 @@ class ProgressScreenTest {
         app.settings.update { it.copy(onboarded = true, reminderOffered = true, theme = ThemeChoice.DARK) }
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             openProgress()
+            tab("achievements")
             compose.onNodeWithTag("progress").performScrollToNode(hasTestTag("achievement-FIRST_KNOWN"))
             Screenshots.save(scenario, "p7-progress-achievements-dark")
         }

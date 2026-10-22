@@ -53,10 +53,10 @@ fun PlaceCounts(known: Int, learning: Int, total: Int, modifier: Modifier = Modi
         else pluralStringResource(R.plurals.home_counts_known, known, known, learning, total)
     val color = LocalMapPalette.current.mastery
     val knownStat = @Composable {
-        Count(known, pluralStringResource(R.plurals.counts_known, known)) { LegendMark(color, known = true, size = 16.dp) }
+        Stat(known.toString(), pluralStringResource(R.plurals.counts_known, known)) { LegendMark(color, known = true, size = 16.dp) }
     }
     val learningStat = @Composable {
-        Count(learning, stringResource(R.string.counts_learning)) { LegendMark(color, known = false, size = 16.dp) }
+        Stat(learning.toString(), stringResource(R.string.counts_learning)) { LegendMark(color, known = false, size = 16.dp) }
     }
     Row(
         modifier.clearAndSetSemantics { contentDescription = sentence },
@@ -69,20 +69,19 @@ fun PlaceCounts(known: Int, learning: Int, total: Int, modifier: Modifier = Modi
             knownStat()
             learningStat()
         }
-        Count(total, stringResource(R.string.counts_total), muted = true, mark = null)
+        Stat(total.toString(), stringResource(R.string.counts_total), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-/** One count: the number large, in the atlas face, with what it counts under it beside its map mark. */
+/**
+ * One figure as a legend shows it: the value large, in the atlas face, and what it counts
+ * under it, beside its map mark if it has one.
+ */
 @Composable
-private fun Count(value: Int, label: String, muted: Boolean = false, mark: (@Composable () -> Unit)?) {
+fun Stat(value: String, label: String, color: Color = MaterialTheme.colorScheme.onSurface, mark: (@Composable () -> Unit)? = null) {
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     Column {
-        Text(
-            value.toString(),
-            style = MaterialTheme.typography.headlineSmall,
-            color = if (muted) labelColor else MaterialTheme.colorScheme.onSurface,
-        )
+        Text(value, style = MaterialTheme.typography.headlineSmall, color = color)
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (mark != null) {
                 mark()
