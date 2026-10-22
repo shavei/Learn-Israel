@@ -63,7 +63,7 @@ data class HomeState(
     val doneToday: Boolean = false,
     /** The player left today's daily session partway, with this many questions left. */
     val dailyLeft: Int? = null,
-    /** Offer the daily reminder: once, after the first session. */
+    /** Offer the daily reminder: once, after the first session, and again while it is on but blocked. */
     val offerReminder: Boolean = false,
     val reminderMinutes: Int = 0,
     /** The player just said yes to the reminder: confirm the time it is set for. */
@@ -89,15 +89,19 @@ class HomeViewModel(private val app: MapaApplication) : ViewModel() {
             val introducedToday = app.progress.newIntroducedToday(now)
             val newLeftToday = config.maxNewPerDay?.let { (it - introducedToday).coerceAtLeast(0) } ?: notStarted
             val newAvailable = SessionEngine.newPlacesOnOffer(app.content, cards, introducedToday, config)
-            // Places, not cards: a place due on two facets is one place to review, as home counts everything else.
-            val dueNow = cards.filterValues { it.fsrs.due <= now }.keys.map { it.placeId }.distinct().size
+            val dueNow = SessionEngine.duePlaces(cards, now)
             // The button starts the daily session while it has work, extra practice otherwise (HomeScreen).
             val sessionConfig = if (dueNow + newAvailable > 0) config else config.copy(strengthenWeakest = true)
             val practiceReady = SessionEngine.hasQuestions(app.content, app.scheduler, cards, introducedToday, sessionConfig, now)
             val daysPlayed = app.progress.daysPlayed()
             val today = LocalDate.now()
             val daily = app.progress.dailyToday(now)
-            val offerReminder = !settings.reminderOffered && app.progress.hasPracticed()
+            // Offered again when the reminder is on but cannot arrive (for example, restored
+            // from a backup onto a phone that has not allowed notifications): "no" turns it off.
+            val offerReminder = (!settings.reminderOffered && app.progress.hasPracticed()) ||
+                (settings.reminderOn && !Reminders.canNotify(app))
+            // Today's session is done: a reminder still on screen has nothing left to say.
+            if (daily.done) Reminders.dismiss(app)
             val lastTest = app.progress.mapTests().lastOrNull()?.let {
                 Instant.ofEpochMilli(it.finishedAt).atZone(ZoneId.systemDefault()).toLocalDate()
             }

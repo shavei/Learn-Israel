@@ -23,7 +23,7 @@ class MapaApplication : Application() {
         super.onCreate()
         // Alarms are lost when the app is force-stopped (some phones do that to save
         // battery), so the reminder is set again whenever the app starts.
-        Reminders.apply(this, settings.current)
+        Reminders.ensure(this, settings.current)
     }
 
     val content: Content by lazy {
