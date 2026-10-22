@@ -211,8 +211,8 @@
     <string name="onboarding_tagline">בונים מפה של ישראל בראש, 5 דקות ביום.</string>
     <string name="onboarding_body">בכל יום תמצאו ותזהו מקומות על מפה ריקה. כל מקום חוזר בדיוק כשהוא מתחיל להישכח, והמפה שלכם מתמלאת במה שאתם באמת יודעים.</string>
     <string name="onboarding_start">בואו נתחיל</string>
-    <string name="onboarding_placement">כבר מכירים את הארץ? בדיקת רמה</string>
-    <string name="onboarding_placement_note">כ־3 דקות. מקומות שתמצאו יחזרו בקרוב לאישור, והשאר יילמדו מההתחלה.</string>
+    <string name="onboarding_placement">כבר מכירים? דלגו על מה שאתם יודעים</string>
+    <string name="onboarding_placement_note">בדיקת רמה, כ־3 דקות. מקומות שתמצאו לא יילמדו מההתחלה, רק יחזרו לאישור. השאר ייכנסו לאימון היומי.</string>
 
     <string name="placement_counter">בדיקת רמה\u00A0· שאלה %1$d מתוך %2$d לכל היותר</string>
     <string name="placement_summary_title">סיום בדיקת הרמה</string>
@@ -332,8 +332,8 @@
     <string name="achievements_count">הושגו, מתוך %1$d</string>
     <string name="progress_known_explained">מקום ידוע הוא מקום שהזיכרון שלו יציב לשלושה שבועות לפחות.</string>
 
-    <string name="onboarding_map_test">מבחן מפה קצר לפני שמתחילים</string>
-    <string name="onboarding_map_test_note">20 מקומות, בלי משוב, כ־2 דקות. בעוד חודש תעשו אותו שוב ותראו כמה למדתם.</string>
+    <string name="onboarding_map_test">מדדו מאיפה אתם מתחילים</string>
+    <string name="onboarding_map_test_note">מבחן מפה של 20 מקומות, כ־2 דקות, בלי משוב. לא משנה את האימון: בעוד חודש תעשו אותו שוב ותראו כמה למדתם.</string>
     <string name="onboarding_looks_note">אפשר לשנות גם אחר כך בהגדרות.</string>
     <string name="onboarding_map_test_done">מבחן המפה נשמר. בעוד חודש נשווה.</string>
 

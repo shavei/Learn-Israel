@@ -158,8 +158,8 @@ class HomeLayoutTest {
             compose.waitForIdle()
             Screenshots.save(scenario, name)
             compose.onNodeWithText("בואו נתחיל").assertIsDisplayed()
-            compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").assertIsDisplayed()
-            compose.onNodeWithText("מבחן מפה קצר לפני שמתחילים").assertIsDisplayed()
+            compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").assertIsDisplayed()
+            compose.onNodeWithText("מדדו מאיפה אתם מתחילים").assertIsDisplayed()
         }
     }
 

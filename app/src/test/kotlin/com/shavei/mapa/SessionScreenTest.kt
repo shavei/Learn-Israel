@@ -136,8 +136,8 @@ class SessionScreenTest {
     @Test
     fun leavingTheMapTestDiscardsItsAnswers() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("מבחן מפה קצר לפני שמתחילים")
-            compose.onNodeWithText("מבחן מפה קצר לפני שמתחילים").performClick()
+            waitForText("מדדו מאיפה אתם מתחילים")
+            compose.onNodeWithText("מדדו מאיפה אתם מתחילים").performClick()
             waitForText("מבחן מפה\u00A0· שאלה 1 מתוך 20")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.55f)) }
             waitForText("מבחן מפה\u00A0· שאלה 2 מתוך 20")
@@ -326,8 +326,8 @@ class SessionScreenTest {
     @Test
     fun placementListsThePlacesFound() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("כבר מכירים את הארץ? בדיקת רמה")
-            compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
+            waitForText("כבר מכירים? דלגו על מה שאתם יודעים")
+            compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
             var found: String? = null
             while (true) {
                 waitForUi(scenario, SessionUi.Ask::class.java, SessionUi.Feedback::class.java, SessionUi.Finished::class.java)

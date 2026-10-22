@@ -46,8 +46,8 @@ class PlayerExperienceTest {
     @Test
     fun placementTestSeedsWhatThePlayerFinds() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("כבר מכירים את הארץ? בדיקת רמה")
-            compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
+            waitForText("כבר מכירים? דלגו על מה שאתם יודעים")
+            compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
 
             // No Discover card: the test asks straight away, starting with the first places taught.
             waitForText("סמנו על המפה: תל אביב-יפו")
