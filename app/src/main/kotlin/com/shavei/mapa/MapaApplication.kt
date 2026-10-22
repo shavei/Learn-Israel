@@ -43,7 +43,7 @@ class MapaApplication : Application() {
     val terrain: MapTerrain by lazy { MapTerrain(assets, content.map) }
 
     val progress: ProgressRepository by lazy {
-        ProgressRepository(database.progressDao(), BuildConfigInfo.versionName(this), scheduler)
+        ProgressRepository(database.progressDao(), BuildConfigInfo.versionName(this), scheduler) { content.place(it) != null }
     }
 }
 

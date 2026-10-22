@@ -67,9 +67,16 @@ class ProgressRepository(
     private val dao: ProgressDao,
     val appVersion: String,
     private val scheduler: FsrsScheduler = FsrsScheduler(),
+    /**
+     * Whether a place id is still on the map. A place an update took out of the content
+     * keeps its cards in the database (they come back if it does), but they are left out
+     * of [cards]: otherwise it would count as learned or known, toward the rank, and as
+     * due every day, on a map that no longer shows it.
+     */
+    private val onMap: (String) -> Boolean = { true },
 ) {
 
-    suspend fun cards(): Map<CardKey, StudyCard> = dao.cards().associate {
+    suspend fun cards(): Map<CardKey, StudyCard> = dao.cards().filter { onMap(it.placeId) }.associate {
         CardKey(it.placeId, Facet.valueOf(it.facet)) to
             StudyCard(FsrsCard(CardState.of(it.state), it.step, it.stability, it.difficulty, it.due, it.lastReview), it.struggles)
     }
