@@ -18,7 +18,12 @@ import kotlin.random.Random
  * last. Each level is probed with a few of its places, spread across its units, and passes
  * with at most one miss. A passed level leads to the next; a failed one ends that theme's
  * ladder. The core comes first; the other themes are tested only when the core's first two
- * levels pass, so a beginner is done after two or three questions.
+ * levels pass.
+ *
+ * The test never ends before [MIN_QUESTIONS]: when the ladders are done sooner, the rest
+ * are asked from the levels failed (and the ones above them in the same theme), where the
+ * player's knowledge ends. These extra questions do not change a level's result; a place
+ * found among them is seeded like any other.
  *
  * What the test learns is applied to the whole level, not just to the places asked:
  * - A place found is seeded as if reviewed once with GOOD, so it comes back in a couple
@@ -53,6 +58,7 @@ class PlacementTest(
     private var asked = 0
     private var missed = 0
     private val passed = mutableListOf<Level>()
+    private val failed = mutableListOf<Level>()
     private var current: Question? = null
     private var done = levels.isEmpty()
 
@@ -80,10 +86,23 @@ class PlacementTest(
 
     override fun next(): Question? {
         current?.let { return it }
-        if (done || _answers.size >= maxQuestions) return null
-        val level = levels[levelIndex]
-        val place = level.order.firstOrNull { p -> _answers.none { it.place.id == p.id } } ?: return null.also { done = true }
-        return Question.Locate(place, isNew = false, hint = false).also { current = it }
+        if (_answers.size >= maxQuestions) return null
+        if (!done) {
+            val place = levels[levelIndex].order.firstOrNull { !wasAsked(it) }
+            if (place != null) return ask(place)
+            done = true
+        }
+        if (_answers.size >= MIN_QUESTIONS) return null
+        return extraPlaces().firstOrNull { !wasAsked(it) }?.let(::ask)
+    }
+
+    private fun ask(place: Place) = Question.Locate(place, isNew = false, hint = false).also { current = it }
+
+    private fun wasAsked(place: Place) = _answers.any { it.place.id == place.id }
+
+    /** Where extra questions come from: each failed level, then the levels above it in its theme. */
+    private fun extraPlaces(): Sequence<Place> = failed.asSequence().flatMap { level ->
+        levels.asSequence().drop(levels.indexOf(level)).filter { it.theme == level.theme }.flatMap { it.order }
     }
 
     override fun submit(question: Question, response: Response, responseMs: Long): Answer {
@@ -98,11 +117,15 @@ class PlacementTest(
     }
 
     private fun afterAnswer(correct: Boolean) {
+        if (done) return
         val level = levels[levelIndex]
         asked++
         if (!correct) missed++
         when {
-            missed > ALLOWED_MISSES -> endLadder(level.theme)
+            missed > ALLOWED_MISSES -> {
+                failed += level
+                endLadder(level.theme)
+            }
             asked - missed >= maxOf(1, level.probes - ALLOWED_MISSES) -> {
                 passed += level
                 nextLevel()
@@ -128,6 +151,9 @@ class PlacementTest(
     }
 
     companion object {
+        /** The test asks at least this many questions, so even a short run says where the player stands. */
+        const val MIN_QUESTIONS = 10
+
         /** A level passes with at most this many misses among its probes. */
         const val ALLOWED_MISSES = 1
 

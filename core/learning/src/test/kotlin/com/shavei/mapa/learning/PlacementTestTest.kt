@@ -63,10 +63,37 @@ class PlacementTestTest {
     }
 
     @Test
-    fun aBeginnerIsDoneAfterTwoMisses() {
+    fun aBeginnerStillAnswersTheMinimumFromTheLevelFailed() {
         val t = test()
-        assertEquals(2, play(t) { false }.size)
+        val asked = play(t) { false }
+        assertEquals(PlacementTest.MIN_QUESTIONS, asked.size)
+        // The first level (6 places) is asked in full, then the next one up in the core.
+        assertEquals(t.levels[0].places.toSet(), asked.take(6).toSet())
+        assertTrue(asked.drop(6).all { it in t.levels[1].places })
+        assertTrue(t.passedLevels.isEmpty())
         assertTrue(t.credited(now).isEmpty())
+    }
+
+    @Test
+    fun extraQuestionsSeedWhatIsFoundButPassNoLevel() {
+        val t = test()
+        // Two misses fail the first level; every place after that is found.
+        var answered = 0
+        val asked = play(t) { answered++ >= 2 }
+        assertEquals(PlacementTest.MIN_QUESTIONS, asked.size)
+        assertTrue(t.passedLevels.isEmpty())
+        assertTrue(t.credited(now).isEmpty())
+        assertEquals(asked.drop(2).map { CardKey(it.id, Facet.LOCATE) }.toSet(), t.seeded.keys)
+    }
+
+    @Test
+    fun aRunLongerThanTheMinimumGetsNoExtras() {
+        // Every level but the hardest of the core passes: far more than ten questions, none extra.
+        val t = test()
+        val asked = play(t) { it.importance <= 2 || it.type == PlaceType.MOUNTAIN }
+        val levelQuestions = asked.count { a -> t.levels.any { a in it.order.take(it.probes) } }
+        assertTrue(asked.size > PlacementTest.MIN_QUESTIONS)
+        assertEquals(asked.size, levelQuestions)
     }
 
     @Test

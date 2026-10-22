@@ -361,10 +361,12 @@ reaches, so practice can start there instead of at the first unit.
    towns. A level of fewer than 6 places joins the one before it.
 2. Each level is probed with 4 of its places (6 for a level of 20 or more), spread across
    its units, and passes with at most one miss: three finds in a row pass a small level,
-   five a large one. A passed
-   level leads to the next; a failed one ends that theme's ladder. The core comes first;
-   the other themes are tested only when the core's first two levels pass, so a beginner
-   is done after two or three questions and an expert after about 30.
+   five a large one. A passed level leads to the next; a failed one ends that theme's
+   ladder. The core comes first; the other themes are tested only when the core's first
+   two levels pass. The test asks at least 10 questions, even a beginner who misses them all: when the ladders end sooner, the rest come from the levels
+   failed (then the ones above them in the same theme), where the player's knowledge
+   ends. These do not change a level's result; a place found among them is seeded like
+   any other. An expert answers about 30.
 3. A place found gets an initial FSRS state as if reviewed once with Good, so it comes
    back soon for confirmation. A place missed stays new.
 4. Every other place of a passed level is credited: an FSRS state as if reviewed once with
