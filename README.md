@@ -1,7 +1,9 @@
-# Mapa (Learn-Israel)
+# על המפה (Learn-Israel)
 
-An Android game, in Hebrew, that teaches the geography of Israel, built on the science of how
-people actually remember.
+![על המפה: בונים מפה של ישראל בראש, 5 דקות ביום](marketing/brand/logo.png)
+
+**Al HaMapa** ("on the map") is an Android game, in Hebrew, that teaches the geography of
+Israel, built on the science of how people actually remember.
 
 > **Status:** Phase 2 in progress. A daily session on a blank map with 209 places
 > (the frame, 19 natural regions, 7 districts and 118 cities and towns, then 56
@@ -22,7 +24,7 @@ people actually remember.
 
 ## Install on your phone
 
-**[Download the latest Mapa APK](https://github.com/shavei/Learn-Israel/releases/latest/download/mapa.apk)**
+**[Download the latest Al HaMapa APK](https://github.com/shavei/Learn-Israel/releases/latest/download/mapa.apk)**
 
 This link always points to the newest build of `main`. The Release APK workflow
 publishes it after every merge, once its tests pass and the APK checks out, and checks
@@ -103,6 +105,7 @@ The design is built on the most robust findings in learning science:
 | `content/elevation_detail.bin`, `content/elevation.json` | Ground height on a 100 m grid around Israel (Copernicus DEM GLO-90); the pipeline cuts it to Israel's land for the relief style |
 | `tools/fetch_sources.py` | Refreshes the source files in `content/` |
 | `content/surroundings.geojson`, `content/palestine.geojson` | Coastlines, neighbors and the Dead Sea (OpenStreetMap); Gaza and the Green Line (UN OCHA) |
+| `marketing/brand/` | The app icon's master (`icon.svg`), the 512 px store icon and the logo, rendered by `render.js` |
 | `tools/build_content.py` | Data pipeline: the files above + `places.yaml` into `app/src/main/assets/` |
 
 ## Build and test

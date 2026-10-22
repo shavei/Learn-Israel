@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <!-- Background layer: an atlas sheet. Paper land, the Mediterranean with the Carmel cape, relief contours, the Kinneret. -->
+  <rect width="108" height="108" fill="#F8F3E8"/>
+  <path fill="none" stroke="#DDCFB4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+        d="M60,108C60,96 66,88 74,86C82,84 86,78 92,79C98,80 102,86 108,86
+           M50,108C51,92 58,82 68,77C78,72 80,66 90,66C98,66 102,72 108,72
+           M42,98C46,82 52,72 62,66C72,60 72,52 82,51C92,50 98,56 108,56"/>
+  <path fill="#7FB2DC" d="M75,25c3,-1 6,1 6,5c0,5 -2,9 -5,9c-3,0 -4,-4 -4,-8c0,-3 1,-5 3,-6z"/>
+  <path fill="none" stroke="#7FB2DC" stroke-width="1.6" stroke-linecap="round" d="M78,18C77,20 78,22 77,25M76,39C77,44 75,50 77,56"/>
+  <path fill="#1E5A82" d="M0,0H54C55,10 55,20 50,26C46,31 39,31 36,36C34,40 39,43 40,48C40,64 37,84 31,108H0Z"/>
+  <!-- Foreground layer: the game's moment. A tap, the dotted line to the true place, and the place itself. -->
+  <circle cx="52.2" cy="71.4" r="1.25" fill="#211E19"/>
+  <circle cx="54.5" cy="67.5" r="1.25" fill="#211E19"/>
+  <circle cx="56.8" cy="63.6" r="1.25" fill="#211E19"/>
+  <circle cx="49" cy="77" r="3.6" fill="#211E19"/>
+  <circle cx="64" cy="51" r="9.5" fill="#F8F3E8" stroke="#A2441C" stroke-width="4"/>
+  <circle cx="64" cy="51" r="3.6" fill="#A2441C"/>
+</svg>

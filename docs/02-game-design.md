@@ -1,6 +1,12 @@
 # 02. Game Design
 
-App name: **Mapa** (מפה). The app is in Hebrew only.
+App name: **על המפה** (Al HaMapa, "on the map"). The app is in Hebrew only.
+
+The name says what you do, tap on the map, and what you get: in Hebrew, putting a place
+"on the map" means it now counts, as each place does once you know it. The icon is a corner
+of an atlas of Israel (the Mediterranean with the Carmel cape, the Kinneret and the Jordan,
+relief contours on paper) with the game's own moment on it: a tap, the dotted line to the
+true place, and the place in terracotta. Its master is `marketing/brand/icon.svg`.
 
 ## Vision
 
