@@ -34,7 +34,7 @@ asked. Installing a newer build updates the app and keeps your progress.
 
 ![Phase 1c: welcome, placement test, home with the reminder offer, progress, settings in dark mode, and the dark map with the Green Line](docs/images/phase1c-flow.png)
 
-![Points: the running score above a question, 5,000 points for a tap inside the sea, 3 points for a miss 107 km away, and the session total](docs/images/points.png)
+![Points: the running score above a question, 5,000 points for a tap inside the sea, 23 points for a miss 79 km away, and the session total](docs/images/points.png)
 
 ![Map Builder and focused practice: the Sharon dragged from the sea, its feedback with the true place, the two rounds on home, and focused practice opening on the place missed most](docs/images/drills.png)
 
@@ -105,7 +105,8 @@ The design is built on the most robust findings in learning science:
 | `content/elevation_detail.bin`, `content/elevation.json` | Ground height on a 100 m grid around Israel (Copernicus DEM GLO-90); the pipeline cuts it to Israel's land for the relief style |
 | `tools/fetch_sources.py` | Refreshes the source files in `content/` |
 | `content/surroundings.geojson`, `content/palestine.geojson` | Coastlines, neighbors and the Dead Sea (OpenStreetMap); Gaza and the Green Line (UN OCHA) |
-| `marketing/brand/` | The app icon's master (`icon.svg`), the 512 px store icon and the logo, rendered by `render.js` |
+| `marketing/brand/` | `make_icon.py` draws the app icon from the game map into `icon.svg` and the Android drawables; `render.js` renders the 512 px store icon and the logo |
+| `tools/readme_images.sh` | Rebuilds the README pictures from the screen tests' screenshots |
 | `tools/build_content.py` | Data pipeline: the files above + `places.yaml` into `app/src/main/assets/` |
 
 ## Build and test
@@ -118,7 +119,8 @@ or `ANDROID_HOME`).
 ./gradlew :app:assembleDebug   # APK at app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The screen tests save screenshots of a real session to `app/build/screenshots/`.
+The screen tests save screenshots of a real session to `app/build/screenshots/`;
+`tools/readme_images.sh` then rebuilds the pictures in this README from them.
 
 To change what is taught, edit `content/places.yaml` and regenerate the assets:
 
