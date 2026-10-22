@@ -334,6 +334,7 @@
 
     <string name="onboarding_map_test">מבחן מפה קצר לפני שמתחילים</string>
     <string name="onboarding_map_test_note">20 מקומות, בלי משוב, כ־2 דקות. בעוד חודש תעשו אותו שוב ותראו כמה למדתם.</string>
+    <string name="onboarding_looks_note">אפשר לשנות גם אחר כך בהגדרות.</string>
     <string name="onboarding_map_test_done">מבחן המפה נשמר. בעוד חודש נשווה.</string>
 
     <string name="map_test_title">מבחן המפה</string>

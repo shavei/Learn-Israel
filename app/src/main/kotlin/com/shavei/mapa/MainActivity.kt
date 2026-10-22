@@ -174,6 +174,10 @@ private fun App(app: MapaApplication, settings: Settings) {
             OnboardingScreen(
                 app.content,
                 mapTestDone = mapTestDone,
+                theme = settings.theme,
+                mapStyle = settings.mapStyle,
+                onTheme = { theme -> app.settings.update { it.copy(theme = theme) } },
+                onMapStyle = { style -> app.settings.update { it.copy(mapStyle = style) } },
                 onStart = { startSession(SessionKind.DAILY) },
                 onPlacement = { startSession(SessionKind.PLACEMENT) },
                 onMapTest = { startSession(SessionKind.MAP_TEST) },

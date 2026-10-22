@@ -11,6 +11,9 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import com.shavei.mapa.data.MapStyle
+import com.shavei.mapa.data.ThemeChoice
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -37,6 +40,24 @@ class AppFlowTest {
     private fun screenshot(name: String) {
         compose.waitForIdle()
         Screenshots.save(compose.activity, name)
+    }
+
+    @Test
+    fun welcomeScreenPicksThemeAndMapStyle() {
+        waitForText("בואו נתחיל")
+        val settings = (compose.activity.application as MapaApplication).settings
+        compose.onNode(hasContentDescription("ערכת צבעים: כהה")).performClick()
+        compose.onNode(hasContentDescription("מפה: תבליט")).performClick()
+        compose.waitForIdle()
+        assertEquals(ThemeChoice.DARK, settings.current.theme)
+        assertEquals(MapStyle.RELIEF, settings.current.mapStyle)
+        screenshot("0-welcome-dark-relief")
+
+        compose.onNode(hasContentDescription("ערכת צבעים: בהירה")).performClick()
+        compose.onNode(hasContentDescription("מפה: רגילה")).performClick()
+        compose.waitForIdle()
+        assertEquals(ThemeChoice.LIGHT, settings.current.theme)
+        assertEquals(MapStyle.STANDARD, settings.current.mapStyle)
     }
 
     @Test
