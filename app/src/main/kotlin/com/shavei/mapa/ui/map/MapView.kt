@@ -243,6 +243,11 @@ fun MapView(
     modifier: Modifier = Modifier,
     decorations: List<MapDecoration> = emptyList(),
     showGreenLine: Boolean = false,
+    /**
+     * The faint dashed borders between natural regions. Off in Map Builder, where they would
+     * trace the very shape being placed: regions are made of them, and districts of regions.
+     */
+    showRegionOutlines: Boolean = true,
     /** What a screen reader says about the map. */
     description: String? = null,
     onTap: ((MapPoint) -> Unit)? = null,
@@ -324,10 +329,12 @@ fun MapView(
                 drawPath(layers.gaza, colors.border, style = Stroke(width = px))
             }
             drawPath(layers.land, colors.border, style = Stroke(width = 1.5f * px))
-            drawPath(
-                layers.regions, colors.regionOutline,
-                style = Stroke(width = px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f * px, 4f * px))),
-            )
+            if (showRegionOutlines) {
+                drawPath(
+                    layers.regions, colors.regionOutline,
+                    style = Stroke(width = px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f * px, 4f * px))),
+                )
+            }
             drawPath(layers.rivers, colors.river, style = Stroke(width = 2f * px, cap = StrokeCap.Round, join = StrokeJoin.Round))
             drawPath(layers.lakes, colors.lake)
             if (showGreenLine) drawPath(layers.greenLine, colors.greenLine, style = Stroke(width = 1.5f * px))

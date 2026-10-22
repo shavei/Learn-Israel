@@ -243,6 +243,8 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
         else -> emptyList()
     }
     val asking = (ui as? SessionUi.Ask)?.question
+    // Map Builder, asked or answered: the region outlines would show where every shape fits.
+    val building = asking is Question.Build || (ui as? SessionUi.Feedback)?.answer?.question is Question.Build
 
     // The open Map Builder shape: how far it is from its place. It can be placed once moved.
     val build = asking as? Question.Build
@@ -356,6 +358,7 @@ fun SessionScreen(content: Content, viewModel: SessionViewModel, showGreenLine: 
     Box(Modifier.fillMaxSize().onGloballyPositioned { rootWidth = it.size.width.toFloat() }) {
         MapView(
             content.map, camera, Modifier.fillMaxSize().testTag("map"), decorations + drillDecorations, showGreenLine,
+            showRegionOutlines = !building,
             description = stringResource(R.string.session_map_description),
             onTap = if (asking is Question.Locate) viewModel::onTap else null,
             onDrag = drag,
