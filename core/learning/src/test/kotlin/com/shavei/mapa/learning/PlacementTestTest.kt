@@ -73,8 +73,8 @@ class PlacementTestTest {
     fun anExpertPassesEveryLevelAndTheRestIsCredited() {
         val t = test()
         val asked = play(t) { true }
-        // Two finds pass a level of three probes.
-        assertEquals(8, asked.size)
+        // Three finds pass a level of four probes.
+        assertEquals(12, asked.size)
         assertEquals(4, t.passedLevels.size)
         assertEquals(content.places.map { it.id }.toSet() - asked.map { it.id }.toSet(), creditedIds(t))
     }

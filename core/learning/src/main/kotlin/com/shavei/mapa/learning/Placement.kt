@@ -103,7 +103,7 @@ class PlacementTest(
         if (!correct) missed++
         when {
             missed > ALLOWED_MISSES -> endLadder(level.theme)
-            asked - missed >= level.probes - ALLOWED_MISSES -> {
+            asked - missed >= maxOf(1, level.probes - ALLOWED_MISSES) -> {
                 passed += level
                 nextLevel()
             }
@@ -132,8 +132,8 @@ class PlacementTest(
         const val ALLOWED_MISSES = 1
 
         /** Probes for a level of fewer than [LARGE_LEVEL] places, and for a larger one. */
-        const val PROBES = 3
-        const val LARGE_PROBES = 4
+        const val PROBES = 4
+        const val LARGE_PROBES = 6
         const val LARGE_LEVEL = 20
 
         /** A level with fewer places joins the one before it: a couple of questions should credit more than a couple of places. */
@@ -164,7 +164,8 @@ class PlacementTest(
             return groups.map { places ->
                 val units = places.groupBy { it.unit }.values.map { it.shuffled(random) }.shuffled(random)
                 val order = (0 until units.maxOf { it.size }).flatMap { i -> units.mapNotNull { it.getOrNull(i) } }
-                Level(theme, places, if (places.size < LARGE_LEVEL) PROBES else LARGE_PROBES, order)
+                // A theme too small for a full level is asked about every place it has.
+                Level(theme, places, minOf(places.size, if (places.size < LARGE_LEVEL) PROBES else LARGE_PROBES), order)
             }
         }
     }
