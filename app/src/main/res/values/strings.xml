@@ -529,6 +529,17 @@
     <string name="settings_placement">בדיקת רמה</string>
     <string name="settings_placement_again">לבדיקת הרמה</string>
     <string name="settings_placement_note">עד 5 דקות. השאלות מתקשות עד גבול הידע שלכם. מקומות ברמות שתעברו ועוד לא התחלתם ללמוד ייחשבו ידועים ויחזרו לאישור. מה שכבר בתרגול לא משתנה.</string>
+    <string name="settings_update">עדכון האפליקציה</string>
+    <string name="settings_update_note">האפליקציה מתחברת לאינטרנט רק כשלוחצים כאן, כדי לבדוק אם יש גרסה חדשה ולהוריד אותה. ההתקדמות שלכם נשמרת.</string>
+    <string name="settings_update_check">בדיקת עדכונים</string>
+    <string name="settings_update_checking">בודקים…</string>
+    <string name="settings_update_none">יש לכם את הגרסה החדשה ביותר.</string>
+    <string name="settings_update_available">יש גרסה חדשה.</string>
+    <string name="settings_update_install">הורדה והתקנה</string>
+    <string name="settings_update_downloading">מורידים…</string>
+    <string name="settings_update_ready">ההורדה הסתיימה. אשרו את ההתקנה בחלון של אנדרואיד.</string>
+    <string name="settings_update_again">להתקנה</string>
+    <string name="settings_update_failed">אין חיבור לאינטרנט, או שהשרת לא ענה. נסו שוב מאוחר יותר.</string>
 
     <string name="reminder_channel">תזכורת יומית</string>
     <string name="reminder_new">מקומות חדשים מחכים לכם במפה</string>

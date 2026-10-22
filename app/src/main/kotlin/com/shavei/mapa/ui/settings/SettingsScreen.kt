@@ -240,6 +240,10 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedButton(onClick = onPlacement) { Text(stringResource(R.string.settings_placement_again)) }
+
+            HorizontalDivider()
+            Section(stringResource(R.string.settings_update))
+            UpdateSection()
         }
     }
 
