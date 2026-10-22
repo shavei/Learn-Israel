@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
+import kotlin.random.Random
 
 sealed interface SessionUi {
     data object Loading : SessionUi
@@ -63,6 +64,8 @@ data class SessionSummary(
     val maxPoints: Int = 0,
     /** The placement test, where [correct] places were found and seeded. */
     val placement: Boolean = false,
+    /** The placement test: places of the levels passed that were not asked, now in review. */
+    val credited: Int = 0,
     /** The map test's score, and for a post-test the pre-test to compare it with. */
     val mapTest: MapTestResult? = null,
     val preTest: MapTestResult? = null,
@@ -160,7 +163,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
      * one). Null where the length is open (the daily session) or shown otherwise.
      */
     fun plannedTotal(number: Int): Int? = when (kind) {
-        SessionKind.PLACEMENT -> PlacementTest.MAX_QUESTIONS
+        SessionKind.PLACEMENT -> engine.plannedTotal
         SessionKind.FOCUS -> engine.plannedTotal?.let { maxOf(number, it) }
         SessionKind.BUILD -> {
             val asked = HashSet<CardKey>()
@@ -219,7 +222,7 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
             val cards = app.progress.cards()
             rankBefore = Rank.of(cards.count { (k, c) -> k.facet == Facet.LOCATE && isKnown(c.fsrs) })
             engine = when (kind) {
-                SessionKind.PLACEMENT -> PlacementTest(app.content, app.scheduler)
+                SessionKind.PLACEMENT -> PlacementTest(app.content, app.scheduler, random = placementRandom)
                 SessionKind.MAP_TEST -> {
                     if (app.progress.hasAnsweredWithFeedback()) mapTestKind = MapTestKind.POST
                     MapTest(app.content)
@@ -361,12 +364,14 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
      * the first time and a new rank are added to it, and a blitz is saved with its score.
      */
     private fun finish() {
-        val summary = summary()
+        val credited = (engine as? PlacementTest)?.credited().orEmpty()
+        val summary = summary().copy(credited = credited.size)
         _ui.value = SessionUi.Finished(summary)
         val previous = saving
         viewModelScope.launch {
             previous?.join()
             val now = System.currentTimeMillis()
+            if (credited.isNotEmpty()) app.progress.credit(credited)
             if (daily) app.progress.finishDailySession(sessionId, now)
             val recordBefore = if (summary.blitz) {
                 app.progress.saveBlitz(sessionId, now, summary.points, summary.answers, summary.correct)
@@ -437,6 +442,10 @@ class SessionViewModel(private val app: MapaApplication, val kind: SessionKind) 
         /** How long a blitz lasts; tests shorten it. */
         @VisibleForTesting
         var blitzDurationMs = Blitz.DURATION_MS
+
+        /** Picks the placement test's questions; tests fix it. */
+        @VisibleForTesting
+        var placementRandom: Random = Random.Default
 
         /** A blitz tap this soon after its question is the rest of the last tap, not an answer. */
         const val BLITZ_TAP_GUARD_MS = 300L

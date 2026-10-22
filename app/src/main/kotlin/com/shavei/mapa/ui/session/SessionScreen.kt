@@ -737,7 +737,12 @@ private fun SummaryCard(
                     if (summary.found.isNotEmpty()) {
                         Text(stringResource(R.string.placement_found_list, summary.found.joinToString(", ") { it.name }))
                     }
-                    Text(stringResource(R.string.placement_summary_note))
+                    if (summary.credited > 0) {
+                        Text(pluralStringResource(R.plurals.placement_summary_credited, summary.credited, summary.credited))
+                        Text(stringResource(R.string.placement_summary_note_credited))
+                    } else {
+                        Text(stringResource(R.string.placement_summary_note))
+                    }
                 }
                 kind == SessionKind.BUILD -> {
                     Text(stringResource(R.string.build_summary_title), style = title)

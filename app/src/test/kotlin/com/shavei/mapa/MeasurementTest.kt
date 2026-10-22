@@ -67,8 +67,8 @@ class MeasurementTest {
     @Test
     fun preTestAtOnboardingMeasuresWithoutTeaching() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("מבחן מפה קצר לפני שמתחילים")
-            compose.onNodeWithText("מבחן מפה קצר לפני שמתחילים").performClick()
+            waitForText("מדדו מאיפה אתם מתחילים")
+            compose.onNodeWithText("מדדו מאיפה אתם מתחילים").performClick()
             waitForText("סמנו על המפה: חיפה")
             Screenshots.save(scenario, "d1-map-test-ask")
             answerAllTwenty()

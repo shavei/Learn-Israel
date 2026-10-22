@@ -121,13 +121,15 @@ interface ProgressDao {
 
     /**
      * Places introduced at or after [since]: first practiced then, outside the placement
-     * test. A place the placement test found was never introduced; one it missed is
+     * test. A place the placement test found or credited was never introduced (a credited
+     * place is first answered with its card already in review); one it missed is
      * introduced when it is first taught.
      */
     @Query(
         """SELECT COUNT(*) FROM (SELECT placeId FROM reviews GROUP BY placeId
             HAVING MIN(CASE WHEN mode NOT IN ('PLACEMENT', 'MAP_TEST') THEN timestamp END) >= :since
-            AND MAX(mode = 'PLACEMENT' AND rating >= 3) = 0)""",
+            AND MAX(mode = 'PLACEMENT' AND rating >= 3) = 0
+            AND MAX(mode NOT IN ('PLACEMENT', 'MAP_TEST') AND facet = 'LOCATE' AND stateBefore IS NULL) = 1)""",
     )
     suspend fun countIntroducedSince(since: Long): Int
 

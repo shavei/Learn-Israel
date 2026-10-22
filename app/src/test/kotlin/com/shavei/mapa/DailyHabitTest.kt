@@ -82,18 +82,18 @@ class DailyHabitTest {
             compose.onNodeWithText("בואו נתחיל").performClick()
             waitForText("מקום חדש")
             back(scenario)
-            waitForText("כבר מכירים את הארץ? בדיקת רמה")
+            waitForText("כבר מכירים? דלגו על מה שאתם יודעים")
 
             // The same for the placement test, backed out of at its first question.
-            compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
+            compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
             waitForText("בדיקת רמה\u00A0· שאלה 1")
             back(scenario)
-            waitForText("מבחן מפה קצר לפני שמתחילים")
+            waitForText("מדדו מאיפה אתם מתחילים")
             Screenshots.save(scenario, "h1-welcome-after-back")
             assertFalse(app.settings.current.onboarded)
 
             // One answer in the placement test, and the player is in.
-            compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
+            compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
             waitForText("בדיקת רמה\u00A0· שאלה 1")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.08f, height * 0.45f)) }
             waitForText("המשך")

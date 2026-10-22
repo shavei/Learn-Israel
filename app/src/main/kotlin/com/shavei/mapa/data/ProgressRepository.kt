@@ -192,6 +192,21 @@ class ProgressRepository(
     private fun day(at: Long, zone: ZoneId) = Instant.ofEpochMilli(at).atZone(zone).toLocalDate()
 
     /**
+     * The places the placement test credited without asking: their cards, unless the player
+     * has already started them. No answer is logged, since none was given.
+     */
+    suspend fun credit(cards: Map<CardKey, StudyCard>) {
+        for ((key, c) in cards) {
+            dao.insertIfAbsent(
+                CardEntity(
+                    key.placeId, key.facet.name, c.fsrs.state.value, c.fsrs.step, c.fsrs.stability, c.fsrs.difficulty,
+                    c.fsrs.due, c.fsrs.lastReview, c.struggles,
+                ),
+            )
+        }
+    }
+
+    /**
      * Saves an answer and the card it changed. In the placement test only places the
      * player found get a card, and the map test changes none; every answer is logged.
      */

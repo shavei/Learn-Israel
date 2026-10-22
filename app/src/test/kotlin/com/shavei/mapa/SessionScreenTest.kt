@@ -16,6 +16,8 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.shavei.mapa.data.CardEntity
 import com.shavei.mapa.data.MapTestEntity
+import com.shavei.mapa.geo.MapPoint
+import com.shavei.mapa.geo.Shape
 import com.shavei.mapa.learning.Question
 import com.shavei.mapa.learning.fsrs.CardState
 import com.shavei.mapa.learning.fsrs.DAY_MS
@@ -136,8 +138,8 @@ class SessionScreenTest {
     @Test
     fun leavingTheMapTestDiscardsItsAnswers() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("מבחן מפה קצר לפני שמתחילים")
-            compose.onNodeWithText("מבחן מפה קצר לפני שמתחילים").performClick()
+            waitForText("מדדו מאיפה אתם מתחילים")
+            compose.onNodeWithText("מדדו מאיפה אתם מתחילים").performClick()
             waitForText("מבחן מפה\u00A0· שאלה 1 מתוך 20")
             compose.onNodeWithTag("map").performTouchInput { click(Offset(width * 0.5f, height * 0.55f)) }
             waitForText("מבחן מפה\u00A0· שאלה 2 מתוך 20")
@@ -326,8 +328,8 @@ class SessionScreenTest {
     @Test
     fun placementListsThePlacesFound() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText("כבר מכירים את הארץ? בדיקת רמה")
-            compose.onNodeWithText("כבר מכירים את הארץ? בדיקת רמה").performClick()
+            waitForText("כבר מכירים? דלגו על מה שאתם יודעים")
+            compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
             var found: String? = null
             while (true) {
                 waitForUi(scenario, SessionUi.Ask::class.java, SessionUi.Feedback::class.java, SessionUi.Finished::class.java)
@@ -349,6 +351,44 @@ class SessionScreenTest {
             }
             waitForText("מצאתם: $found")
             shot(scenario, "s14-placement-found")
+        }
+    }
+
+    @Test
+    fun placementCreditsTheLevelsAnExpertPasses() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("כבר מכירים? דלגו על מה שאתם יודעים")
+            compose.onNodeWithText("כבר מכירים? דלגו על מה שאתם יודעים").performClick()
+            var asked = 0
+            while (true) {
+                waitForUi(scenario, SessionUi.Ask::class.java, SessionUi.Feedback::class.java, SessionUi.Finished::class.java)
+                when (val s = session(scenario).ui.value) {
+                    is SessionUi.Finished -> break
+                    is SessionUi.Feedback -> compose.onNodeWithText("המשך").performClick()
+                    is SessionUi.Ask -> {
+                        // Every place found: a point at its spot, an area at its label, a road on its line.
+                        val at = when (val shape = s.question.place.shape) {
+                            is Shape.Point -> shape.at
+                            is Shape.Lines -> shape.lines.first().let { MapPoint(it.coords[0], it.coords[1]) }
+                            is Shape.Area -> s.question.place.label
+                        }
+                        asked++
+                        compose.runOnIdle { session(scenario).onTap(at) }
+                        compose.waitUntil(10_000) { session(scenario).ui.value is SessionUi.Feedback }
+                    }
+                    else -> Unit
+                }
+            }
+            waitForText("ועוד ${app.content.places.size - asked} מקומות ברמות שעברתם נחשבים ידועים.")
+            shot(scenario, "s15-placement-credited")
+            compose.waitUntil(10_000) { session(scenario).let { (it.ui.value as SessionUi.Finished).summary.saved } }
+        }
+        // Every place is in review, and none of them counts as introduced today.
+        runBlocking {
+            val cards = app.database.progressDao().cards()
+            assertEquals(app.content.places.size, cards.size)
+            assertTrue(cards.all { it.state == CardState.REVIEW.value })
+            assertEquals(0, app.database.progressDao().countIntroducedSince(0))
         }
     }
 
