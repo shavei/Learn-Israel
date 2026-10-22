@@ -94,16 +94,21 @@ jobs:
             --title "Build ${SHA:0:7}, $(date -u '+%Y-%m-%d %H:%M') UTC" \
             --notes "Debug build of main at $SHA ($subject), published automatically. Install mapa.apk on an Android phone (8.0 or newer)."
           gh release edit "$tag" --draft=false --latest
+      # GitHub moves the "latest" link to a new release some time after it is published:
+      # 42 s once, 1-2 minutes in October 2026, past the 60 s this step used to wait. It now
+      # waits up to 10 minutes, and each try logs where the link points.
       - name: The download link serves this build
         if: steps.check.outputs.done != 'true'
         run: |
+          link="https://github.com/$GH_REPO/releases/latest/download/mapa.apk"
           want=$(sha256sum mapa.apk | cut -d' ' -f1)
-          for i in 1 2 3 4 5 6; do
-            got=$(curl -fsSL "https://github.com/$GH_REPO/releases/latest/download/mapa.apk" | sha256sum | cut -d' ' -f1)
-            [ "$got" = "$want" ] && { echo "Latest download is this build."; exit 0; }
-            sleep 10
+          for i in $(seq 1 30); do
+            got=$(curl -fsSL "$link" | sha256sum | cut -d' ' -f1)
+            [ "$got" = "$want" ] && { echo "Latest download is this build (try $i)."; exit 0; }
+            echo "Try $i: the link points to $(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "$link" || true)"
+            sleep 20
           done
-          echo "::error::The latest download link does not serve this build."
+          echo "::error::The latest download link does not serve this build after 10 minutes."
           exit 1
       - name: Keep the five newest builds
         if: steps.check.outputs.done != 'true'
